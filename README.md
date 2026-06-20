@@ -48,6 +48,7 @@ upgrade for future bio-plausible runs.
 |------|---------|
 | `tc_network.py` | `AuditoryThalamoCorticalSleep` — builds/wires/drives/runs the column |
 | `tc_run.py` | CLI driver: run, build LFP-proxy signals, verify 1 Hz & 13 Hz, plot |
+| `tc_architecture.py` | draws the thalamo-cortical loop architecture schematic (`out/tc_architecture.png`, no NEST needed) |
 | `config/network_auditory_local.yaml` | small (~112 neurons), short — local sane test |
 | `config/network_auditory_mn5.yaml` | realistic (~1150 neurons), long — bio-plausible MN5 |
 | `slurm/tc_sleep_mn5.sbatch` | MareNostrum 5 submission (single long, multi-threaded run) |
