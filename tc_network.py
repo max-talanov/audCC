@@ -137,19 +137,40 @@ class NetworkConfig:
 
 @dataclass
 class SynapseParams:
-    """Synaptic weights/delays and connection probability (cc defaults)."""
+    """Synaptic weights/delays and connection probability.
 
-    exc_weight_mean: float = 0.001   # uS (NEURON ExpSyn units; scaled to nS)
-    exc_weight_std: float = 0.0009
-    exc_tau: float = 2.0
+    Connection *topology* and weight regime follow cc; the synaptic
+    **biophysics** (reversal potentials and decay time constants) are taken from
+    the conductance-based thalamocortical sleep model of Mushtaq et al. 2024
+    (PLOS ONE 19(6):e0306218), Table 3 and the "Synaptic currents" section.
+
+    Note on units: Mushtaq's maximal conductances are HH area-based
+    (mS/cm^2 x area), so the *absolute* values are not transferable to our point
+    ``iaf_cond_exp`` cells; what transfers are the reversal potentials, the
+    kinetics, and the relative conductance ratios (see ``SleepParams``).
+    """
+
+    # Charge-preserving calibration: adopting the slower Mushtaq AMPA tau
+    # (2.0 -> 5.3 ms) raises the charge per excitatory event ~2.6x, which alone
+    # drives the recurrent cortex into runaway. iaf_cond_exp cannot inherit the
+    # HH area-based absolute conductances, so the intracortical excitatory
+    # weight is scaled by ~2.0/5.3 to hold weight x tau (the per-event charge)
+    # roughly constant and keep cortex in a plausible firing regime.
+    exc_weight_mean: float = 0.00038  # uS (NEURON ExpSyn units; scaled to nS)
+    exc_weight_std: float = 0.00034
+    # AMPA decay tau. Mushtaq 2024 first-order scheme: alpha=1.1, beta=0.19 ms^-1
+    # -> tau_decay = 1/beta ~= 5.3 ms (NMDA, tau ~150 ms, is not represented by
+    # the single exp conductance of iaf_cond_exp and is omitted).
+    exc_tau: float = 5.3
     exc_delay_mean: float = 3.0
     exc_delay_std: float = 1.0
-    exc_e: float = 0.0
+    exc_e: float = 0.0               # AMPA/NMDA E_syn = 0 mV (Mushtaq 2024)
     min_delay: float = 0.2
     inh_weight: float = 0.0015
+    # GABA_A decay tau. Mushtaq 2024: beta=0.166 ms^-1 -> tau_decay ~= 6.0 ms.
     inh_tau: float = 6.0
     inh_delay: float = 2.0
-    inh_e: float = -75.0
+    inh_e: float = -70.0             # GABA_A E_syn = -70 mV (Mushtaq 2024)
     conn_prob: float = 0.1
 
 
@@ -189,15 +210,24 @@ class SleepParams:
     spindle_amp: float = 60.0         # pA, into nRT + TCR
     spindle_phase_deg: float = 0.0
 
-    # reticulo-thalamic loop tuning (the spindle resonator)
-    rt_inh_weight: float = 0.014      # uS, nRT -> TCR
+    # Reticulo-thalamic loop tuning (the spindle resonator). The connection
+    # topology and the *relative* weighting follow Mushtaq et al. 2024 Table 3
+    # (intra-thalamic block): TC->RE (AMPA, .1 uS), RE->TC (GABA_A .05 + GABA_B
+    # .02 uS), RE->RE (GABA_A .05 uS). GABA_B is lumped into the single GABA
+    # conductance here, so RE->TC is the strongest inhibition (~.07) and
+    # RE->RE matches GABA_A (.05). Absolute uS are not transferable (HH area-
+    # based -> point cell), so these are calibrated to our operating point while
+    # keeping the resonator at ~13 Hz.
+    rt_inh_weight: float = 0.014      # uS, nRT -> TCR  (Mushtaq RE->TC, strongest)
     rt_inh_delay: float = 6.0         # ms (half of ~1/13 s round trip)
-    tr_exc_weight: float = 0.006      # uS, TCR -> nRT
+    tr_exc_weight: float = 0.006      # uS, TCR -> nRT  (Mushtaq TC->RE, AMPA)
     tr_exc_delay: float = 4.0         # ms
-    nrt_self_weight: float = 0.006    # uS, nRT -> nRT
-    # corticothalamic feedback (L6 -> thalamus), closes the loop. Light, so it
-    # paces/biases the relay (Up-state grouping of spindles) without saturating it.
-    ct_fb_weight: float = 0.0008      # uS, L6_E -> TCR / nRT
+    nrt_self_weight: float = 0.006    # uS, nRT -> nRT  (Mushtaq RE->RE, GABA_A)
+    # Corticothalamic feedback (L6 -> thalamus), closes the loop. Mushtaq 2024
+    # Table 3 (cortico-thalamic block) has PY->TC (AMPA .003) twice PY->RE
+    # (AMPA .0015), so the feedback onto the relay is twice that onto nRT.
+    ct_fb_weight: float = 0.0008      # uS, L6_E -> TCR  (Mushtaq PY->TC)
+    ct_fb_weight_nrt: float = 0.0004  # uS, L6_E -> nRT  (Mushtaq PY->RE, = TC/2)
 
 
 @dataclass
@@ -433,6 +463,12 @@ class AuditoryThalamoCorticalSleep:
         # raise prob/weight so L4 is actually driven (and spindles propagate).
         self.connect_exc(pops["thalamus_E"], pops["L4_E"],
                          weight=0.004, delay=self.syn.exc_delay_mean, prob=0.6)
+        # Thalamocortical feedforward inhibition: TC -> IN (Mushtaq 2024 Table 3,
+        # TC->IN AMPA, same conductance as TC->PY but a smaller connecting radius
+        # (5 vs 21) -> more focal). This was missing in cc; it lets thalamic input
+        # recruit cortical interneurons, sharpening the UP-state response.
+        self.connect_exc(pops["thalamus_E"], pops["L4_I"],
+                         weight=0.004, delay=self.syn.exc_delay_mean, prob=0.3)
         self.connect_exc(pops["thalamus_E"], pops["thalamus_I"],  # TCR -> nRT
                          weight=self.sleep.tr_exc_weight, delay=self.sleep.tr_exc_delay,
                          prob=1.0)
@@ -476,11 +512,13 @@ class AuditoryThalamoCorticalSleep:
 
         # --- CLOSING THE LOOP (additions over cc) ---
         s = self.sleep
-        # corticothalamic feedback: L6 -> MGB (TCR) and L6 -> nRT
+        # corticothalamic feedback: L6 -> MGB (TCR) and L6 -> nRT. Mushtaq 2024
+        # Table 3: PY->TC (.003) is twice PY->RE (.0015), so the relay gets the
+        # stronger feedback (ct_fb_weight) and nRT the weaker (ct_fb_weight_nrt).
         self.connect_exc(pops["L6_E"], pops["thalamus_E"],
                          weight=s.ct_fb_weight, delay=s.tr_exc_delay)
         self.connect_exc(pops["L6_E"], pops["thalamus_I"],
-                         weight=s.ct_fb_weight, delay=s.tr_exc_delay)
+                         weight=s.ct_fb_weight_nrt, delay=s.tr_exc_delay)
         # reciprocal reticulo-thalamic inhibition: nRT -> TCR and nRT -> nRT.
         # The TCR<->nRT loop with these delays is the ~13 Hz spindle resonator.
         self.connect_inh(pops["thalamus_I"], pops["thalamus_E"],
