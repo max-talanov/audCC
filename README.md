@@ -42,6 +42,42 @@ rhythmogenesis. Swapping the neuron model to NEST's `ht_neuron` (Hill–Tononi,
 with Ih/IT/INaP/IKNa) would make both rhythms fully emergent — a documented
 upgrade for future bio-plausible runs.
 
+## Parameters from Mushtaq et al. 2024
+
+The synaptic biophysics and network sizing are aligned with the conductance-based
+thalamocortical sleep model of **Mushtaq, Marshall, ul Haq & Martinez (2024),
+*"Possible mechanisms to improve sleep spindles via closed loop stimulation
+during slow wave sleep: A computational study"*, PLOS ONE 19(6):e0306218**
+([doi](https://doi.org/10.1371/journal.pone.0306218)). That model is full
+Hodgkin–Huxley with PY/IN cortical and TC/RE thalamic cells, so its **absolute,
+area-based conductances (mS/cm²·area) are not transferable** to our point
+`iaf_cond_exp` cells. What *is* transferable was adopted:
+
+- **Synaptic reversal potentials** (Table 3 / "Synaptic currents"): AMPA/NMDA
+  `E_syn = 0 mV`, **GABA_A `E_syn = −70 mV`** (was −75). GABA_B / `E_K = −95 mV`
+  is noted but lumped into the single GABA conductance (no separate GABA_B here).
+- **Synaptic kinetics** from the first-order rate constants: **AMPA `τ ≈ 5.3 ms`**
+  (β = 0.19 ms⁻¹; was 2.0) and **GABA_A `τ ≈ 6.0 ms`** (β = 0.166 ms⁻¹; already
+  matched). NMDA (`τ ≈ 150 ms`) is not represented by the single-exponential
+  conductance and is omitted. Because the slower AMPA τ alone drives the
+  recurrent cortex into runaway, the intracortical excitatory weight is scaled
+  by ≈ 2.0/5.3 (**charge-preserving calibration**, holding weight × τ roughly
+  constant) so the network keeps the article kinetics in a plausible firing
+  regime.
+- **Relative thalamic-loop conductances** (Table 3, intra-thalamic block):
+  TC→RE (AMPA) strongest, RE→TC (GABA_A + GABA_B) and RE→RE (GABA_A) — the
+  resonator weights honour these ratios.
+- **Corticothalamic feedback ratio** (Table 3, cortico-thalamic block):
+  **PY→TC = 2 × PY→RE**, so L6→TCR feedback is twice L6→nRT.
+- **TC→IN thalamocortical inhibition** (Table 3) — a feedforward TC→interneuron
+  projection (more focal than TC→PY) that cc lacked, added as `thalamus_E → L4_I`.
+- **Network sizing** (Fig 1/3, "Network geometry"): `config/network_auditory_mushtaq.yaml`
+  uses **PY = 200 / IN = 40 / TC = 40 / RE = 40**, with the 200 excitatory cells
+  distributed across the auditory laminae (E:I = 5:1 preserved) and the thalamus
+  matching exactly. At this sizing the model reproduces the article's control
+  rhythms cleanly: **slow wave ≈ 1.00 Hz, spindle ≈ 13.0 Hz** (within Mushtaq's
+  10–16 Hz control band).
+
 ## Files
 
 | file | purpose |
@@ -50,6 +86,7 @@ upgrade for future bio-plausible runs.
 | `tc_run.py` | CLI driver: run, build LFP-proxy signals, verify 1 Hz & 13 Hz, plot |
 | `tc_architecture.py` | draws the thalamo-cortical loop architecture schematic (`out/tc_architecture.png`, no NEST needed) |
 | `config/network_auditory_local.yaml` | small (~112 neurons), short — local sane test |
+| `config/network_auditory_mushtaq.yaml` | Mushtaq et al. 2024 sizing (PY 200 / IN 40 / TC 40 / RE 40), 15 s |
 | `config/network_auditory_mn5.yaml` | realistic (~1150 neurons), long — bio-plausible MN5 |
 | `slurm/tc_sleep_mn5.sbatch` | MareNostrum 5 submission (single long, multi-threaded run) |
 

@@ -1,0 +1,48 @@
+# Auditory thalamo-cortical sleep model - Mushtaq et al. 2024 sizing.
+#
+# Population sizes after Mushtaq, Marshall, ul Haq & Martinez (2024),
+# "Possible mechanisms to improve sleep spindles via closed loop stimulation
+# during slow wave sleep: A computational study", PLOS ONE 19(6):e0306218,
+# Fig 1 / Fig 3 and the "Network geometry" section: a PY layer of 5N = 200
+# neurons and all other layers N = 40 (IN, TC, RE).
+#
+# Mushtaq's cortex is a single PY (200) + IN (40) layer; this auditory model
+# keeps the laminar column, so the 200 excitatory cells are distributed across
+# L4/L2-3/L5/L6 (sum = 200) and the 40 inhibitory cells across the interneuron
+# pools, preserving the article's total cell counts and E:I ratio (200:40 = 5:1)
+# while retaining auditory laminar structure. The thalamus matches exactly:
+# TC (relay/E) = 40, RE (reticular/I) = 40.
+#
+#   python3 tc_run.py --config config/network_auditory_mushtaq.yaml \
+#       --tstop 15000 --outdir out --tag mushtaq
+
+network:
+  thalamus:        # MGB: TC relay (E) + RE reticular (I) - Mushtaq exact
+    E: 40
+    I: 40
+  L4:
+    E: 50
+    I: 10
+  L23:
+    E: 60
+    I: 14
+  L5:
+    E: 50
+    I: 10
+  L6:
+    E: 40
+    I: 6
+
+splits:
+  L23_E: 2      # RS + FRB
+  L23_I: 3      # Basket, LTS, Axoaxonic
+  L4_E: 1
+  L4_I: 1
+  L5_E: 2       # TuftRS + TuftIB
+  L56_I: 3      # shared L5/6 Basket, LTS, Axoaxonic
+  L6_E: 1
+
+simulation:
+  tstop: 15000.0  # ms - 15 s, matches Mushtaq Fig 3 control simulation window
+  dt: 0.1         # ms
+  v_init: -65
