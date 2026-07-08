@@ -12,6 +12,15 @@ L6, with a shared L5/6 interneuron pool (Basket / LTS / Axoaxonic) — wired wit
 `pairwise_bernoulli` connections. The optimisation harness (`run_opt.py`,
 `methods/`) is dropped; this builds one column and runs it.
 
+## Neuron model
+
+Every neuron (thalamic and cortical, excitatory and inhibitory) is NEST's
+**`iaf_cond_exp`** — a leaky integrate-and-fire point neuron with
+conductance-based, exponentially-decaying synapses; excitation vs. inhibition is
+routed by the sign of the synaptic weight. The full governing equations, the
+`aeif_cond_exp` fallback, and the parameter table (with Mushtaq 2024 sources)
+are in **[`docs/model_equations.md`](docs/model_equations.md)**.
+
 ## What this adds over the cc column
 
 1. **A closed thalamo-cortical loop.** cc is feed-forward (thalamus→L4, L6→L5).
