@@ -139,6 +139,139 @@ is injected in this mode; the light 1 Hz `ac_generator` only gates the emergent
 spindles to UP states. The intrinsic conductances and loop calibration live in
 the `HHParams` dataclass in [`tc_network.py`](../tc_network.py).
 
+## Synaptic neurotransmission
+
+Both neuron models use **conductance-based** synapses: a presynaptic spike opens
+postsynaptic receptor channels, and the resulting current depends on the driving
+force $(V - E_r)$ toward that receptor's reversal potential $E_r$. The total
+synaptic current entering a cell is the sum over all its receptor types $r$:
+
+$$
+I_{\mathrm{syn}}(t) = \sum_{r} g_r(t)\,f_r(V)\,\bigl(V - E_r\bigr)
+$$
+
+where $g_r(t)$ is the (time-varying) open conductance of receptor $r$, $E_r$ its
+reversal potential (AMPA/NMDA $= 0$, GABA$_A = -70$, GABA$_B/E_K = -90{\dots}{-}95$
+mV), and $f_r(V)$ a voltage-gating factor ($f_r \equiv 1$ except for NMDA). The
+two models differ only in **how $g_r(t)$ is built from the incoming spikes**.
+
+### 1. `iaf_cond_exp` — single-exponential conductances
+
+Two lumped receptor conductances, excitatory ($g_{\mathrm{ex}}$, "AMPA-like") and
+inhibitory ($g_{\mathrm{in}}$, "GABA$_A$-like"). Each presynaptic spike $k$ of
+weight $w_k$ arriving at time $t_k$ **instantaneously steps** the conductance,
+which then **decays exponentially**:
+
+$$
+g_{\mathrm{ex}}(t) = \sum_{k}\, w_k \;\exp\!\Bigl(-\tfrac{t - t_k}{\tau_{\mathrm{syn,ex}}}\Bigr)\,\Theta(t-t_k),
+\qquad
+\frac{dg_{\mathrm{ex}}}{dt} = -\frac{g_{\mathrm{ex}}}{\tau_{\mathrm{syn,ex}}}
+$$
+
+(identically for $g_{\mathrm{in}}$ with $\tau_{\mathrm{syn,in}}$), $\Theta$ the
+Heaviside step. Excitation vs. inhibition is chosen by the **sign of $w_k$**
+(positive $\to g_{\mathrm{ex}}$, negative $\to g_{\mathrm{in}}$). The postsynaptic
+current is then $I_{\mathrm{syn}} = g_{\mathrm{ex}}(V-E_{\mathrm{ex}}) + g_{\mathrm{in}}(V-E_{\mathrm{in}})$.
+Time constants $\tau_{\mathrm{syn,ex}}=5.3$ ms and $\tau_{\mathrm{syn,in}}=6.0$ ms
+(Mushtaq 2024; see below).
+
+### 2. `ht_neuron` — beta-function conductances (rise + decay)
+
+Four receptor types are modelled separately — **AMPA, NMDA, GABA$_A$, GABA$_B$**
+— each with its own **rise and decay** kinetics (a beta function / difference of
+two exponentials), routed by `receptor_type` rather than weight sign. A single
+presynaptic spike of weight $w$ produces
+
+$$
+g_r(t) = w\,\bar{g}_r\,B_r(t),
+\qquad
+B_r(t) = \frac{\exp\!\bigl(-t/\tau_{\mathrm{decay},r}\bigr) - \exp\!\bigl(-t/\tau_{\mathrm{rise},r}\bigr)}{\;\exp\!\bigl(-t_{\mathrm{peak},r}/\tau_{\mathrm{decay},r}\bigr) - \exp\!\bigl(-t_{\mathrm{peak},r}/\tau_{\mathrm{rise},r}\bigr)\;}
+$$
+
+normalised so that $\max_t B_r(t) = 1$ (hence $\bar{g}_r = g_{\mathrm{peak},r}$ is
+the **peak** conductance per unit weight), with peak time
+
+$$
+t_{\mathrm{peak},r} = \frac{\tau_{\mathrm{rise},r}\,\tau_{\mathrm{decay},r}}{\tau_{\mathrm{decay},r}-\tau_{\mathrm{rise},r}}\,\ln\!\frac{\tau_{\mathrm{decay},r}}{\tau_{\mathrm{rise},r}}.
+$$
+
+Conductances **sum linearly** over all incoming spikes (each shifted to its own
+arrival time). Default kinetics: AMPA $\tau_{\mathrm{rise}}/\tau_{\mathrm{decay}}
+= 0.5/2.4$ ms, GABA$_A = 1.0/7.0$ ms, NMDA $= 4.0/40$ ms, and the **slow**
+GABA$_B = 60/200$ ms — the long GABA$_B$ tail is what paces the spindle
+waxing/waning on RE→TC.
+
+**NMDA voltage gating (Mg²⁺ block).** NMDA carries an extra voltage-dependent
+factor $f_{\mathrm{NMDA}}(V) = m(V)$ that relieves the Mg²⁺ block as the cell
+depolarises:
+
+$$
+m_\infty(V) = \frac{1}{1 + \exp\!\bigl(-S_{\mathrm{act}}\,(V - V_{\mathrm{act}})\bigr)},
+\qquad S_{\mathrm{act}} = 0.081\ \mathrm{mV^{-1}},\ V_{\mathrm{act}} = -25.6\ \mathrm{mV}.
+$$
+
+With `instant_unblock_NMDA = True` (as used here) $m(V)=m_\infty(V)$ follows the
+voltage instantaneously; otherwise $m$ relaxes toward $m_\infty$ with fast/slow
+time constants $\tau_{\mathrm{Mg,fast}}=0.68$, $\tau_{\mathrm{Mg,slow}}=22.7$ ms.
+For all other receptors $f_r(V)\equiv 1$.
+
+Putting it together, the `ht_neuron` synaptic current is
+
+$$
+I_{\mathrm{syn}} = g_{\mathrm{AMPA}}(V-E_{\mathrm{AMPA}})
+   + m(V)\,g_{\mathrm{NMDA}}(V-E_{\mathrm{NMDA}})
+   + g_{\mathrm{GABA_A}}(V-E_{\mathrm{GABA_A}})
+   + g_{\mathrm{GABA_B}}(V-E_{\mathrm{GABA_B}}).
+$$
+
+> **Which receptors this model actually wires.** Excitatory projections use
+> **AMPA**; inhibition uses **GABA$_A$**, with an added slow **GABA$_B$**
+> component on the reticular→relay (RE→TC) synapse (Mushtaq 2024, Table 3).
+> NMDA is available in `ht_neuron` but is not currently wired. The per-synapse
+> weight $w$ scales $g_{\mathrm{peak},r}$; the intra-thalamic loop weights are
+> **fan-in normalised** so the total conductance onto each cell is
+> size-invariant (see `_ht_thal_w` in [`tc_network.py`](../tc_network.py)).
+
+### 3. Biophysical reference (Mushtaq et al. 2024)
+
+The reversal potentials and decay time constants above come from Mushtaq 2024,
+whose conductance-based model computes the open fraction $[O]$ with a
+**first-order kinetic scheme** driven by a brief transmitter pulse $[T]$:
+
+$$
+I_{\mathrm{syn}} = g_{\mathrm{syn}}\,[O]\,f(V)\,(V - E_{\mathrm{syn}}),
+\qquad
+\frac{d[O]}{dt} = \alpha\,(1-[O])\,[T] - \beta\,[O],
+$$
+
+$$
+[T] = A\,\Theta(t_0 + t_{\max} - t)\,\Theta(t - t_0),
+\qquad t_{\max}=0.3\ \mathrm{ms},\ A=0.5,
+$$
+
+with rate constants (ms$^{-1}$): AMPA $\alpha{=}1.1,\ \beta{=}0.19$; GABA$_A$
+$\alpha{=}10.5,\ \beta{=}0.166$; NMDA $\alpha{=}1,\ \beta{=}0.0067$. The decay
+time constant is $\tau_{\mathrm{decay}} = 1/\beta$ — this is where our
+$\tau_{\mathrm{syn,ex}}\approx 5.3$ ms and $\tau_{\mathrm{syn,in}}\approx 6.0$ ms
+originate. Intracortical AMPA/GABA$_A$ additionally carry short-term depression
+$D_{n+1} = 1 - (1 - D_n(1-U))\,e^{-\Delta t/\tau}$ ($\tau=700$ ms, $U=0.07/0.073$),
+and **GABA$_B$** uses a higher-order G-protein scheme,
+
+$$
+I_{\mathrm{GABA_B}} = g_{\mathrm{GABA_B}}\,\frac{[G]^4}{[G]^4 + K_d}\,(V - E_K),
+\qquad
+\frac{d[R]}{dt} = K_1(1-[R])[T] - K_2[R],
+\qquad
+\frac{d[G]}{dt} = K_3[R] - K_4[G],
+$$
+
+($E_K=-95$ mV; $K_1{=}0.052,\ K_2{=}0.0013,\ K_3{=}0.098,\ K_4{=}100$). Because
+our cells are point/`ht_neuron` rather than Mushtaq's multi-compartment HH, these
+schemes are represented by the exponential (`iaf_cond_exp`) and beta-function
+(`ht_neuron`) conductances above rather than integrated verbatim, but the
+reversals, kinetics, and relative conductances are carried over (see the README's
+"Parameters from Mushtaq et al. 2024").
+
 ## Parameter values
 
 Set in [`_neuron_params()`](../tc_network.py) and `SynapseParams`
