@@ -228,6 +228,75 @@ class SleepParams:
     # (AMPA .0015), so the feedback onto the relay is twice that onto nRT.
     ct_fb_weight: float = 0.0008      # uS, L6_E -> TCR  (Mushtaq PY->TC)
     ct_fb_weight_nrt: float = 0.0004  # uS, L6_E -> nRT  (Mushtaq PY->RE, = TC/2)
+    # Slow GABA_B component of RE->TC (Mushtaq 2024 Table 3, .02 uS). Only used
+    # by the ht_neuron (HH) model; its long time constant paces the spindle
+    # envelope and de-inactivates I_T for the rebound burst.
+    rt_inh_gaba_b: float = 0.02       # uS, nRT -> TCR (GABA_B; ht_neuron only)
+    # HH (ht_neuron) emergent mode: drop the imposed 13 Hz spindle AC; spindles
+    # then emerge from the RE<->TC loop (I_T rebound + GABA_B). The light 1 Hz AC
+    # is kept as a scaffold that gates the emergent spindles to UP states.
+    emergent_spindles: bool = False
+
+
+@dataclass
+class HHParams:
+    """Hodgkin-Huxley (``ht_neuron``, Hill & Tononi 2005) intrinsic parameters.
+
+    ``ht_neuron`` carries the intrinsic currents needed for *emergent*
+    thalamocortical sleep rhythms -- no imposed spindle oscillator:
+
+    - **I_T** (low-threshold T-type Ca2+): de-inactivates when the cell is
+      hyperpolarised, giving the post-inhibitory **rebound burst** that, round
+      the RE<->TC loop, is the spindle.
+    - **I_h** (hyperpolarisation-activated cation): the pacemaker/refractory
+      current that makes spindles **wax and wane** and terminate.
+    - **I_NaP / I_KNa** (persistent Na+ / Na-dependent K+): the cortical
+      depolarising drive and spike-frequency adaptation behind UP/DOWN states.
+
+    The **sleep vs wake regime is set by the K-leak conductance g_KL** (Hill &
+    Tononi's neuromodulation knob): a larger g_KL hyperpolarises the cell toward
+    the burst-permissive range. Thalamic cells get the larger g_KL so I_T
+    de-inactivates and spindles can emerge.
+    """
+
+    # K-leak (neuromodulatory sleep depth). Larger -> more hyperpolarised.
+    g_KL_cortex: float = 1.0
+    g_KL_thalamus: float = 1.0     # burst-permissive but still able to fire
+    g_NaL: float = 0.2
+    # intrinsic current peak conductances (nS); ht_neuron defaults are sensible,
+    # thalamic I_T / I_h are raised so the RE<->TC rebound loop actually bursts.
+    g_peak_T_thalamus: float = 3.0
+    g_peak_h_thalamus: float = 2.0
+    g_peak_NaP_cortex: float = 1.0
+    g_peak_KNa_cortex: float = 1.0
+    tau_m: float = 16.0
+    theta_eq: float = -51.0
+    # ht_neuron drive amplitudes (pA). ht_neuron's rheobase is ~35 pA (much
+    # lower than the iaf 150 pA), so the imposed-iaf amplitudes would saturate
+    # it. Cortex: a light 1 Hz scaffold on top of the emergent I_NaP/I_KNa
+    # bistability. Thalamus: held just below threshold and lifted toward it on
+    # the UP phase, so the RE<->TC loop rings (emergent spindle) UP-locked.
+    cortex_slow_amp: float = 32.0
+    cortex_slow_offset: float = 4.0
+    # TC relay needs a stronger depolarising baseline than RE so it fires in the
+    # gaps between RE inhibitory volleys (the spindle); RE only needs enough to
+    # respond to corticothalamic feedback.
+    tc_slow_amp: float = 12.0
+    tc_slow_offset: float = 34.0
+    thal_slow_amp: float = 12.0    # RE (reticular)
+    thal_slow_offset: float = 14.0
+    # ht_neuron synapses scale g_peak by the connection weight; the intra-
+    # thalamic and corticothalamic loop weights need boosting (vs the iaf uS
+    # regime) for the RE<->TC loop to actually engage and ring.
+    loop_weight_gain: float = 3.0
+    aud_weight_gain: float = 8.0
+    # Calibrated TOTAL intra-thalamic conductance onto each post-synaptic cell
+    # (fan-in normalised; single-cell tests put the spindle-generating RE->TC
+    # inhibition around these values). GABA_A + slow GABA_B for RE->TC.
+    tot_re_tc_gaba_a: float = 45.0
+    tot_re_tc_gaba_b: float = 22.0
+    tot_tc_re_ampa: float = 30.0
+    tot_re_re_gaba_a: float = 18.0
 
 
 @dataclass
@@ -236,6 +305,9 @@ class SimulationConfig:
     verbose: bool = False
     record_traces: bool = True
     seed: Optional[int] = None
+    # "iaf_cond_exp" (default, point LIF) or "ht_neuron" (Hodgkin-Huxley,
+    # Hill-Tononi, with intrinsic I_T/I_h/I_NaP/I_KNa -> emergent spindles).
+    neuron_model: str = "iaf_cond_exp"
 
 
 # ---------------------------------------------------------------------------
@@ -278,6 +350,8 @@ class AuditoryThalamoCorticalSleep:
         self._nest_available = False
         self._neuron_model: Optional[str] = None
         self._is_cond_model = False
+        self._is_ht = False
+        self.hh = HHParams()
         self._setup_nest()
 
     # -- setup -------------------------------------------------------------
@@ -308,15 +382,35 @@ class AuditoryThalamoCorticalSleep:
         nest.set(**kernel)
         self._neuron_model = self._select_neuron_model()
         self._is_cond_model = "cond" in self._neuron_model
+        self._is_ht = self._neuron_model == "ht_neuron"
+        if self._is_ht:
+            self._ht_receptors = self._nest.GetDefaults("ht_neuron")["receptor_types"]
 
     def _select_neuron_model(self) -> str:
         nest = self._nest
+        # honour an explicit request (e.g. "ht_neuron" for the HH model)
+        requested = getattr(self.sim, "neuron_model", None)
+        if requested:
+            if requested in nest.node_models:
+                return requested
+            print(f"Requested neuron model {requested!r} unavailable; "
+                  f"falling back to the preferred list.")
         for model in _PREFERRED_NEURON_MODELS:
             if model in nest.node_models:
                 return model
         raise RuntimeError(f"No suitable neuron model; tried {_PREFERRED_NEURON_MODELS}")
 
-    def _neuron_params(self) -> dict:
+    def _neuron_params(self, role: str = "cortex") -> dict:
+        """Per-role neuron parameters. ``role`` in {"cortex", "TC", "RE"}.
+
+        For ``ht_neuron`` the role selects which intrinsic currents are active,
+        mirroring Mushtaq 2024 Tables 1-2: cortex carries persistent-Na (I_NaP)
+        and adaptation (I_KNa) but no I_T/I_h; thalamic relay (TC) carries I_T
+        and I_h; reticular (RE) carries I_T only. Thalamic cells also get a
+        larger K-leak (g_KL) so they rest hyperpolarised and I_T de-inactivates.
+        """
+        if self._is_ht:
+            return self._ht_neuron_params(role)
         p = {
             "V_m": self.cfg.v_init,
             "tau_syn_ex": max(0.1, self.syn.exc_tau),
@@ -329,6 +423,39 @@ class AuditoryThalamoCorticalSleep:
         }
         if self._is_cond_model:
             p.update({"E_ex": self.syn.exc_e, "E_in": self.syn.inh_e, "g_L": 10.0})
+        return p
+
+    def _ht_neuron_params(self, role: str) -> dict:
+        hh = self.hh
+        thalamic = role in ("TC", "RE")
+        p = {
+            "V_m": -70.0,
+            "g_NaL": hh.g_NaL,
+            "g_KL": hh.g_KL_thalamus if thalamic else hh.g_KL_cortex,
+            "tau_m": hh.tau_m,
+            "theta_eq": hh.theta_eq,
+            "theta": hh.theta_eq,
+            # receptor kinetics from the (Mushtaq-aligned) synapse params
+            "tau_decay_AMPA": max(0.5, self.syn.exc_tau),
+            "tau_decay_GABA_A": max(0.5, self.syn.inh_tau),
+            "instant_unblock_NMDA": True,
+        }
+        if thalamic:
+            # I_T (both) and I_h (relay only) on; no cortical NaP/KNa
+            p.update({
+                "g_peak_NaP": 0.0,
+                "g_peak_KNa": 0.0,
+                "g_peak_T": hh.g_peak_T_thalamus,
+                "g_peak_h": hh.g_peak_h_thalamus if role == "TC" else 0.0,
+            })
+        else:
+            # cortical persistent-Na drive + Na-dependent-K adaptation; no T/h
+            p.update({
+                "g_peak_NaP": hh.g_peak_NaP_cortex,
+                "g_peak_KNa": hh.g_peak_KNa_cortex,
+                "g_peak_T": 0.0,
+                "g_peak_h": 0.0,
+            })
         return p
 
     # -- population creation ----------------------------------------------
@@ -351,11 +478,13 @@ class AuditoryThalamoCorticalSleep:
 
     def build_network(self) -> Dict[str, list]:
         cfg = self.cfg
-        np_ = self._neuron_params()
+        np_ = self._neuron_params("cortex")
+        np_tc = self._neuron_params("TC")   # relay: I_T + I_h
+        np_re = self._neuron_params("RE")   # reticular: I_T only
         n56i = cfg.N_L5_I + cfg.N_L6_I
         return {
-            "thalamus_E": [self._nest.Create(self._neuron_model, cfg.N_thalamus_E, params=np_)],
-            "thalamus_I": [self._nest.Create(self._neuron_model, cfg.N_thalamus_I, params=np_)],
+            "thalamus_E": [self._nest.Create(self._neuron_model, cfg.N_thalamus_E, params=np_tc)],
+            "thalamus_I": [self._nest.Create(self._neuron_model, cfg.N_thalamus_I, params=np_re)],
             "L4_E":       self._create_split(cfg.N_L4_E, cfg.split_L4_E, np_),
             "L4_I":       self._create_split(cfg.N_L4_I, cfg.split_L4_I, np_),
             "L23_E_RS":   self._create_split(cfg.N_L23_E, cfg.split_L23_E, np_),
@@ -397,16 +526,43 @@ class AuditoryThalamoCorticalSleep:
     def _min_delay(self) -> float:
         return max(max(0.025, self.cfg.dt), self.syn.min_delay)
 
+    def _ht_gain(self, w):
+        """Boost a loop weight for ht_neuron (g_peak-scaled) synapses; identity
+        for iaf_cond_exp so its validated tuning is untouched."""
+        return w * self.hh.loop_weight_gain if self._is_ht else w
+
+    def _ht_thal_w(self, iaf_weight, target_total, n_presyn):
+        """Weight for an all-to-all (prob=1.0) intra-thalamic loop synapse.
+
+        iaf_cond_exp: return its validated uS weight unchanged. ht_neuron: pick
+        a per-synapse weight so the TOTAL conductance onto each post-synaptic
+        cell (summed over all ``n_presyn`` inputs) equals a calibrated
+        ``target_total`` -- fan-in normalisation, so the RE<->TC loop behaves the
+        same whether the thalamus has 4 or 40 reticular cells (without it, 40 RE
+        cells crush every TC and no rebound spindle can form)."""
+        if not self._is_ht:
+            return iaf_weight
+        return target_total / (max(1, n_presyn) * self.WEIGHT_SCALE * self._w_scale)
+
     def _exc_syn_spec(self, weight_nS, delay_ms) -> dict:
+        if self._is_ht:
+            # ht_neuron routes by receptor_type -> AMPA. Excitatory weights are
+            # already positive (no abs(): weight_nS may be a NEST Parameter).
+            return {"synapse_model": "static_synapse", "weight": weight_nS,
+                    "delay": delay_ms, "receptor_type": self._ht_receptors["AMPA"]}
         # iaf_cond_exp / aeif_cond_exp route by weight SIGN (positive -> g_ex /
         # E_ex), with no receptor_type. Keep weights positive for excitation.
         return {"synapse_model": "static_synapse", "weight": weight_nS, "delay": delay_ms}
 
-    def _inh_syn_spec(self, weight_nS, delay_ms) -> dict:
+    def _inh_syn_spec(self, weight_nS, delay_ms, receptor="GABA_A") -> dict:
+        w = abs(weight_nS)
+        if self._is_ht:
+            # ht_neuron: positive weight into the GABA_A (or GABA_B) receptor.
+            return {"synapse_model": "static_synapse", "weight": w,
+                    "delay": delay_ms, "receptor_type": self._ht_receptors[receptor]}
         # Inhibition = NEGATIVE weight (routes to g_in / E_in). Critically, NOT
         # a positive weight + receptor_type: cond models reject receptor_type,
         # which would silently turn inhibition into excitation (disinhibition).
-        w = abs(weight_nS)
         return {"synapse_model": "static_synapse", "weight": -w, "delay": delay_ms}
 
     def _safe_connect(self, source, target, conn_spec, syn_spec):
@@ -439,7 +595,8 @@ class AuditoryThalamoCorticalSleep:
                      "p": prob if prob is not None else p.conn_prob}
         self._safe_connect(source, target, conn_spec, syn_spec)
 
-    def connect_inh(self, source_pop, target_pop, weight=None, delay=None, prob=None):
+    def connect_inh(self, source_pop, target_pop, weight=None, delay=None,
+                    prob=None, gaba_b=None):
         source = self.flatten(source_pop)
         target = self.flatten(target_pop)
         if source is None or target is None or len(source) == 0 or len(target) == 0:
@@ -448,10 +605,15 @@ class AuditoryThalamoCorticalSleep:
         w = (weight if weight is not None else p.inh_weight) * self.WEIGHT_SCALE * self._w_scale
         min_d = self._min_delay()
         d = max(min_d, delay if delay is not None else p.inh_delay)
-        syn_spec = self._inh_syn_spec(w, d)
         conn_spec = {"rule": "pairwise_bernoulli",
                      "p": prob if prob is not None else p.conn_prob}
-        self._safe_connect(source, target, conn_spec, syn_spec)
+        self._safe_connect(source, target, conn_spec, self._inh_syn_spec(w, d))
+        # ht_neuron only: an additional slow GABA_B component (e.g. RE->TC).
+        # GABA_B's long time constant paces the waxing/waning of the spindle.
+        if self._is_ht and gaba_b:
+            wb = gaba_b * self.WEIGHT_SCALE * self._w_scale
+            self._safe_connect(source, target, conn_spec,
+                               self._inh_syn_spec(wb, d, receptor="GABA_B"))
 
     # -- network wiring ----------------------------------------------------
 
@@ -462,7 +624,8 @@ class AuditoryThalamoCorticalSleep:
         # MGB -> L4 is the dense thalamocortical input; with few MGB cells we
         # raise prob/weight so L4 is actually driven (and spindles propagate).
         self.connect_exc(pops["thalamus_E"], pops["L4_E"],
-                         weight=0.004, delay=self.syn.exc_delay_mean, prob=0.6)
+                         weight=self._ht_gain(0.004),
+                         delay=self.syn.exc_delay_mean, prob=0.6)
         # Thalamocortical feedforward inhibition: TC -> IN (Mushtaq 2024 Table 3,
         # TC->IN AMPA, same conductance as TC->PY but a smaller connecting radius
         # (5 vs 21) -> more focal). This was missing in cc; it lets thalamic input
@@ -470,8 +633,10 @@ class AuditoryThalamoCorticalSleep:
         self.connect_exc(pops["thalamus_E"], pops["L4_I"],
                          weight=0.004, delay=self.syn.exc_delay_mean, prob=0.3)
         self.connect_exc(pops["thalamus_E"], pops["thalamus_I"],  # TCR -> nRT
-                         weight=self.sleep.tr_exc_weight, delay=self.sleep.tr_exc_delay,
-                         prob=1.0)
+                         weight=self._ht_thal_w(self.sleep.tr_exc_weight,
+                                                self.hh.tot_tc_re_ampa,
+                                                self.cfg.N_thalamus_E),
+                         delay=self.sleep.tr_exc_delay, prob=1.0)
         self.connect_exc(pops["L4_E"], pops["L4_E"])
         self.connect_exc(pops["L4_E"], pops["L23_E_RS"])
         self.connect_exc(pops["L4_E"], pops["L23_E_FRB"])
@@ -516,15 +681,26 @@ class AuditoryThalamoCorticalSleep:
         # Table 3: PY->TC (.003) is twice PY->RE (.0015), so the relay gets the
         # stronger feedback (ct_fb_weight) and nRT the weaker (ct_fb_weight_nrt).
         self.connect_exc(pops["L6_E"], pops["thalamus_E"],
-                         weight=s.ct_fb_weight, delay=s.tr_exc_delay)
+                         weight=self._ht_gain(s.ct_fb_weight), delay=s.tr_exc_delay)
         self.connect_exc(pops["L6_E"], pops["thalamus_I"],
-                         weight=s.ct_fb_weight_nrt, delay=s.tr_exc_delay)
+                         weight=self._ht_gain(s.ct_fb_weight_nrt), delay=s.tr_exc_delay)
         # reciprocal reticulo-thalamic inhibition: nRT -> TCR and nRT -> nRT.
-        # The TCR<->nRT loop with these delays is the ~13 Hz spindle resonator.
+        # The TCR<->nRT loop with these delays is the spindle resonator. Under
+        # ht_neuron, RE->TC also gets the slow GABA_B component (Mushtaq 2024
+        # Table 3, .02) whose long tau sets the spindle waxing/waning and,
+        # crucially, hyperpolarises TC enough to de-inactivate I_T for the
+        # rebound burst -- so the spindle is emergent, not imposed.
+        n_re = self.cfg.N_thalamus_I
         self.connect_inh(pops["thalamus_I"], pops["thalamus_E"],
-                         weight=s.rt_inh_weight, delay=s.rt_inh_delay, prob=1.0)
+                         weight=self._ht_thal_w(s.rt_inh_weight,
+                                                self.hh.tot_re_tc_gaba_a, n_re),
+                         delay=s.rt_inh_delay, prob=1.0,
+                         gaba_b=self._ht_thal_w(s.rt_inh_gaba_b,
+                                                self.hh.tot_re_tc_gaba_b, n_re))
         self.connect_inh(pops["thalamus_I"], pops["thalamus_I"],
-                         weight=s.nrt_self_weight, delay=s.rt_inh_delay, prob=1.0)
+                         weight=self._ht_thal_w(s.nrt_self_weight,
+                                                self.hh.tot_re_re_gaba_a, n_re),
+                         delay=s.rt_inh_delay, prob=1.0)
 
     # -- drives ------------------------------------------------------------
 
@@ -536,7 +712,10 @@ class AuditoryThalamoCorticalSleep:
             return
         gen = nest.Create("poisson_generator", len(mgb),
                           params={"rate": self.sleep.auditory_rate})
-        w = self.sleep.auditory_weight * self.WEIGHT_SCALE
+        aud_w = self.sleep.auditory_weight
+        if self._is_ht:
+            aud_w *= self.hh.aud_weight_gain   # ht g_peak-scaled synapses
+        w = aud_w * self.WEIGHT_SCALE
         self._safe_connect(gen, mgb, {"rule": "one_to_one"},
                            self._exc_syn_spec(w, self._min_delay()))
 
@@ -558,34 +737,62 @@ class AuditoryThalamoCorticalSleep:
             self.flatten(pops["L6_E"]))
         thal = self._merge(self.flatten(pops["thalamus_E"]),
                            self.flatten(pops["thalamus_I"]))
+        tc = self.flatten(pops["thalamus_E"])
+        re = self.flatten(pops["thalamus_I"])
 
-        # 1 Hz slow oscillation into cortex (UP/DOWN states)
+        emergent = self._is_ht and s.emergent_spindles
+
+        # 1 Hz slow oscillation into cortex (UP/DOWN states). HH uses lighter
+        # amplitudes (its rheobase is far lower than iaf's).
+        cx_amp = self.hh.cortex_slow_amp if self._is_ht else s.slow_amp_cortex
+        cx_off = self.hh.cortex_slow_offset if self._is_ht else s.slow_offset_cortex
         if cortex_E is not None and len(cortex_E) > 0:
             slow_cortex = nest.Create("ac_generator", params={
-                "amplitude": s.slow_amp_cortex,
-                "offset": s.slow_offset_cortex,
+                "amplitude": cx_amp,
+                "offset": cx_off,
                 "frequency": s.slow_freq,
                 "phase": 0.0,
             })
             nest.Connect(slow_cortex, cortex_E)
 
-        # 1 Hz gating + 13 Hz spindle drive into thalamus
         if thal is not None and len(thal) > 0:
-            slow_thal = nest.Create("ac_generator", params={
-                "amplitude": s.slow_amp_thalamus,
-                "offset": s.slow_offset_thalamus,
-                "frequency": s.slow_freq,
-                "phase": 0.0,   # in-phase: thalamus depolarised during cortical UP
-            })
-            nest.Connect(slow_thal, thal)
+            if emergent:
+                # HH emergent mode: no imposed 13 Hz oscillator. Light 1 Hz terms
+                # hold TC/RE near threshold and lift them on the UP phase; the
+                # cortical UP state (via L6->RE feedback) then kicks the RE<->TC
+                # loop into self-generated, waxing/waning spindle bursts locked
+                # to UP states. TC and RE are driven separately (TC needs the
+                # stronger baseline to fire between RE inhibitory volleys); the
+                # spindle frequency is set by the loop, not by any drive.
+                if tc is not None and len(tc) > 0:
+                    tc_drive = nest.Create("ac_generator", params={
+                        "amplitude": self.hh.tc_slow_amp,
+                        "offset": self.hh.tc_slow_offset,
+                        "frequency": s.slow_freq, "phase": 0.0})
+                    nest.Connect(tc_drive, tc)
+                if re is not None and len(re) > 0:
+                    re_drive = nest.Create("ac_generator", params={
+                        "amplitude": self.hh.thal_slow_amp,
+                        "offset": self.hh.thal_slow_offset,
+                        "frequency": s.slow_freq, "phase": 0.0})
+                    nest.Connect(re_drive, re)
+            else:
+                # imposed-drive mode (iaf_cond_exp): 1 Hz gating + 13 Hz spindle
+                slow_thal = nest.Create("ac_generator", params={
+                    "amplitude": s.slow_amp_thalamus,
+                    "offset": s.slow_offset_thalamus,
+                    "frequency": s.slow_freq,
+                    "phase": 0.0,   # in-phase: thalamus depolarised during UP
+                })
+                nest.Connect(slow_thal, thal)
 
-            spindle = nest.Create("ac_generator", params={
-                "amplitude": s.spindle_amp,
-                "offset": 0.0,
-                "frequency": s.spindle_freq,
-                "phase": s.spindle_phase_deg,
-            })
-            nest.Connect(spindle, thal)
+                spindle = nest.Create("ac_generator", params={
+                    "amplitude": s.spindle_amp,
+                    "offset": 0.0,
+                    "frequency": s.spindle_freq,
+                    "phase": s.spindle_phase_deg,
+                })
+                nest.Connect(spindle, thal)
 
     # -- recording ---------------------------------------------------------
 
