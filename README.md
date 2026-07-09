@@ -14,12 +14,37 @@ L6, with a shared L5/6 interneuron pool (Basket / LTS / Axoaxonic) — wired wit
 
 ## Neuron model
 
-Every neuron (thalamic and cortical, excitatory and inhibitory) is NEST's
-**`iaf_cond_exp`** — a leaky integrate-and-fire point neuron with
-conductance-based, exponentially-decaying synapses; excitation vs. inhibition is
-routed by the sign of the synaptic weight. The full governing equations, the
-`aeif_cond_exp` fallback, and the parameter table (with Mushtaq 2024 sources)
-are in **[`docs/model_equations.md`](docs/model_equations.md)**.
+Two neuron models are selectable via `--neuron-model` (or `simulation.neuron_model`
+in a config):
+
+- **`iaf_cond_exp`** (default) — a leaky integrate-and-fire point neuron with
+  conductance-based, exponential synapses; E/I routed by weight sign. Fast, and
+  the rhythms are an **imposed-drive + loop-resonance hybrid** (1 Hz and 13 Hz
+  `ac_generator`s).
+- **`ht_neuron`** (Hodgkin–Huxley, Hill & Tononi 2005) — carries the intrinsic
+  currents **I_T** (T-type Ca²⁺ rebound), **Iₕ** (pacemaker), **I_NaP** and
+  **I_KNa**, with receptor-typed synapses (AMPA / NMDA / GABA_A / **GABA_B**).
+  Here the rhythms are **emergent**: the ~1 Hz slow oscillation from cortical
+  I_NaP/I_KNa bistability, and **sleep spindles from the RE↔TC loop** (the I_T
+  rebound burst gated by reticular GABA_A/GABA_B inhibition) — no 13 Hz
+  oscillator is injected. This yields **discrete, regular, waxing/waning
+  spindles, one per slow-wave UP state**.
+
+The full governing equations, the `aeif_cond_exp` fallback, the `ht_neuron`
+intrinsic currents, and the parameter tables (with Mushtaq 2024 sources) are in
+**[`docs/model_equations.md`](docs/model_equations.md)**.
+
+```bash
+# emergent HH (Hodgkin-Huxley) sleep rhythms:
+python3 tc_run.py --config config/network_auditory_hh.yaml --tstop 15000 --outdir out --tag hh
+# or force the model on any config:
+python3 tc_run.py --config config/network_auditory_local.yaml --neuron-model ht_neuron --outdir out
+```
+
+Under `ht_neuron` the emergent spindle frequency depends on network size
+(≈10–11 Hz for the small thalamus, up to ~16 Hz for the 40 TC / 40 RE
+resonator) — all within the physiological spindle band, consistent with
+Mushtaq's finding that thalamic inhibition shifts spindle frequency.
 
 ## What this adds over the cc column
 
@@ -96,6 +121,7 @@ area-based conductances (mS/cm²·area) are not transferable** to our point
 | `tc_architecture.py` | draws the thalamo-cortical loop architecture schematic (`out/tc_architecture.png`, no NEST needed) |
 | `config/network_auditory_local.yaml` | small (~112 neurons), short — local sane test |
 | `config/network_auditory_mushtaq.yaml` | Mushtaq et al. 2024 sizing (PY 200 / IN 40 / TC 40 / RE 40), 15 s |
+| `config/network_auditory_hh.yaml` | Hodgkin–Huxley (`ht_neuron`) — emergent slow wave + spindles |
 | `config/network_auditory_mn5.yaml` | realistic (~1150 neurons), long — bio-plausible MN5 |
 | `slurm/tc_sleep_mn5.sbatch` | MareNostrum 5 submission (single long, multi-threaded run) |
 

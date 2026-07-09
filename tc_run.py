@@ -39,6 +39,30 @@ except ImportError:
     )
 
 
+def _config_neuron_model(path):
+    """Peek at ``simulation.neuron_model`` in a YAML/JSON config, if present."""
+    if not path:
+        return None
+    from pathlib import Path as _P
+    p = _P(path)
+    if not p.exists():
+        return None
+    try:
+        if p.suffix in (".yaml", ".yml"):
+            import yaml
+            with open(p) as f:
+                cfg = yaml.safe_load(f)
+        elif p.suffix == ".json":
+            import json
+            with open(p) as f:
+                cfg = json.load(f)
+        else:
+            return None
+    except Exception:
+        return None
+    return (cfg or {}).get("simulation", {}).get("neuron_model")
+
+
 # ---------------------------------------------------------------------------
 #  Signal construction + analysis
 # ---------------------------------------------------------------------------
@@ -466,6 +490,10 @@ def main(argv=None):
     ap.add_argument("--no-plot", action="store_true")
     ap.add_argument("--no-assert", action="store_true",
                     help="do not exit non-zero if a rhythm is missing")
+    ap.add_argument("--neuron-model", type=str, default=None,
+                    choices=["iaf_cond_exp", "ht_neuron"],
+                    help="neuron model: iaf_cond_exp (default, point LIF) or "
+                         "ht_neuron (Hodgkin-Huxley, emergent spindles)")
     args = ap.parse_args(argv)
 
     outdir = Path(args.outdir)
@@ -475,14 +503,25 @@ def main(argv=None):
     if args.tstop is not None:
         cfg.tstop = args.tstop
 
+    # neuron model: CLI flag wins, else the config's simulation.neuron_model,
+    # else the iaf_cond_exp default.
+    neuron_model = args.neuron_model or _config_neuron_model(args.config) \
+        or "iaf_cond_exp"
+    is_hh = neuron_model == "ht_neuron"
+
     sim_config = SimulationConfig(num_threads=args.threads, seed=args.seed,
-                                  record_traces=True, verbose=False)
+                                  record_traces=True, verbose=False,
+                                  neuron_model=neuron_model)
 
     print(cfg.summary())
+    print(f"Neuron model: {neuron_model}"
+          + ("  (HH; emergent spindles)" if is_hh else "  (point LIF)"))
     print(f"Running NEST simulation ({cfg.tstop} ms, {args.threads} thread(s))...")
 
+    # HH model: switch on emergent spindles (drop the imposed 13 Hz oscillator).
+    sleep = SleepParams(emergent_spindles=True) if is_hh else SleepParams()
     model = AuditoryThalamoCorticalSleep(network_config=cfg, syn=SynapseParams(),
-                                         sleep=SleepParams(), sim_config=sim_config)
+                                         sleep=sleep, sim_config=sim_config)
     spikes, traces, meta = model.run()
     meta["seed"] = args.seed
 
@@ -506,7 +545,10 @@ def main(argv=None):
     rc_a = rc[int(500 / 5.0):] if len(rc) > int(500 / 5.0) else rc
     rt_a = rt[int(500 / 1.0):] if len(rt) > int(500 / 1.0) else rt
 
-    slow_peak, slow_pow, _, _ = detect_peak(rc_a, fs_c, 0.3, 2.5)
+    # Slow oscillation is <1.5 Hz by definition; searching up to 2.5 Hz would
+    # sometimes lock onto the 2 Hz harmonic of the sharp HH UP-state onsets
+    # (the fundamental is ~1 Hz), so bound the search to the true SO band.
+    slow_peak, slow_pow, _, _ = detect_peak(rc_a, fs_c, 0.3, 1.5)
     spindle_peak, spindle_pow, _, _ = detect_peak(rt_a, fs_t, 9.0, 16.0)
     spindle_band = band_power(rt_a, fs_t, 11.0, 15.0)
 

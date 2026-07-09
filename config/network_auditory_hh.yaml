@@ -1,0 +1,46 @@
+# Auditory thalamo-cortical sleep model - Hodgkin-Huxley (ht_neuron) config.
+#
+# Uses NEST's ht_neuron (Hill & Tononi 2005) with intrinsic currents
+# (I_T, I_h, I_NaP, I_KNa), so the sleep rhythms are EMERGENT rather than
+# imposed: the ~1 Hz slow oscillation from cortical I_NaP/I_KNa bistability and
+# the sleep spindles from the reticular<->relay (RE<->TC) loop -- the T-type
+# Ca2+ rebound burst gated by RE GABA_A/GABA_B inhibition. No 13 Hz oscillator
+# is injected; the spindle frequency is set by the loop.
+#
+# Population sizes follow Mushtaq et al. 2024 (PY 200 / IN 40 / TC 40 / RE 40);
+# the 40-cell reticular/relay layers make a well-synchronised spindle resonator.
+#
+#   python3 tc_run.py --config config/network_auditory_hh.yaml \
+#       --tstop 15000 --outdir out --tag hh
+
+network:
+  thalamus:        # MGB: TC relay (E) + RE reticular (I)
+    E: 40
+    I: 40
+  L4:
+    E: 50
+    I: 10
+  L23:
+    E: 60
+    I: 14
+  L5:
+    E: 50
+    I: 10
+  L6:
+    E: 40
+    I: 6
+
+splits:
+  L23_E: 2
+  L23_I: 3
+  L4_E: 1
+  L4_I: 1
+  L5_E: 2
+  L56_I: 3
+  L6_E: 1
+
+simulation:
+  neuron_model: ht_neuron   # Hodgkin-Huxley (Hill-Tononi); emergent spindles
+  tstop: 15000.0            # ms - 15 s
+  dt: 0.1                   # ms
+  v_init: -65

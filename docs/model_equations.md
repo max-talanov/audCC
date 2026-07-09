@@ -1,28 +1,32 @@
 # Neuron model and governing equations
 
-All neurons in this simulation — thalamic (TCR relay, nRT reticular) and cortical
-(L4, L2/3, L5, L6; excitatory and inhibitory) — are the **same** point neuron
-model: NEST's **`iaf_cond_exp`**, a **leaky integrate-and-fire (LIF) neuron with
-conductance-based, exponentially-decaying synapses**. Subtypes differ only in
-their connectivity and drive, not in their intrinsic dynamics.
+The simulation supports **two selectable neuron models** (`--neuron-model`, or
+`simulation.neuron_model` in a config), used uniformly across all populations —
+thalamic (TCR/relay, nRT/reticular) and cortical (L4, L2/3, L5, L6):
 
-The model is selected in [`tc_network.py`](../tc_network.py):
+1. **`iaf_cond_exp`** (default) — a **leaky integrate-and-fire (LIF)** point
+   neuron with conductance-based, exponential synapses. Rhythms are an
+   **imposed-drive + loop-resonance hybrid**.
+2. **`ht_neuron`** (Hill & Tononi 2005) — a **Hodgkin–Huxley** neuron with
+   intrinsic currents, giving **emergent** rhythms. See
+   [§ ht_neuron](#ht_neuron-hodgkinhuxley-emergent-rhythms) below.
+
+The default preference list in [`tc_network.py`](../tc_network.py):
 
 ```python
 _PREFERRED_NEURON_MODELS = ["iaf_cond_exp", "aeif_cond_exp"]
 ```
 
-`iaf_cond_exp` is used when available; `aeif_cond_exp` (adaptive exponential
-integrate-and-fire) is only a fallback. Excitation vs. inhibition is routed by
-the **sign of the synaptic weight** (positive → `g_ex`/`E_ex`, negative →
-`g_in`/`E_in`), not by a receptor type.
+`iaf_cond_exp` routes excitation vs. inhibition by the **sign of the synaptic
+weight** (positive → `g_ex`/`E_ex`, negative → `g_in`/`E_in`); `ht_neuron`
+routes by **receptor type** (AMPA/NMDA/GABA_A/GABA_B).
 
-> **Scope caveat.** This is a *point* LIF neuron: it has **no intrinsic Iₕ,
-> T-type Ca²⁺, or persistent-Na currents**. This is the key modelling difference
-> from Mushtaq et al. 2024, whose cells are full Hodgkin–Huxley. Here the slow
-> oscillation and spindles are an **imposed-drive + loop-resonance hybrid**
-> rather than emergent from intrinsic currents. Swapping the neuron model to
-> NEST's `ht_neuron` (Hill–Tononi) would make both rhythms emergent.
+> **Scope note (`iaf_cond_exp`).** The default point LIF neuron has **no
+> intrinsic Iₕ, T-type Ca²⁺, or persistent-Na currents**, so under it the slow
+> oscillation and spindles are imposed/loop-resonant rather than emergent. The
+> **`ht_neuron`** model below adds exactly those currents and makes both rhythms
+> emergent — the key modelling upgrade toward Mushtaq et al. 2024's full
+> Hodgkin–Huxley cells.
 
 ## `iaf_cond_exp` equations
 
@@ -88,6 +92,52 @@ $$
 \qquad
 w \leftarrow w + b \ \text{at each spike}
 $$
+
+## `ht_neuron` (Hodgkin–Huxley, emergent rhythms)
+
+Selected with `--neuron-model ht_neuron` (or `config/network_auditory_hh.yaml`).
+This is NEST's implementation of the **Hill & Tononi (2005)** thalamocortical
+neuron. The membrane potential integrates conductance-based synaptic currents,
+a spike-generating term, and a set of **intrinsic currents**:
+
+$$
+\tau_m \frac{dV}{dt} = -\bigl(V - E_L\bigr)
+   - \frac{1}{g_{\mathrm{NaL}}+g_{\mathrm{KL}}}\Bigl(
+       I_{\mathrm{Na}} + I_{\mathrm{K}}
+     + I_{\mathrm{NaP}} + I_{\mathrm{KNa}}
+     + I_{T} + I_{h}
+     + I_{\mathrm{syn}} \Bigr)
+$$
+
+with the intrinsic currents (each $I_x = g_x\,m^{M}h^{N}(V-E_x)$):
+
+| current | symbol | role | present in |
+|---------|--------|------|------------|
+| persistent Na⁺ | $I_{\mathrm{NaP}}$ | depolarising drive for UP states | cortex (PY/IN) |
+| Na-dependent K⁺ | $I_{\mathrm{KNa}}$ | spike-frequency adaptation → ends UP states | cortex (PY/IN) |
+| low-threshold Ca²⁺ | $I_{T}$ | post-inhibitory **rebound burst** (the spindle) | TC, RE |
+| h-current | $I_{h}$ | pacemaker; waxing/waning + termination | TC (relay) |
+
+The **spindle** is emergent: reticular (RE) GABA_A/GABA_B inhibition
+hyperpolarises the relay (TC) cell, de-inactivating $I_T$; on release, the $I_T$
+rebound fires TC, which re-excites RE (AMPA), and the loop rings in the
+spindle band. The **slow oscillation** is emergent from cortical
+$I_{\mathrm{NaP}}$ (depolarising) balanced by $I_{\mathrm{KNa}}$ adaptation.
+
+Synaptic currents are receptor-typed beta-functions with reversal potentials
+$E_{\mathrm{AMPA}}=E_{\mathrm{NMDA}}=0$, $E_{\mathrm{GABA_A}}=-70$,
+$E_{\mathrm{GABA_B}}=-90$ mV:
+
+$$
+I_{\mathrm{syn}} = \sum_{r\in\{\mathrm{AMPA,NMDA,GABA_A,GABA_B}\}}
+    g_{\mathrm{peak},r}\,w\,s_r(t)\,\bigl(V - E_r\bigr)
+$$
+
+The sleep/wake regime is set by the K-leak conductance $g_{\mathrm{KL}}$
+(neuromodulation): thalamic cells use a burst-permissive value. No 13 Hz drive
+is injected in this mode; the light 1 Hz `ac_generator` only gates the emergent
+spindles to UP states. The intrinsic conductances and loop calibration live in
+the `HHParams` dataclass in [`tc_network.py`](../tc_network.py).
 
 ## Parameter values
 
