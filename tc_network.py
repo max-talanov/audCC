@@ -237,6 +237,20 @@ class SleepParams:
     # is kept as a scaffold that gates the emergent spindles to UP states.
     emergent_spindles: bool = False
 
+    # --- external modulatory spindle trigger (HH mode; Fernandez & Luthi 2020)
+    # Design rule: the modulatory signal decides *when* a spindle is initiated
+    # and *whether* it is permitted, but never its frequency -- the intra-spindle
+    # rhythm stays emergent from the RE<->TC loop. See
+    # docs/spindle_review_mapping.md sect. 5.
+    #
+    # (A) Phasic trigger: a brief depolarising "kick" onto RE/nRT once per slow
+    # oscillation, standing in for the layer-6 corticothalamic burst that
+    # initiates spindles (review sect. V.B.2).
+    spindle_trigger: bool = False
+    trigger_amp: float = 30.0        # pA into nRT
+    trigger_dur: float = 30.0        # ms pulse width
+    trigger_phase_ms: float = 250.0  # ms after cycle start (SO UP onset)
+
 
 @dataclass
 class HHParams:
@@ -267,6 +281,15 @@ class HHParams:
     # thalamic I_T / I_h are raised so the RE<->TC rebound loop actually bursts.
     g_peak_T_thalamus: float = 3.0
     g_peak_h_thalamus: float = 2.0
+    # SK2 surrogate in the reticular (RE/nRT) cells. Fernandez & Luthi 2020
+    # (sect. V.A.1): Ca2+ entering TRN dendrites through Ca_v3.3 activates SK2,
+    # producing the burst after-hyperpolarisation that keeps TRN bursts short
+    # and repeatable -- which shapes spindle amplitude and regularity.
+    # ht_neuron has no Ca-gated K+ current, but its Na-dependent K+ current
+    # (I_KNa) is likewise burst-activated and produces an AHP, so it stands in
+    # for SK2 functionally (see docs/spindle_review_mapping.md sect. 4; the
+    # faithful version is a NESTML ht_neuron_sk with a fast Ca2+ pool).
+    g_peak_KNa_RE: float = 0.5
     g_peak_NaP_cortex: float = 1.0
     g_peak_KNa_cortex: float = 1.0
     tau_m: float = 16.0
@@ -290,6 +313,20 @@ class HHParams:
     # regime) for the RE<->TC loop to actually engage and ring.
     loop_weight_gain: float = 3.0
     aud_weight_gain: float = 8.0
+    # (B) Slow neuromodulatory "permission" signal (Fernandez & Luthi 2020,
+    # sect. IV.E): sigma power / spindle occurrence is clustered on a ~0.02 Hz
+    # (~50 s) infraslow rhythm that alternates NREMS between spindle-rich
+    # CONTINUITY and spindle-poor FRAGILITY periods. Modelled as a slow swing of
+    # thalamic excitability (the current-injection analogue of Hill & Tononi's
+    # g_KL neuromodulation knob): on the permissive phase a triggered spindle
+    # succeeds, on the opposite phase it does not -> clustering + refractoriness.
+    # Note the swing must be LARGE: hyperpolarising the thalamus lowers TC but
+    # also makes RE *more* burst-prone (I_T de-inactivates), so the two effects
+    # partly cancel and only a big excursion modulates sigma power. Calibrated
+    # by sweeping the sigma-envelope modulation ratio (see the runner's
+    # "sigma infraslow mod" metric): ~40 pA gives a clear peak, ~20 pA none.
+    infraslow_freq: float = 0.02     # Hz (~50 s period)
+    infraslow_amp: float = 40.0      # pA swing of the thalamic baseline
     # Calibrated TOTAL intra-thalamic conductance onto each post-synaptic cell
     # (fan-in normalised; single-cell tests put the spindle-generating RE->TC
     # inhibition around these values). GABA_A + slow GABA_B for RE->TC.
@@ -441,10 +478,11 @@ class AuditoryThalamoCorticalSleep:
             "instant_unblock_NMDA": True,
         }
         if thalamic:
-            # I_T (both) and I_h (relay only) on; no cortical NaP/KNa
+            # I_T (both) and I_h (relay only) on; no cortical NaP.
+            # RE additionally gets the SK2-surrogate AHP current (I_KNa).
             p.update({
                 "g_peak_NaP": 0.0,
-                "g_peak_KNa": 0.0,
+                "g_peak_KNa": hh.g_peak_KNa_RE if role == "RE" else 0.0,
                 "g_peak_T": hh.g_peak_T_thalamus,
                 "g_peak_h": hh.g_peak_h_thalamus if role == "TC" else 0.0,
             })
@@ -719,6 +757,33 @@ class AuditoryThalamoCorticalSleep:
         self._safe_connect(gen, mgb, {"rule": "one_to_one"},
                            self._exc_syn_spec(w, self._min_delay()))
 
+    def _attach_spindle_trigger(self, re_pop):
+        """Phasic corticothalamic-like kick onto RE, once per slow-oscillation
+        cycle, standing in for the layer-6 burst that *initiates* a spindle.
+
+        This sets only the initiation time: the spindle's frequency, duration
+        and waxing/waning still emerge from the RE<->TC loop, and whether the
+        kick actually produces a spindle depends on the slow (~0.02 Hz)
+        permission signal. See docs/spindle_review_mapping.md sect. 5.
+        """
+        nest = self._nest
+        s = self.sleep
+        if re_pop is None or len(re_pop) == 0 or not s.trigger_amp:
+            return
+        period = 1000.0 / max(1e-6, s.slow_freq)      # ms per SO cycle
+        dur = max(self.cfg.dt, s.trigger_dur)
+        times, amps = [], []
+        t = max(self.cfg.dt, s.trigger_phase_ms)
+        while t + dur < self.cfg.tstop:
+            times += [t, t + dur]
+            amps += [s.trigger_amp, 0.0]
+            t += period
+        if not times:
+            return
+        gen = nest.Create("step_current_generator", params={
+            "amplitude_times": times, "amplitude_values": amps})
+        nest.Connect(gen, re_pop)
+
     def attach_sleep_drives(self, pops):
         """Slow-wave (1 Hz) and spindle (13 Hz) current injections.
 
@@ -776,6 +841,19 @@ class AuditoryThalamoCorticalSleep:
                         "offset": self.hh.thal_slow_offset,
                         "frequency": s.slow_freq, "phase": 0.0})
                     nest.Connect(re_drive, re)
+                # (B) slow neuromodulatory permission signal: ~0.02 Hz swing of
+                # thalamic excitability -> spindle-rich CONTINUITY vs
+                # spindle-poor FRAGILITY periods (Fernandez & Luthi sect. IV.E).
+                if self.hh.infraslow_amp:
+                    infra = nest.Create("ac_generator", params={
+                        "amplitude": self.hh.infraslow_amp,
+                        "offset": 0.0,
+                        "frequency": self.hh.infraslow_freq,
+                        "phase": 0.0})
+                    nest.Connect(infra, thal)
+                # (A) phasic corticothalamic-like trigger onto RE
+                if s.spindle_trigger:
+                    self._attach_spindle_trigger(re)
             else:
                 # imposed-drive mode (iaf_cond_exp): 1 Hz gating + 13 Hz spindle
                 slow_thal = nest.Create("ac_generator", params={
