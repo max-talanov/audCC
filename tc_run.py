@@ -494,6 +494,10 @@ def main(argv=None):
                     choices=["iaf_cond_exp", "ht_neuron"],
                     help="neuron model: iaf_cond_exp (default, point LIF) or "
                          "ht_neuron (Hodgkin-Huxley, emergent spindles)")
+    ap.add_argument("--spindle-trigger", action="store_true",
+                    help="ht_neuron only: add the phasic corticothalamic-like "
+                         "kick onto nRT that initiates each spindle (the "
+                         "external modulatory trigger; frequency stays emergent)")
     args = ap.parse_args(argv)
 
     outdir = Path(args.outdir)
@@ -519,7 +523,9 @@ def main(argv=None):
     print(f"Running NEST simulation ({cfg.tstop} ms, {args.threads} thread(s))...")
 
     # HH model: switch on emergent spindles (drop the imposed 13 Hz oscillator).
-    sleep = SleepParams(emergent_spindles=True) if is_hh else SleepParams()
+    sleep = (SleepParams(emergent_spindles=True,
+                         spindle_trigger=args.spindle_trigger)
+             if is_hh else SleepParams())
     model = AuditoryThalamoCorticalSleep(network_config=cfg, syn=SynapseParams(),
                                          sleep=sleep, sim_config=sim_config)
     spikes, traces, meta = model.run()
@@ -562,6 +568,48 @@ def main(argv=None):
     print(f"\n  slow-wave peak    : {slow_peak:.2f} Hz  (target ~1 Hz)")
     print(f"  spindle peak      : {spindle_peak:.2f} Hz  (target ~13 Hz)")
     print(f"  spindle-band power: {spindle_band:.3g} (11-15 Hz)")
+
+    # ----- discrete spindle-event metrics (Fernandez & Luthi 2020) -----
+    from tc_network import HHParams as _HHP
+    INFRASLOW_HZ = _HHP().infraslow_freq
+    # Density (#/min) and inter-spindle interval; the review puts the spindle
+    # refractory period at 5-10 s and reports clustering on a ~0.02 Hz rhythm.
+    try:
+        _eeg = build_eeg_like(traces, cfg.tstop, seed=args.seed)
+        _sp, _ = detect_sp_sw(_eeg)
+        if _sp:
+            starts = np.array([w[0] for w in _sp], float)
+            density = len(_sp) / (cfg.tstop / 60000.0)
+            print(f"  spindle events    : {len(_sp)}  "
+                  f"(density {density:.1f} /min)")
+            if len(starts) > 1:
+                isi = np.diff(starts) / 1000.0    # s
+                print(f"  inter-spindle int.: median {np.median(isi):.2f} s, "
+                      f"p90 {np.percentile(isi, 90):.2f} s  "
+                      f"(review refractory 5-10 s)")
+        # Infraslow clustering, measured the way the review states it: the
+        # SIGMA POWER (spindle-band envelope) itself oscillates at ~0.02 Hz.
+        # Note the discrete event count above uses a percentile threshold and so
+        # self-normalises -- it cannot show suppression; this spectral measure
+        # can. Needs >= ~3 infraslow cycles to be meaningful.
+        env, fs_e = _eeg["env"], _eeg["fs"]
+        if cfg.tstop / 1000.0 >= 3.0 / max(1e-6, INFRASLOW_HZ):
+            e = env[int(2 * fs_e):]
+            e = e - e.mean()
+            fe = np.fft.rfftfreq(len(e), 1.0 / fs_e)
+            Pe = np.abs(np.fft.rfft(e)) ** 2
+            tgt = (fe > INFRASLOW_HZ * 0.6) & (fe < INFRASLOW_HZ * 1.4)
+            ref = (fe > 0.01) & (fe < 1.0)
+            if tgt.any() and ref.any():
+                ratio = Pe[tgt].max() / max(1e-12, np.median(Pe[ref]))
+                print(f"  sigma infraslow mod: peak "
+                      f"{fe[tgt][np.argmax(Pe[tgt])]:.3f} Hz, ratio "
+                      f"{ratio:.1f}  (clustering; review ~0.02 Hz)")
+        else:
+            print(f"  sigma infraslow mod: run too short "
+                  f"(need >= {3.0 / INFRASLOW_HZ:.0f} s for ~{INFRASLOW_HZ} Hz)")
+    except Exception as e:  # metrics are diagnostic only, never fatal
+        print(f"  (spindle-event metrics unavailable: {e})")
 
     tag = args.tag or (Path(args.config).stem.replace("network_auditory_", "")
                        if args.config else "default")

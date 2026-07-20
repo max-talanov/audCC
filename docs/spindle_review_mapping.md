@@ -220,7 +220,26 @@ neuron ht_neuron_sk:
     # ... add I_SK to the membrane current sum
 ```
 
-### 4.4 Where it plugs into our model
+### 4.4 Implemented (stage 1) — measured result
+
+Stage (a) is **implemented**: `HHParams.g_peak_KNa_RE` (default `0.5`) switches
+`ht_neuron`'s Na⁺-dependent K⁺ current on **for the RE/nRT population only**.
+Sweeping it reproduces the review's prediction that the burst AHP keeps TRN
+bursts **short and repeatable** (20 s runs, local config):
+
+| `g_peak_KNa_RE` | RE spikes/burst | number of bursts | spindle-envelope CV |
+|---|---|---|---|
+| 0.0 | 5.97 | 144 | 0.876 |
+| 0.5 | 5.08 | 151 | 0.859 |
+| 1.0 | 4.93 | 151 | 0.878 |
+
+Bursts shorten by ~15% and become slightly **more frequent** — i.e. shorter and
+more repeatable, as the review describes. **Honest caveat:** the predicted
+improvement in *spindle regularity* is **not** demonstrated (envelope CV is
+essentially unchanged); that may require the true Ca²⁺-gated SK2 of option (b),
+or regularity may be dominated by other factors in our circuit.
+
+### 4.5 Where it plugs into our model
 
 Apply **only to the reticular (RE/nRT) population** — per the review, SK2
 shapes *TRN* burst discharge (`_ht_neuron_params(role="RE")` in
@@ -285,7 +304,54 @@ periods (§3.2) for free. A noradrenaline-like *rise* can additionally be used t
 | slow permission | TC + RE | `g_KL` (or tonic bias) modulated at **0.02 Hz** | continuity/fragility (§IV.E) |
 | termination | TC + RE | transient depolarising/NA-like rise after spindle onset | LC-noradrenaline termination (§V.D.3) |
 
-### 5.4 Validation metrics
+### 5.4 Implemented — and what the calibration taught us
+
+Both components are **implemented** for the HH model:
+
+- **(A) phasic trigger** — `SleepParams.spindle_trigger` (CLI `--spindle-trigger`)
+  attaches a `step_current_generator` delivering a `trigger_amp` (30 pA),
+  `trigger_dur` (30 ms) kick to **nRT** once per SO cycle.
+- **(B) slow permission** — `HHParams.infraslow_freq` / `infraslow_amp`, a
+  0.02 Hz `ac_generator` on the thalamus.
+
+Two findings from calibrating this, both worth recording:
+
+1. **The infraslow swing must be large (~40 pA), and its effect is
+   non-monotonic.** Hyperpolarising the thalamus lowers TC firing but
+   *simultaneously* makes RE **more** burst-prone (I_T de-inactivates), so the
+   two effects partly cancel. Measured sigma-envelope modulation ratio at the
+   infraslow frequency: **3.1** (no modulation) → **2.6** at 22 pA (no effect)
+   → **8.8** at 40 pA. Hence the 40 pA default.
+2. **Discrete-event counts cannot validate clustering.** Our `detect_sp_sw`
+   uses a *percentile* threshold, so it self-normalises and reports a similar
+   event count however strongly spindles are modulated. The review's own
+   formulation — "**the ~0.02 Hz oscillation of sigma power**" — is the correct
+   measure, so the runner now reports a **`sigma infraslow mod`** metric: the
+   spectral peak of the spindle-band envelope inside the infraslow band, with a
+   power ratio. This is the metric to trust for §3.2.
+
+**Validation run** (local config, `ht_neuron`, `--spindle-trigger`, 200 s ≈ 4
+infraslow cycles):
+
+| metric | result | target |
+|---|---|---|
+| slow-wave peak | **1.00 Hz** | ~1 Hz ✅ |
+| spindle peak | **11.0 Hz** | 10–15 Hz ✅ (emergent, not imposed) |
+| **sigma infraslow modulation** | **peak 0.020 Hz, ratio 14.6** | ~0.02 Hz clustering ✅ |
+| inter-spindle interval | 0.98 s | 5–10 s ❌ (see below) |
+
+The spindle frequency stays in the physiological band **while the trigger runs
+at 1 Hz** — confirming the intra-spindle rhythm is set by the RE↔TC loop, not by
+the modulatory signal, which was the whole design constraint.
+
+**Still open:** the **5–10 s refractory (§3.1) is not yet achieved** — spindles
+still recur about once per ~1 s SO cycle (median inter-spindle interval
+≈ 0.95 s). Deepening the TC I_h after-depolarisation (`g_peak_h`, and the slow
+Ca²⁺–cAMP pathway that `ht_neuron` already models with `tau_Ca = 10000 ms`)
+is the natural next lever, possibly combined with triggering on only a subset of
+SO cycles.
+
+### 5.5 Validation metrics
 
 1. **Intra-spindle frequency** stays in 10–15 Hz and is *independent* of the
    trigger rate (proves the frequency is emergent, not imposed).
