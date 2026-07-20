@@ -2,6 +2,10 @@
 .DS_Store
 out/
 
+# Reference papers / dragged clippings kept locally, never committed
+*.pdf
+*.textClipping
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

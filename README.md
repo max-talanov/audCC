@@ -34,6 +34,12 @@ The full governing equations, the `aeif_cond_exp` fallback, the `ht_neuron`
 intrinsic currents, and the parameter tables (with Mushtaq 2024 sources) are in
 **[`docs/model_equations.md`](docs/model_equations.md)**.
 
+For how this model maps onto the spindle literature — a summary of
+Fernandez & Lüthi (2020, *Physiol Rev*), what we already capture, a prioritised
+backlog, and designs for **SK2 channels in TRN** and an **external modulatory
+spindle trigger** — see
+**[`docs/spindle_review_mapping.md`](docs/spindle_review_mapping.md)**.
+
 ```bash
 # emergent HH (Hodgkin-Huxley) sleep rhythms:
 python3 tc_run.py --config config/network_auditory_hh.yaml --tstop 15000 --outdir out --tag hh
