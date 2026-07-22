@@ -344,7 +344,52 @@ The spindle frequency stays in the physiological band **while the trigger runs
 at 1 Hz** — confirming the intra-spindle rhythm is set by the RE↔TC loop, not by
 the modulatory signal, which was the whole design constraint.
 
-**Still open:** the **5–10 s refractory (§3.1) is not yet achieved** — spindles
+### 5.4.1 The 5–10 s refractory: two mechanisms tried, both insufficient
+
+**Status: not achieved.** Two principled attempts, both measured with an
+*absolute* spindle metric (contiguous runs of TC firing — see the note below on
+why the percentile detector cannot be used here):
+
+**Attempt 1 — deepen the TC I_h after-depolarisation** (the review's own
+termination mechanism: Ca²⁺ via Ca_v3.1 → cAMP → HCN). `HHParams.beta_Ca_TC`
+and `g_peak_h_thalamus` are now exposed as levers. Sweeping them *does* lengthen
+the inter-spindle interval, but at an unacceptable cost:
+
+| `g_peak_h` | `beta_Ca_TC` | episodes/40 s | median ISI | duration | spindle freq |
+|---|---|---|---|---|---|
+| 2 | 0.001 | 9 | 2.98 s | — | 11–15 Hz ✅ |
+| 3 | 0.003 | 7 | **4.99 s** | 5.2 s ❌ | <9 Hz ❌ |
+| 6 | 0.005 | 3 | 17.4 s ❌ | 5.2 s ❌ | <9 Hz ❌ |
+| 12 | 0.05 | 2 | — | tonic ❌ | destroyed |
+
+Pushing I_h far enough to space spindles out **drags the intra-spindle frequency
+below 9 Hz** (out of the physiological band) and **stretches episodes past 3 s**
+(the review says 0.5–3 s); pushed further, TC leaves burst mode entirely and
+fires tonically, abolishing spindles. There is a genuine trade-off here in
+`ht_neuron`: the same I_h that terminates a spindle also depolarises the relay.
+
+**Attempt 2 — space the external trigger** (`trigger_refractory_ms`), motivated
+by the fact that human spindle density is only ~2–8/min, so the corticothalamic
+trigger cannot be firing on every SO cycle. **Measured: no effect** — with the
+trigger at 7 s the model still produced **40 episodes in 60 s (ISI 1.03 s)**.
+The reason is instructive: the **1 Hz SO drive plus L6 corticothalamic feedback
+re-activate the thalamus on every UP state regardless of the trigger**, so the
+trigger is additive, not the sole initiator.
+
+**What this implies for the next attempt.** A refractory requires making the
+thalamus *non-permissive between spindles*, not just triggering it less often.
+Candidates: (i) a much deeper/slower permission signal so most UP states find
+the thalamus out of burst range; (ii) reducing the tonic SO drive to the
+thalamus so *only* triggered cycles spindle; (iii) the true Ca²⁺-gated SK2 of
+§4 option (b), whose AHP acts on RE without depolarising TC the way I_h does.
+
+**Measurement caveat (important).** The percentile-based `detect_sp_sw` cannot
+be used to test a refractory, for the same reason it could not test clustering:
+it self-normalises. It reported ISI ≈ 0.98 s under settings where the absolute
+TC-episode measure reported ≈ 3 s. Use the absolute measure
+(`tc_episodes()` in [`tc_spindle_figures.py`](../tc_spindle_figures.py)).
+
+**Previously reported as still open:** the **5–10 s refractory (§3.1)** — spindles
 still recur about once per ~1 s SO cycle (median inter-spindle interval
 ≈ 0.95 s). Deepening the TC I_h after-depolarisation (`g_peak_h`, and the slow
 Ca²⁺–cAMP pathway that `ht_neuron` already models with `tau_Ca = 10000 ms`)

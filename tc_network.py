@@ -250,6 +250,15 @@ class SleepParams:
     trigger_amp: float = 30.0        # pA into nRT
     trigger_dur: float = 30.0        # ms pulse width
     trigger_phase_ms: float = 250.0  # ms after cycle start (SO UP onset)
+    # Minimum interval between trigger pulses, snapped to a whole number of SO
+    # cycles so spindles stay UP-state-locked. 0 = fire every cycle (default).
+    #
+    # NOTE (measured): spacing the trigger does NOT by itself produce the
+    # review's 5-10 s spindle refractory -- with the trigger at 7 s the model
+    # still yields ~1 spindle/s, because the 1 Hz SO drive plus L6
+    # corticothalamic feedback re-activate the thalamus on every UP state
+    # regardless of the trigger. See docs/spindle_review_mapping.md sect. 5.4.
+    trigger_refractory_ms: float = 0.0
 
 
 @dataclass
@@ -290,6 +299,13 @@ class HHParams:
     # for SK2 functionally (see docs/spindle_review_mapping.md sect. 4; the
     # faithful version is a NESTML ht_neuron_sk with a fast Ca2+ pool).
     g_peak_KNa_RE: float = 0.5
+    # TC Ca2+ handling, which drives the I_h after-depolarisation behind spindle
+    # TERMINATION and the 5-10 s refractory period (Fernandez & Luthi sect.
+    # V.D.1: Ca2+ entry via Ca_v3.1 -> cAMP -> HCN, stabilising I_h open state).
+    # ht_neuron models exactly this; beta_Ca sets Ca2+ influx per T-current and
+    # tau_Ca its decay (default 10 s -- the right refractory timescale).
+    beta_Ca_TC: float = 0.001
+    tau_Ca_TC: float = 10000.0
     g_peak_NaP_cortex: float = 1.0
     g_peak_KNa_cortex: float = 1.0
     tau_m: float = 16.0
@@ -486,6 +502,10 @@ class AuditoryThalamoCorticalSleep:
                 "g_peak_T": hh.g_peak_T_thalamus,
                 "g_peak_h": hh.g_peak_h_thalamus if role == "TC" else 0.0,
             })
+            if role == "TC":
+                # Ca2+ -> I_h pathway: the spindle-termination / refractory
+                # mechanism (see HHParams.beta_Ca_TC).
+                p.update({"beta_Ca": hh.beta_Ca_TC, "tau_Ca": hh.tau_Ca_TC})
         else:
             # cortical persistent-Na drive + Na-dependent-K adaptation; no T/h
             p.update({
@@ -770,14 +790,19 @@ class AuditoryThalamoCorticalSleep:
         s = self.sleep
         if re_pop is None or len(re_pop) == 0 or not s.trigger_amp:
             return
-        period = 1000.0 / max(1e-6, s.slow_freq)      # ms per SO cycle
+        so_period = 1000.0 / max(1e-6, s.slow_freq)   # ms per SO cycle
+        # Fire only every n-th SO cycle so the inter-spindle interval respects
+        # the 5-10 s refractory, while staying locked to an SO UP state.
+        n_cycles = max(1, int(round(max(so_period, s.trigger_refractory_ms)
+                                    / so_period)))
+        step = n_cycles * so_period
         dur = max(self.cfg.dt, s.trigger_dur)
         times, amps = [], []
         t = max(self.cfg.dt, s.trigger_phase_ms)
         while t + dur < self.cfg.tstop:
             times += [t, t + dur]
             amps += [s.trigger_amp, 0.0]
-            t += period
+            t += step
         if not times:
             return
         gen = nest.Create("step_current_generator", params={
