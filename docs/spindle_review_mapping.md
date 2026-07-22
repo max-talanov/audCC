@@ -406,6 +406,65 @@ SO cycles.
 
 ---
 
+## 5.4.2 Gated mode: third refractory attempt, also unsuccessful
+
+Rationale: attempts 1–2 failed because the thalamus is re-activated on **every**
+SO cycle, so spindle density is pinned near the SO rate. "Gated mode"
+(`SleepParams.trigger_refractory_ms > 0`) therefore holds the relay
+**sub-threshold between spindles** (`HHParams.tc_slow_offset_gated`), makes the
+infraslow signal **purely suppressive**, and lets the trigger open a permissive
+**window** (`trigger_window_ms`, `trigger_tc_amp`) that sets spindle duration.
+
+**Result: does not work, and is off by default.** A first pass
+(`offset 18 + SO amp 12 = 30 pA`) produced *no gating at all* — 30 pA is exactly
+the level at which TC fires under reticular inhibition, so every SO peak still
+re-fired the relay. Closing the gate properly (`offset 6`, stronger window)
+instead **suppressed the thalamus**: MGB 4.0 → 1.7 Hz, nRT 10 → 2.7 Hz, and the
+loop fell to ~9 Hz, failing the runner's own spindle check — while spindle
+density did **not** fall. The parameters are retained as an explicit opt-in
+(`trigger_refractory_ms = 0` by default, restoring the validated behaviour).
+
+## 5.5 Verdict: do the simulated events qualify as spindles?
+
+**No — not by the review's own definition.** Measured with the review's
+detection method (fixed threshold on the 10–15 Hz envelope, events ≥ 0.5 s;
+`detect_spindles()` in [`tc_validate.py`](../tc_validate.py)):
+
+| criterion | paper | measured | |
+|---|---|---|---|
+| intra-spindle frequency | 10–15 Hz | 15.1 Hz | ✗ fast |
+| **duration** | **0.5–3 s** | **max 0.45 s, median ~0.2 s** | **✗** |
+| density (events ≥0.5 s) | 2–8 /min | **0.0 /min** | ✗ |
+| inter-spindle interval | 5–10 s | ~1 s | ✗ |
+| SO coupling | 50–70% | 35–86% (unstable) | ✗ |
+| infraslow clustering | ~0.02 Hz | 0.020 Hz, ratio 15 | ✓ |
+| RE spikes per burst | 2 to >10 | 3.6–5.2 | ✓ |
+| RE V_m < −55 mV | required | 72–94% of time | ✓ |
+| TC V_m < −65 mV | required | 48–73% of time | ✓ |
+
+**The finding is robust, not a detection artefact:** across thresholds
+(1.0/1.5/2.0 SD) and in both gated and ungated modes, the **longest**
+sigma-band event is **0.45 s** and **none reaches 0.5 s**.
+
+**Interpretation.** The model reproduces the **cellular and circuit mechanism**
+faithfully — correct membrane-potential operating ranges, realistic TRN burst
+structure, a working RE↔TC loop, and correct infraslow organisation. What it
+does **not** yet reproduce is the **event**: a spindle is a *train* of 7–45
+cycles (0.5–3 s at 10–15 Hz), whereas our loop rings for only ~2–3 cycles
+(~0.2 s) before dying. It is best described as **sigma-band ringing, not sleep
+spindles**.
+
+**Root cause and next step.** The loop is under-damped for too short a time —
+it does not reverberate long enough. Per the review's synchronisation section
+(V.C), sustained spindles depend on mechanisms we have not implemented:
+**gap junctions between TRN cells**, **topographic corticothalamic "slabs"**,
+and **open-loop TC→TRN lateral excitation** that recruits progressively more
+TRN cells over the course of a spindle. Our all-to-all thalamic wiring (§3.3)
+has no such recruitment dynamics, so there is nothing to sustain the
+oscillation. Implementing §3.3 is therefore the highest-value next step — it is
+likely the prerequisite for spindle *duration*, and hence for density and the
+refractory period too.
+
 ## 6. References
 
 - Fernandez LMJ, Lüthi A. *Sleep Spindles: Mechanisms and Functions.*
