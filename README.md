@@ -125,6 +125,7 @@ area-based conductances (mS/cm²·area) are not transferable** to our point
 | `tc_network.py` | `AuditoryThalamoCorticalSleep` — builds/wires/drives/runs the column |
 | `tc_run.py` | CLI driver: run, build LFP-proxy signals, verify 1 Hz & 13 Hz, plot |
 | `tc_architecture.py` | draws the thalamo-cortical loop architecture schematic (`out/tc_architecture.png`, no NEST needed) |
+| `tc_validate.py` | validates simulated spindles against Fernandez & Lüthi (2020) criteria — pass/fail table, exits non-zero on failure |
 | `tc_spindle_figures.py` | six-panel spindle demonstration (`out/tc_spindles.png`): single spindle, RE↔TC loop raster, SO nesting, spectrogram, 0.02 Hz clustering, statistics |
 | `config/network_auditory_local.yaml` | small (~112 neurons), short — local sane test |
 | `config/network_auditory_mushtaq.yaml` | Mushtaq et al. 2024 sizing (PY 200 / IN 40 / TC 40 / RE 40), 15 s |

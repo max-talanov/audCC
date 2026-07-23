@@ -253,12 +253,22 @@ class SleepParams:
     # Minimum interval between trigger pulses, snapped to a whole number of SO
     # cycles so spindles stay UP-state-locked. 0 = fire every cycle (default).
     #
-    # NOTE (measured): spacing the trigger does NOT by itself produce the
-    # review's 5-10 s spindle refractory -- with the trigger at 7 s the model
-    # still yields ~1 spindle/s, because the 1 Hz SO drive plus L6
-    # corticothalamic feedback re-activate the thalamus on every UP state
-    # regardless of the trigger. See docs/spindle_review_mapping.md sect. 5.4.
+    # > 0 enables GATED mode: the relay is held sub-threshold between spindles
+    # (HHParams.tc_slow_offset_gated), the infraslow signal becomes purely
+    # suppressive, and the trigger opens a permissive window every
+    # trigger_refractory_ms.
+    #
+    # DEFAULT 0 (fire every SO cycle) because gated mode was MEASURED NOT TO
+    # WORK: it suppresses the thalamus (MGB 4.0 -> 1.7 Hz) and drops the loop to
+    # ~9 Hz, failing validation, without reducing spindle density. Kept as an
+    # opt-in for further work. See docs/spindle_review_mapping.md sect. 5.4.2.
     trigger_refractory_ms: float = 0.0
+    # The trigger opens a permissive WINDOW rather than delivering only a spike:
+    # the corticothalamic volley depolarises TC for the length of a spindle, so
+    # the window sets spindle DURATION (review: 0.5-3 s) while the RE<->TC loop
+    # still sets the intra-spindle frequency.
+    trigger_window_ms: float = 1500.0
+    trigger_tc_amp: float = 28.0     # pA depolarisation of TC during the window
 
 
 @dataclass
@@ -322,6 +332,15 @@ class HHParams:
     # respond to corticothalamic feedback.
     tc_slow_amp: float = 12.0
     tc_slow_offset: float = 34.0
+    # TC baseline when spindles are GATED by the external trigger. Deliberately
+    # sub-threshold: between spindles the relay must be non-permissive, so a
+    # slow-oscillation UP state on its own does NOT evoke a spindle. Without
+    # this the thalamus re-activates every SO cycle and spindle density is
+    # pinned near the SO rate (~42-60/min vs the 2-8/min humans show).
+    # Must satisfy: offset + tc_slow_amp << the ~30 pA at which TC fires under
+    # reticular inhibition, or the SO peak alone re-fires the relay every cycle
+    # (measured: offset 18 + amp 12 = 30 gave no gating at all).
+    tc_slow_offset_gated: float = 6.0
     thal_slow_amp: float = 12.0    # RE (reticular)
     thal_slow_offset: float = 14.0
     # ht_neuron synapses scale g_peak by the connection weight; the intra-
@@ -777,7 +796,7 @@ class AuditoryThalamoCorticalSleep:
         self._safe_connect(gen, mgb, {"rule": "one_to_one"},
                            self._exc_syn_spec(w, self._min_delay()))
 
-    def _attach_spindle_trigger(self, re_pop):
+    def _attach_spindle_trigger(self, re_pop, tc_pop=None):
         """Phasic corticothalamic-like kick onto RE, once per slow-oscillation
         cycle, standing in for the layer-6 burst that *initiates* a spindle.
 
@@ -808,6 +827,25 @@ class AuditoryThalamoCorticalSleep:
         gen = nest.Create("step_current_generator", params={
             "amplitude_times": times, "amplitude_values": amps})
         nest.Connect(gen, re_pop)
+
+        # Permissive WINDOW on the relay: TC sits sub-threshold between
+        # spindles (tc_slow_offset_gated) and is lifted into the burst-capable
+        # range only for trigger_window_ms. This is what makes spindles discrete
+        # and sparse instead of recurring on every SO cycle; the window length
+        # sets the spindle duration, the loop still sets its frequency.
+        if (tc_pop is not None and len(tc_pop) > 0 and s.trigger_tc_amp
+                and s.trigger_refractory_ms > 0):
+            w = max(self.cfg.dt, s.trigger_window_ms)
+            wt, wa = [], []
+            t = max(self.cfg.dt, s.trigger_phase_ms)
+            while t + w < self.cfg.tstop:
+                wt += [t, t + w]
+                wa += [s.trigger_tc_amp, 0.0]
+                t += step
+            if wt:
+                gen_tc = nest.Create("step_current_generator", params={
+                    "amplitude_times": wt, "amplitude_values": wa})
+                nest.Connect(gen_tc, tc_pop)
 
     def attach_sleep_drives(self, pops):
         """Slow-wave (1 Hz) and spindle (13 Hz) current injections.
@@ -854,10 +892,16 @@ class AuditoryThalamoCorticalSleep:
                 # to UP states. TC and RE are driven separately (TC needs the
                 # stronger baseline to fire between RE inhibitory volleys); the
                 # spindle frequency is set by the loop, not by any drive.
+                gated = s.spindle_trigger and s.trigger_refractory_ms > 0
                 if tc is not None and len(tc) > 0:
+                    # In GATED mode, hold TC sub-threshold between spindles so
+                    # UP states alone do not evoke one (opt-in; see
+                    # SleepParams.trigger_refractory_ms).
+                    tc_off = (self.hh.tc_slow_offset_gated if gated
+                              else self.hh.tc_slow_offset)
                     tc_drive = nest.Create("ac_generator", params={
                         "amplitude": self.hh.tc_slow_amp,
-                        "offset": self.hh.tc_slow_offset,
+                        "offset": tc_off,
                         "frequency": s.slow_freq, "phase": 0.0})
                     nest.Connect(tc_drive, tc)
                 if re is not None and len(re) > 0:
@@ -870,15 +914,20 @@ class AuditoryThalamoCorticalSleep:
                 # thalamic excitability -> spindle-rich CONTINUITY vs
                 # spindle-poor FRAGILITY periods (Fernandez & Luthi sect. IV.E).
                 if self.hh.infraslow_amp:
+                    # When the trigger gates spindles the permission signal must
+                    # only ever SUPPRESS: offset it negative so it swings in
+                    # [-2A, 0]. Left symmetric about 0 it would add up to +A on
+                    # its positive phase and blow the gate open by itself.
+                    infra_off = -self.hh.infraslow_amp if gated else 0.0
                     infra = nest.Create("ac_generator", params={
                         "amplitude": self.hh.infraslow_amp,
-                        "offset": 0.0,
+                        "offset": infra_off,
                         "frequency": self.hh.infraslow_freq,
                         "phase": 0.0})
                     nest.Connect(infra, thal)
                 # (A) phasic corticothalamic-like trigger onto RE
                 if s.spindle_trigger:
-                    self._attach_spindle_trigger(re)
+                    self._attach_spindle_trigger(re, tc)
             else:
                 # imposed-drive mode (iaf_cond_exp): 1 Hz gating + 13 Hz spindle
                 slow_thal = nest.Create("ac_generator", params={
