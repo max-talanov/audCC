@@ -438,9 +438,15 @@ detection method (fixed threshold on the 10–15 Hz envelope, events ≥ 0.5 s;
 | inter-spindle interval | 5–10 s | ~1 s | ✗ |
 | SO coupling | 50–70% | 35–86% (unstable) | ✗ |
 | infraslow clustering | ~0.02 Hz | 0.020 Hz, ratio 15 | ✓ |
-| RE spikes per burst | 2 to >10 | 3.6–5.2 | ✓ |
+| **RE spikes per burst** | **2 to >10 (>100 Hz)** | **1.09–1.14** | **✗** (see §5.5.1) |
+| **TC spikes per burst** | **2–6 (rebound burst)** | **1.21–1.31** | **✗** (see §5.5.1) |
 | RE V_m < −55 mV | required | 72–94% of time | ✓ |
-| TC V_m < −65 mV | required | 48–73% of time | ✓ |
+| TC V_m < −65 mV | required | 47–73% of time | ✓ |
+
+> The two "spikes per burst" rows previously read as passes. They were measured
+> with a 20 ms intra-burst window, which lumps tonic spikes into pseudo-bursts;
+> at the review's own >100 Hz criterion they fail. See §5.5.1 — this is the
+> project's key negative finding.
 
 **The finding is robust, not a detection artefact:** across thresholds
 (1.0/1.5/2.0 SD) and in both gated and ungated modes, the **longest**
@@ -454,7 +460,70 @@ cycles (0.5–3 s at 10–15 Hz), whereas our loop rings for only ~2–3 cycles
 (~0.2 s) before dying. It is best described as **sigma-band ringing, not sleep
 spindles**.
 
-**Root cause and next step.** The loop is under-damped for too short a time —
+### 5.5.1 Root cause identified: the cells fire tonically, not in bursts
+
+Follow-up measurement (see §5.6) **corrects one of the passes above** and
+identifies the real blocker.
+
+At the review's own burst criterion — a burst is 2 to >10 spikes at up to
+several hundred Hz, i.e. **intra-burst ISI < 10 ms** — the model produces:
+
+| | measured | review |
+|---|---|---|
+| TC spikes per burst | **1.21** | 2–6 (rebound burst) |
+| RE spikes per burst | **1.09** | 2 to >10 |
+
+That is **single spikes: the thalamus is in TONIC firing mode, not BURST
+mode.** The earlier "RE spikes per burst 3.6–5.2 → PASS" used a lenient 20 ms
+window, which lumps unrelated tonic spikes into pseudo-bursts; at the correct
+>100 Hz criterion it fails. The validator now uses the 10 ms criterion.
+
+TC sits at mean −62.7 mV (p95 −54.1), i.e. hovering just under threshold and
+emitting isolated spikes, rather than resting hyperpolarised and firing
+**post-inhibitory rebound bursts** — the actual spindle mechanism.
+
+This traces back to the very first `ht_neuron` calibration in this project:
+hyperpolarising a relay cell and releasing it produced a rebound that peaked
+near **−56 mV, below the −51 mV threshold** — a sub-threshold rebound, and
+raising `g_peak_T` (1 → 3 → 6) barely changed it. The workaround at the time was
+to depolarise TC until it fired, which yields *tonic firing gated by rhythmic
+inhibition* — superficially spindle-like in the LFP, but not the burst mechanism.
+
+**Consequence: the blocker is upstream of connectivity.** No wiring change can
+sustain a spindle if the relay never emits a rebound burst — which is why the
+topographic/open-loop experiment below had no effect. Fixing this requires a
+neuron model whose T-current genuinely produces rebound bursts (a NESTML model
+with an explicit Ca_v3.1 low-threshold current, cf. §4 option b), not further
+tuning of `ht_neuron`.
+
+### 5.5.2 Topographic wiring and open-loop recruitment: implemented, no effect
+
+Implemented (`HHParams.topographic`, opt-in): ring-topographic RE→TC ("slabs"),
+local RE→RE lateral inhibition, and the review's **open-loop** TC→RE projection
+(`tc_re_offset`), where a relay cell excites reticular cells *adjacent* to those
+that inhibited it — the mechanism the review credits with laterally propagating
+and sustaining spindle rhythms.
+
+**Measured: no effect on spindle duration** (40 s runs, 40 TC / 40 RE):
+
+| wiring | events | median dur | max dur | events ≥0.5 s |
+|---|---|---|---|---|
+| all-to-all (baseline) | 22 | 0.18 s | 0.24 s | 0 |
+| topographic, offset 0 | 18 | 0.18 s | 0.24 s | 0 |
+| topographic, offset 2 | 17 | 0.21 s | 0.27 s | 0 |
+| topographic, offset 4 | 18 | 0.17 s | 0.24 s | 0 |
+
+Consistent with §5.5.1: recruitment cannot sustain an oscillation whose
+constituent cells never burst. Kept as an opt-in (`topographic = False`) for
+re-testing once a burst-capable relay model exists.
+
+**Gap junctions — not implementable.** NEST's `gap_junction` synapse requires
+waveform relaxation; `ht_neuron` reports `node_uses_wfr = False`, and the only
+gap-junction-capable model available here (`hh_psc_alpha_gap`) lacks I_T/I_h.
+Verified by direct test (`IllegalConnection`).
+
+**Superseded root-cause hypothesis.** The loop is under-damped for too short a
+time —
 it does not reverberate long enough. Per the review's synchronisation section
 (V.C), sustained spindles depend on mechanisms we have not implemented:
 **gap junctions between TRN cells**, **topographic corticothalamic "slabs"**,

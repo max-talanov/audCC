@@ -162,19 +162,35 @@ def validate(spikes, traces, meta, infraslow_hz=0.02, verbose=True):
             rows.append(("infraslow clustering", f"~{infraslow_hz} Hz",
                          f"{pk:.3f} Hz (ratio {ratio:.0f})", ratio > 3.0))
 
-    # --- RE burst structure -------------------------------------------------
-    if len(nrt) > 2:
-        t = np.sort(nrt)
-        b, c = [], 1
-        for gap in np.diff(t):
-            if gap < 20.0:
-                c += 1
-            else:
-                b.append(c); c = 1
-        b.append(c)
-        mb = float(np.mean(b))
-        rows.append(("RE spikes per burst", "2 to >10", f"{mb:.1f} (mean)",
-                     2.0 <= mb <= 15.0))
+    # --- burst mode (per cell, at the review's burst criterion) -------------
+    # The review defines a burst as 2 to >10 spikes at frequencies up to several
+    # hundred Hz (TRN) and 2-6 spikes for the TC rebound. So intra-burst ISI
+    # must be < 10 ms (>100 Hz). Using a looser window (e.g. 20 ms) lumps tonic
+    # spikes together and makes tonic firing look like bursting -- an earlier
+    # version of this check did exactly that and wrongly reported a PASS.
+    for key, lab, lo_b in [("nRT", "RE", 2.0), ("MGB", "TC", 2.0)]:
+        arr = spikes.get(key, {})
+        tim = np.asarray(arr.get("times", []), float)
+        sen = np.asarray(arr.get("senders", []), float)
+        if len(tim) < 3:
+            continue
+        per_cell = []
+        for c in np.unique(sen):
+            tc_t = np.sort(tim[sen == c])
+            if len(tc_t) < 2:
+                continue
+            b, k = [], 1
+            for gap in np.diff(tc_t):
+                if gap < 10.0:        # >100 Hz -> same burst
+                    k += 1
+                else:
+                    b.append(k); k = 1
+            b.append(k)
+            per_cell.append(np.mean(b))
+        if per_cell:
+            mb = float(np.mean(per_cell))
+            rows.append((f"{lab} spikes per burst", "2 to >10 (>100 Hz)",
+                         f"{mb:.2f} (mean/cell)", mb >= lo_b))
 
     # --- membrane-potential operating ranges --------------------------------
     for key, lab, thr in [("nRT", "RE", -55.0), ("MGB", "TC", -65.0)]:
