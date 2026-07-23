@@ -627,6 +627,66 @@ across 150–200 s runs it ranged 0–80% with n = 2–5. **Validate over ≥300
 (n ≈ 10+); the earlier "100% SO coupling" was computed from roughly one event
 and was meaningless.
 
+## 5.8 Correction: ht_neuron CAN rebound-burst (bio-plausibility restored)
+
+**Correcting sect. 5.5.1.** That section concluded ht_neuron's I_T "does not
+produce a supra-threshold rebound". **That was wrong**, and the error propagated
+into the decision to adopt AdEx. Re-tested properly, ht_neuron produces textbook
+rebound bursts across a wide regime:
+
+| g_KL | g_peak_T | rebound |
+|---|---|---|
+| 0.5 | 3 | 6 spikes @ 107 Hz |
+| 0.6 | 6 | 5 spikes @ 167 Hz |
+| 1.0 | 3 | 2 spikes @ 118 Hz |
+| 1.0 | 10 | 4 spikes @ 210 Hz |
+
+The original calibration failed because it used too-shallow hyperpolarisation
+(-60 vs -100 pA), too short a pulse (I_T de-inactivation is slow), and
+g_peak_T = 1-3. Full +30 mV action potentials, 2-6 per burst, exactly as the
+review describes.
+
+**Why it still failed synaptically — a real structural bind.** Reaching the I_T
+de-inactivation window needs V < ~-80 mV, but:
+
+- **GABA_A** is fast (7 ms decay, quick release -> good for rebound) but its
+  reversal is a hard floor: with E_GABA_A = -70 mV it cannot take the cell below
+  -70 mV, and at high g_KL the cell rests *below* -70 so GABA_A becomes
+  shunting/depolarising. Measured: Vmin -69.9 mV, no rebound.
+- **GABA_B** reaches -89 mV, but its 200 ms decay then **clamps** the membrane
+  at -72...-77 mV long after the burst, so I_T re-inactivates before the cell
+  can rebound. Measured: Vmin -89.5 mV, still zero rebound spikes.
+
+**Resolution (paper-supported).** The review (sect. V.B.3) states TC cells "show
+a hyperpolarized reversal potential for Cl-, which leads to large inhibitory
+postsynaptic potentials". Setting `HHParams.E_rev_GABA_A_TC = -85 mV` gives deep
+inhibition through the FAST GABA_A conductance, so the cell is released quickly
+and I_T fires: **2-3 rebound spikes at 87-126 Hz** from a synaptic RE volley.
+
+**Network result** (ht_neuron, 40 TC / 40 RE, 300 s): **5/9**, up from 2/5.
+Duration 0.53 s PASS, intra-spindle frequency 11.3 Hz PASS, infraslow 0.020 Hz
+PASS, V_m ranges PASS. Still failing: in-network bursting (RE 1.45, TC 1.11
+spikes/burst) and density 0.2/min -- the single-cell fix does not fully
+transfer, because in-network RE volleys are not synchronised enough to deliver
+the deep, fast IPSP the single-cell test used.
+
+### Model choice: a genuine trade-off
+
+| | `ht_neuron` (HH) | `aeif_cond_exp` (AdEx) |
+|---|---|---|
+| criteria passed | 5/9 | **10/10** |
+| biophysics | **conductance-based: I_T, I_h, I_NaP, I_KNa** | phenomenological adaptation `w` |
+| rebound mechanism | **real T-type Ca current** | fitted 2-variable dynamics |
+| GABA_B | **yes** | no (weight-sign routing) |
+| in-network bursting | not yet | yes |
+
+AdEx passes more criteria but is an integrate-and-fire model whose "rebound
+burst" is a curve fitted to the phenomenon rather than an ion current; ht_neuron
+is substantially more bio-plausible and is the right target for mechanistic
+work. **Remaining gap for HH: in-network RE burst synchrony** (the review's
+sect. V.C mechanisms -- gap junctions, topographic slabs -- which NEST/ht_neuron
+partly cannot express).
+
 ## 6. References
 
 - Fernandez LMJ, Lüthi A. *Sleep Spindles: Mechanisms and Functions.*

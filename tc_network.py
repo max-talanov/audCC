@@ -310,8 +310,21 @@ class HHParams:
     g_NaL: float = 0.2
     # intrinsic current peak conductances (nS); ht_neuron defaults are sensible,
     # thalamic I_T / I_h are raised so the RE<->TC rebound loop actually bursts.
-    g_peak_T_thalamus: float = 3.0
+    g_peak_T_thalamus: float = 10.0
     g_peak_h_thalamus: float = 2.0
+    # Hyperpolarised Cl- reversal in the RELAY cells. Fernandez & Luthi 2020
+    # (sect. V.B.3): TC cells "show a hyperpolarized reversal potential for Cl-,
+    # which leads to large inhibitory postsynaptic potentials".
+    #
+    # This is what makes rebound bursting work synaptically, and it resolves a
+    # hard bind: I_T de-inactivation needs V < ~-80 mV, but with the default
+    # E_GABA_A = -70 mV, GABA_A cannot take the cell below -70 at all (at high
+    # g_KL the cell rests below -70 and GABA_A becomes shunting). The only other
+    # route to -85 mV is GABA_B, whose 200 ms decay then CLAMPS the membrane and
+    # prevents the rebound. A hyperpolarised E_Cl gives deep inhibition through
+    # the FAST GABA_A conductance, so the cell is released quickly and I_T fires.
+    # Calibrated single cell: 2-3 rebound spikes at 87-126 Hz.
+    E_rev_GABA_A_TC: float = -85.0
     # SK2 surrogate in the reticular (RE/nRT) cells. Fernandez & Luthi 2020
     # (sect. V.A.1): Ca2+ entering TRN dendrites through Ca_v3.3 activates SK2,
     # producing the burst after-hyperpolarisation that keeps TRN bursts short
@@ -627,8 +640,10 @@ class AuditoryThalamoCorticalSleep:
             })
             if role == "TC":
                 # Ca2+ -> I_h pathway: the spindle-termination / refractory
-                # mechanism (see HHParams.beta_Ca_TC).
-                p.update({"beta_Ca": hh.beta_Ca_TC, "tau_Ca": hh.tau_Ca_TC})
+                # mechanism (see HHParams.beta_Ca_TC); plus the hyperpolarised
+                # Cl- reversal that enables synaptic rebound bursting.
+                p.update({"beta_Ca": hh.beta_Ca_TC, "tau_Ca": hh.tau_Ca_TC,
+                          "E_rev_GABA_A": hh.E_rev_GABA_A_TC})
         else:
             # cortical persistent-Na drive + Na-dependent-K adaptation; no T/h
             p.update({
