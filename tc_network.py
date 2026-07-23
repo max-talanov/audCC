@@ -269,6 +269,18 @@ class SleepParams:
     # still sets the intra-spindle frequency.
     trigger_window_ms: float = 1500.0
     trigger_tc_amp: float = 28.0     # pA depolarisation of TC during the window
+    # Spontaneous (non-SO-locked) spindle initiation. Fernandez & Luthi 2020
+    # (sect. VI.E) report only 50-70% of spindles are SO-coupled, i.e. 30-50%
+    # occur with no SO co-detected. A low-rate Poisson drive onto nRT lets the
+    # reticular nucleus initiate spindles on its own, which both raises spindle
+    # DENSITY and breaks the 100% SO locking that a purely deterministic
+    # trigger produces.
+    # Calibrated (150 s, AdEx, 40 TC / 40 RE): 0 Hz -> 0.8 spindles/min;
+    # 4 Hz -> 2.0/min with 0.68 s duration (both in range); 12 Hz -> spindles
+    # collapse entirely (nRT is driven out of burst mode). The usable window is
+    # narrow, hence 4 Hz.
+    spontaneous_re_rate: float = 4.0     # Hz per reticular cell
+    spontaneous_re_weight: float = 0.02  # uS
 
 
 @dataclass
@@ -1102,6 +1114,14 @@ class AuditoryThalamoCorticalSleep:
                         "frequency": self.hh.infraslow_freq,
                         "phase": 0.0})
                     nest.Connect(infra, thal)
+                # Spontaneous, non-SO-locked initiation via Poisson drive on
+                # nRT (review sect. VI.E: 30-50% of spindles have no SO).
+                if s.spontaneous_re_rate and re is not None and len(re) > 0:
+                    pg = nest.Create("poisson_generator", len(re),
+                                     params={"rate": s.spontaneous_re_rate})
+                    wsp = s.spontaneous_re_weight * self.WEIGHT_SCALE
+                    self._safe_connect(pg, re, {"rule": "one_to_one"},
+                                       self._exc_syn_spec(wsp, self._min_delay()))
                 # (A) phasic corticothalamic-like trigger onto RE
                 if s.spindle_trigger:
                     self._attach_spindle_trigger(re, tc)

@@ -581,6 +581,52 @@ represented in the AdEx configuration, whereas `ht_neuron` does model it. Both
 models remain selectable (`config/network_auditory_adex.yaml`,
 `config/network_auditory_hh.yaml`).
 
+## 5.7 Final result: 10/10 criteria
+
+Adding **spontaneous, non-SO-locked spindle initiation** closes the last two
+gaps. The review (sect. VI.E) states only 50–70% of spindles are SO-coupled —
+i.e. **30–50% occur with no SO co-detected** — so a purely deterministic,
+SO-locked trigger is itself unphysiological. A low-rate Poisson drive onto nRT
+(`SleepParams.spontaneous_re_rate`) lets the reticular nucleus initiate spindles
+on its own, raising density *and* breaking the deterministic SO locking.
+
+**Calibration** (AdEx, 40 TC / 40 RE, 150–200 s). The usable window is narrow:
+
+| spontaneous rate | density | duration | note |
+|---|---|---|---|
+| 0 Hz | 0.8 /min | 0.59 s | too few |
+| **4 Hz** | **2.0 /min** | **0.68 s** | chosen |
+| 6 Hz | 1.5 /min | 0.61 s | declining |
+| 8 Hz | 0.6 /min | 0.77 s | declining |
+| 12 Hz | 0.0 /min | — | spindles collapse (nRT driven out of burst mode) |
+
+**Validation, AdEx + 4 Hz spontaneous, 300 s:**
+
+| criterion | paper | measured | |
+|---|---|---|---|
+| intra-spindle frequency | 10–15 Hz | 13.7 Hz | ✓ |
+| duration | 0.5–3 s | 0.66 s | ✓ |
+| density | 2–8 /min | 2.4 /min | ✓ |
+| **inter-spindle interval** | **5–10 s** | **6.6 s** | **✓** |
+| SO coupling | 50–70% | 50% | ✓ |
+| infraslow clustering | ~0.02 Hz | 0.020 Hz (ratio 432) | ✓ |
+| RE spikes per burst | 2 to >10 (>100 Hz) | 5.24 | ✓ |
+| TC spikes per burst | 2–6 (>100 Hz) | 4.27 | ✓ |
+| RE V_m < −55 mV | required | 97% | ✓ |
+| TC V_m < −65 mV | required | 36% | ✓ |
+| | | **10/10** | |
+
+Notably the **5–10 s refractory period** — which resisted three direct attempts
+(deeper I_h, trigger spacing, gated mode) — falls out for free once the cells
+genuinely burst: after a rebound burst the AdEx adaptation current `w` keeps the
+relay refractory for seconds. It was never a drive-timing problem.
+
+**Statistical caveat.** Spindle density is low by construction (2–8/min), so
+short runs contain very few events and the SO-coupling percentage is unstable:
+across 150–200 s runs it ranged 0–80% with n = 2–5. **Validate over ≥300 s**
+(n ≈ 10+); the earlier "100% SO coupling" was computed from roughly one event
+and was meaningless.
+
 ## 6. References
 
 - Fernandez LMJ, Lüthi A. *Sleep Spindles: Mechanisms and Functions.*
