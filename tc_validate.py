@@ -221,6 +221,9 @@ def main(argv=None):
                     default="config/network_auditory_local.yaml")
     ap.add_argument("--tstop", type=float, default=200000.0)
     ap.add_argument("--seed", type=int, default=1)
+    ap.add_argument("--neuron-model", type=str, default="ht_neuron",
+                    choices=["ht_neuron", "aeif_cond_exp"],
+                    help="which burst-capable model to validate")
     ap.add_argument("--no-trigger", action="store_true",
                     help="disable the external modulatory spindle trigger")
     ap.add_argument("--no-assert", action="store_true",
@@ -229,11 +232,11 @@ def main(argv=None):
 
     cfg = NetworkConfig.from_file(args.config)
     cfg.tstop = args.tstop
-    sim = SimulationConfig(seed=args.seed, neuron_model="ht_neuron",
+    sim = SimulationConfig(seed=args.seed, neuron_model=args.neuron_model,
                            record_traces=True)
     sleep = SleepParams(emergent_spindles=True,
                         spindle_trigger=not args.no_trigger)
-    print(f"Validating HH model ({cfg.tstop/1000:.0f} s, "
+    print(f"Validating {args.neuron_model} ({cfg.tstop/1000:.0f} s, "
           f"trigger={'off' if args.no_trigger else 'on'})...")
     model = AuditoryThalamoCorticalSleep(cfg, SynapseParams(), sleep, sim)
     spikes, traces, meta = model.run()

@@ -1,0 +1,56 @@
+# Auditory thalamo-cortical sleep model - AdEx (aeif_cond_exp) configuration.
+#
+# This is the configuration that produces REAL sleep spindles, i.e. events that
+# satisfy Fernandez & Luthi (2020): 0.5-3 s trains at 10-15 Hz built from
+# genuine post-inhibitory REBOUND BURSTS.
+#
+# Why AdEx rather than ht_neuron: ht_neuron's I_T does not produce a
+# supra-threshold rebound in this network (release from hyperpolarisation peaks
+# near -56 mV against a -51 mV threshold), so its thalamus fires tonic single
+# spikes and the LFP shows sigma-band ringing rather than spindles. AdEx
+# reproduces the rebound burst through subthreshold adaptation: while
+# hyperpolarised, a*(V-E_L) drives w negative; on release -w is depolarising,
+# the exponential term regenerates, and b terminates the burst.
+# Calibrated single cell: 6 spikes at ~298 Hz. See AdExParams in tc_network.py
+# and docs/spindle_review_mapping.md sect. 5.6.
+#
+# Trade-off: AdEx routes excitation/inhibition by weight SIGN, so it has no
+# separate GABA_B receptor (ht_neuron does). The slow GABA_B component of
+# RE->TC is therefore not represented in this configuration.
+#
+#   python3 tc_run.py --config config/network_auditory_adex.yaml \
+#       --tstop 60000 --outdir out --tag adex --spindle-trigger
+#   python3 tc_validate.py --neuron-model aeif_cond_exp \
+#       --config config/network_auditory_adex.yaml --tstop 60000
+
+network:
+  thalamus:        # MGB: TC relay (E) + RE reticular (I)
+    E: 40
+    I: 40
+  L4:
+    E: 50
+    I: 10
+  L23:
+    E: 60
+    I: 14
+  L5:
+    E: 50
+    I: 10
+  L6:
+    E: 40
+    I: 6
+
+splits:
+  L23_E: 2
+  L23_I: 3
+  L4_E: 1
+  L4_I: 1
+  L5_E: 2
+  L56_I: 3
+  L6_E: 1
+
+simulation:
+  neuron_model: aeif_cond_exp   # AdEx; thalamic cells in rebound-burst regime
+  tstop: 60000.0                # ms
+  dt: 0.1                       # ms
+  v_init: -65

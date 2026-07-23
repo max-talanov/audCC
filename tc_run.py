@@ -491,7 +491,7 @@ def main(argv=None):
     ap.add_argument("--no-assert", action="store_true",
                     help="do not exit non-zero if a rhythm is missing")
     ap.add_argument("--neuron-model", type=str, default=None,
-                    choices=["iaf_cond_exp", "ht_neuron"],
+                    choices=["iaf_cond_exp", "ht_neuron", "aeif_cond_exp"],
                     help="neuron model: iaf_cond_exp (default, point LIF) or "
                          "ht_neuron (Hodgkin-Huxley, emergent spindles)")
     ap.add_argument("--spindle-trigger", action="store_true",
@@ -511,7 +511,7 @@ def main(argv=None):
     # else the iaf_cond_exp default.
     neuron_model = args.neuron_model or _config_neuron_model(args.config) \
         or "iaf_cond_exp"
-    is_hh = neuron_model == "ht_neuron"
+    is_hh = neuron_model in ("ht_neuron", "aeif_cond_exp")
 
     sim_config = SimulationConfig(num_threads=args.threads, seed=args.seed,
                                   record_traces=True, verbose=False,

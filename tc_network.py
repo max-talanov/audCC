@@ -389,6 +389,55 @@ class HHParams:
 
 
 @dataclass
+class AdExParams:
+    """Adaptive-exponential (``aeif_cond_exp``) parameters, with a thalamic set
+    tuned for genuine **post-inhibitory rebound bursting**.
+
+    Why this exists: ``ht_neuron``'s I_T does not produce a supra-threshold
+    rebound in this network -- releasing a hyperpolarised relay cell peaks near
+    -56 mV against a -51 mV threshold, so the thalamus fires tonic single spikes
+    instead of the 2-6 spike rebound burst that generates a spindle (see
+    docs/spindle_review_mapping.md sect. 5.5.1).
+
+    AdEx reproduces the rebound burst through its subthreshold adaptation: while
+    the cell is hyperpolarised, ``a*(V-E_L)`` drives w negative, and on release
+    the resulting -w is depolarising; if it carries V to V_th the exponential
+    term regenerates and fires a high-frequency burst, which ``b`` then
+    terminates. Calibrated single-cell result with the thalamic values below:
+    **6 spikes at ~298 Hz**, silent at rest and silent afterwards -- matching the
+    review's 2-6 spike rebound burst.
+    """
+
+    # thalamic (TC / RE): rebound-burst regime
+    thal_V_th: float = -58.0
+    thal_g_L: float = 6.0
+    thal_a: float = 50.0        # subthreshold adaptation -> the rebound
+    thal_b: float = 20.0        # spike-triggered adaptation -> ends the burst
+    thal_tau_w: float = 100.0
+    thal_V_reset: float = -52.0
+    thal_Delta_T: float = 2.0
+    # cortical: ordinary regular-spiking (no rebound bursting wanted)
+    ctx_V_th: float = -50.0
+    ctx_g_L: float = 10.0
+    ctx_a: float = 2.0
+    ctx_b: float = 40.0
+    ctx_tau_w: float = 150.0
+    ctx_V_reset: float = -58.0
+    ctx_Delta_T: float = 2.0
+    E_L: float = -65.0
+    C_m: float = 100.0
+    t_ref: float = 2.0
+    # Fan-in-normalised TOTAL intra-thalamic conductance onto each cell (nS).
+    # AdEx weights are conductances directly (unlike ht_neuron, where the weight
+    # multiplies g_peak), so these are far smaller than the ht targets. Scaled
+    # against the thalamic g_L of 6 nS: RE->TC inhibition dominates, as it must
+    # to hyperpolarise TC into the rebound range.
+    tot_re_tc: float = 12.0
+    tot_tc_re: float = 8.0
+    tot_re_re: float = 5.0
+
+
+@dataclass
 class SimulationConfig:
     num_threads: int = 1
     verbose: bool = False
@@ -440,7 +489,9 @@ class AuditoryThalamoCorticalSleep:
         self._neuron_model: Optional[str] = None
         self._is_cond_model = False
         self._is_ht = False
+        self._is_adex = False
         self.hh = HHParams()
+        self.adex = AdExParams()
         self._setup_nest()
 
     # -- setup -------------------------------------------------------------
@@ -472,6 +523,7 @@ class AuditoryThalamoCorticalSleep:
         self._neuron_model = self._select_neuron_model()
         self._is_cond_model = "cond" in self._neuron_model
         self._is_ht = self._neuron_model == "ht_neuron"
+        self._is_adex = self._neuron_model == "aeif_cond_exp"
         if self._is_ht:
             self._ht_receptors = self._nest.GetDefaults("ht_neuron")["receptor_types"]
 
@@ -500,6 +552,8 @@ class AuditoryThalamoCorticalSleep:
         """
         if self._is_ht:
             return self._ht_neuron_params(role)
+        if self._is_adex:
+            return self._adex_neuron_params(role)
         p = {
             "V_m": self.cfg.v_init,
             "tau_syn_ex": max(0.1, self.syn.exc_tau),
@@ -512,6 +566,27 @@ class AuditoryThalamoCorticalSleep:
         }
         if self._is_cond_model:
             p.update({"E_ex": self.syn.exc_e, "E_in": self.syn.inh_e, "g_L": 10.0})
+        return p
+
+    def _adex_neuron_params(self, role: str) -> dict:
+        """AdEx parameters; thalamic roles get the rebound-burst regime."""
+        a = self.adex
+        thalamic = role in ("TC", "RE")
+        p = {
+            "V_m": a.E_L, "E_L": a.E_L, "C_m": a.C_m, "t_ref": a.t_ref,
+            "V_peak": 0.0,
+            "tau_syn_ex": max(0.1, self.syn.exc_tau),
+            "tau_syn_in": max(0.1, self.syn.inh_tau),
+            "E_ex": self.syn.exc_e, "E_in": self.syn.inh_e,
+        }
+        if thalamic:
+            p.update({"V_th": a.thal_V_th, "g_L": a.thal_g_L, "a": a.thal_a,
+                      "b": a.thal_b, "tau_w": a.thal_tau_w,
+                      "V_reset": a.thal_V_reset, "Delta_T": a.thal_Delta_T})
+        else:
+            p.update({"V_th": a.ctx_V_th, "g_L": a.ctx_g_L, "a": a.ctx_a,
+                      "b": a.ctx_b, "tau_w": a.ctx_tau_w,
+                      "V_reset": a.ctx_V_reset, "Delta_T": a.ctx_Delta_T})
         return p
 
     def _ht_neuron_params(self, role: str) -> dict:
@@ -623,7 +698,7 @@ class AuditoryThalamoCorticalSleep:
     def _ht_gain(self, w):
         """Boost a loop weight for ht_neuron (g_peak-scaled) synapses; identity
         for iaf_cond_exp so its validated tuning is untouched."""
-        return w * self.hh.loop_weight_gain if self._is_ht else w
+        return w * self.hh.loop_weight_gain if (self._is_ht or self._is_adex) else w
 
     def _connect_topographic(self, src_pop, tgt_pop, radius, offset,
                              total_weight, delay, inhibitory=False,
@@ -679,7 +754,7 @@ class AuditoryThalamoCorticalSleep:
         ``target_total`` -- fan-in normalisation, so the RE<->TC loop behaves the
         same whether the thalamus has 4 or 40 reticular cells (without it, 40 RE
         cells crush every TC and no rebound spindle can form)."""
-        if not self._is_ht:
+        if not (self._is_ht or self._is_adex):
             return iaf_weight
         return target_total / (max(1, n_presyn) * self.WEIGHT_SCALE * self._w_scale)
 
@@ -771,6 +846,18 @@ class AuditoryThalamoCorticalSleep:
         # recruit cortical interneurons, sharpening the UP-state response.
         self.connect_exc(pops["thalamus_E"], pops["L4_I"],
                          weight=0.004, delay=self.syn.exc_delay_mean, prob=0.3)
+        # Intra-thalamic loop conductance targets differ by model: ht_neuron
+        # weights multiply g_peak, AdEx weights are conductances in nS.
+        if self._is_adex:
+            tot_tc_re = self.adex.tot_tc_re
+            tot_re_tc = self.adex.tot_re_tc
+            tot_re_re = self.adex.tot_re_re
+            tot_re_tc_b = None          # AdEx has no separate GABA_B receptor
+        else:
+            tot_tc_re = self.hh.tot_tc_re_ampa
+            tot_re_tc = self.hh.tot_re_tc_gaba_a
+            tot_re_re = self.hh.tot_re_re_gaba_a
+            tot_re_tc_b = self.hh.tot_re_tc_gaba_b
         topo = self._is_ht and self.hh.topographic
         if topo:
             # OPEN-LOOP TC -> RE: excite reticular cells offset from those that
@@ -784,7 +871,7 @@ class AuditoryThalamoCorticalSleep:
         else:
             self.connect_exc(pops["thalamus_E"], pops["thalamus_I"],  # TCR -> nRT
                              weight=self._ht_thal_w(self.sleep.tr_exc_weight,
-                                                    self.hh.tot_tc_re_ampa,
+                                                    tot_tc_re,
                                                     self.cfg.N_thalamus_E),
                              delay=self.sleep.tr_exc_delay, prob=1.0)
         self.connect_exc(pops["L4_E"], pops["L4_E"])
@@ -857,13 +944,14 @@ class AuditoryThalamoCorticalSleep:
         else:
             self.connect_inh(pops["thalamus_I"], pops["thalamus_E"],
                              weight=self._ht_thal_w(s.rt_inh_weight,
-                                                    self.hh.tot_re_tc_gaba_a, n_re),
+                                                    tot_re_tc, n_re),
                              delay=s.rt_inh_delay, prob=1.0,
-                             gaba_b=self._ht_thal_w(s.rt_inh_gaba_b,
-                                                    self.hh.tot_re_tc_gaba_b, n_re))
+                             gaba_b=(self._ht_thal_w(s.rt_inh_gaba_b,
+                                                     tot_re_tc_b, n_re)
+                                     if tot_re_tc_b else None))
             self.connect_inh(pops["thalamus_I"], pops["thalamus_I"],
                              weight=self._ht_thal_w(s.nrt_self_weight,
-                                                    self.hh.tot_re_re_gaba_a, n_re),
+                                                    tot_re_re, n_re),
                              delay=s.rt_inh_delay, prob=1.0)
 
     # -- drives ------------------------------------------------------------
@@ -877,7 +965,7 @@ class AuditoryThalamoCorticalSleep:
         gen = nest.Create("poisson_generator", len(mgb),
                           params={"rate": self.sleep.auditory_rate})
         aud_w = self.sleep.auditory_weight
-        if self._is_ht:
+        if self._is_ht or self._is_adex:
             aud_w *= self.hh.aud_weight_gain   # ht g_peak-scaled synapses
         w = aud_w * self.WEIGHT_SCALE
         self._safe_connect(gen, mgb, {"rule": "one_to_one"},
@@ -955,12 +1043,14 @@ class AuditoryThalamoCorticalSleep:
         tc = self.flatten(pops["thalamus_E"])
         re = self.flatten(pops["thalamus_I"])
 
-        emergent = self._is_ht and s.emergent_spindles
+        emergent = (self._is_ht or self._is_adex) and s.emergent_spindles
 
         # 1 Hz slow oscillation into cortex (UP/DOWN states). HH uses lighter
         # amplitudes (its rheobase is far lower than iaf's).
-        cx_amp = self.hh.cortex_slow_amp if self._is_ht else s.slow_amp_cortex
-        cx_off = self.hh.cortex_slow_offset if self._is_ht else s.slow_offset_cortex
+        cx_amp = (self.hh.cortex_slow_amp if (self._is_ht or self._is_adex)
+                  else s.slow_amp_cortex)
+        cx_off = (self.hh.cortex_slow_offset if (self._is_ht or self._is_adex)
+                  else s.slow_offset_cortex)
         if cortex_E is not None and len(cortex_E) > 0:
             slow_cortex = nest.Create("ac_generator", params={
                 "amplitude": cx_amp,

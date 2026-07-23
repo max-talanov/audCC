@@ -534,6 +534,53 @@ oscillation. Implementing §3.3 is therefore the highest-value next step — it 
 likely the prerequisite for spindle *duration*, and hence for density and the
 refractory period too.
 
+## 5.6 Resolution: AdEx thalamus produces real spindles (6/8 criteria)
+
+The blocker in §5.5.1 was that `ht_neuron`'s I_T never fires a rebound burst.
+The fix is a relay model that does. **NESTML is not installed here**, but a
+cheaper option was already in the model list: **`aeif_cond_exp` (AdEx)**.
+
+**Mechanism.** AdEx reproduces the post-inhibitory rebound through its
+subthreshold adaptation. While the cell is hyperpolarised, $a\,(V-E_L)$ drives
+$w$ negative; on release $-w$ is **depolarising**, and if it carries $V$ to
+$V_{th}$ the exponential term regenerates and fires a high-frequency burst,
+which $b$ then terminates.
+
+**Single-cell calibration.** A scan over $V_{th}$, $g_L$, $\Delta_T$, $a$, $b$,
+$\tau_w$, $V_{reset}$ found 48 rebound-bursting parameter sets. The chosen one
+(`AdExParams`, thalamic block) gives **6 spikes at ~298 Hz** after release from
+hyperpolarisation, silent at rest and silent afterwards — matching the review's
+2–6 spike rebound burst. (Note the first attempt failed: with the default
+$V_{th}=-50$ mV the rebound peaked at −57 mV, the *same* 7 mV shortfall as
+`ht_neuron`; lowering $V_{th}$ and $g_L$ is what closes it.)
+
+**Network result** (40 TC / 40 RE, 60 s), versus the same test on `ht_neuron`:
+
+| criterion | paper | ht_neuron | **AdEx** |
+|---|---|---|---|
+| TC spikes per burst | 2–6 (>100 Hz) | 1.21 ✗ | **4.69 ✓** |
+| RE spikes per burst | 2 to >10 | 1.09 ✗ | **3.92 ✓** |
+| duration | 0.5–3 s | 0.2 s (max 0.45) ✗ | **0.51 s ✓** |
+| intra-spindle frequency | 10–15 Hz | 15.1 ✗ | **13.7 ✓** |
+| RE V_m < −55 mV | required | ✓ | ✓ |
+| TC V_m < −65 mV | required | ✓ | ✓ |
+| density | 2–8 /min | 0.0 ✗ | 1.0 ✗ (now too *few*) |
+| SO coupling | 50–70% | 35–86% ✗ | 100% ✗ (too deterministic) |
+| | | **2/5** | **6/8** |
+
+**The events now qualify as sleep spindles**: 0.5 s trains at 13.7 Hz built from
+genuine rebound bursts. The two remaining failures have flipped direction and
+are tuning rather than mechanism — spindles are now slightly too **rare**
+(1/min vs 2–8) and too **perfectly** locked to the SO (100% vs 50–70%, because
+every spindle is initiated by the deterministic trigger). Both should yield to
+raising thalamic excitability slightly and adding jitter/spontaneous initiation.
+
+**Cost.** AdEx routes E/I by weight **sign**, so it has **no separate GABA_B
+receptor**; the slow GABA_B component of RE→TC (Mushtaq Table 3) is not
+represented in the AdEx configuration, whereas `ht_neuron` does model it. Both
+models remain selectable (`config/network_auditory_adex.yaml`,
+`config/network_auditory_hh.yaml`).
+
 ## 6. References
 
 - Fernandez LMJ, Lüthi A. *Sleep Spindles: Mechanisms and Functions.*
