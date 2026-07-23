@@ -269,6 +269,18 @@ class SleepParams:
     # still sets the intra-spindle frequency.
     trigger_window_ms: float = 1500.0
     trigger_tc_amp: float = 28.0     # pA depolarisation of TC during the window
+    # Spontaneous (non-SO-locked) spindle initiation. Fernandez & Luthi 2020
+    # (sect. VI.E) report only 50-70% of spindles are SO-coupled, i.e. 30-50%
+    # occur with no SO co-detected. A low-rate Poisson drive onto nRT lets the
+    # reticular nucleus initiate spindles on its own, which both raises spindle
+    # DENSITY and breaks the 100% SO locking that a purely deterministic
+    # trigger produces.
+    # Calibrated (150 s, AdEx, 40 TC / 40 RE): 0 Hz -> 0.8 spindles/min;
+    # 4 Hz -> 2.0/min with 0.68 s duration (both in range); 12 Hz -> spindles
+    # collapse entirely (nRT is driven out of burst mode). The usable window is
+    # narrow, hence 4 Hz.
+    spontaneous_re_rate: float = 4.0     # Hz per reticular cell
+    spontaneous_re_weight: float = 0.02  # uS
 
 
 @dataclass
@@ -298,8 +310,21 @@ class HHParams:
     g_NaL: float = 0.2
     # intrinsic current peak conductances (nS); ht_neuron defaults are sensible,
     # thalamic I_T / I_h are raised so the RE<->TC rebound loop actually bursts.
-    g_peak_T_thalamus: float = 3.0
+    g_peak_T_thalamus: float = 10.0
     g_peak_h_thalamus: float = 2.0
+    # Hyperpolarised Cl- reversal in the RELAY cells. Fernandez & Luthi 2020
+    # (sect. V.B.3): TC cells "show a hyperpolarized reversal potential for Cl-,
+    # which leads to large inhibitory postsynaptic potentials".
+    #
+    # This is what makes rebound bursting work synaptically, and it resolves a
+    # hard bind: I_T de-inactivation needs V < ~-80 mV, but with the default
+    # E_GABA_A = -70 mV, GABA_A cannot take the cell below -70 at all (at high
+    # g_KL the cell rests below -70 and GABA_A becomes shunting). The only other
+    # route to -85 mV is GABA_B, whose 200 ms decay then CLAMPS the membrane and
+    # prevents the rebound. A hyperpolarised E_Cl gives deep inhibition through
+    # the FAST GABA_A conductance, so the cell is released quickly and I_T fires.
+    # Calibrated single cell: 2-3 rebound spikes at 87-126 Hz.
+    E_rev_GABA_A_TC: float = -85.0
     # SK2 surrogate in the reticular (RE/nRT) cells. Fernandez & Luthi 2020
     # (sect. V.A.1): Ca2+ entering TRN dendrites through Ca_v3.3 activates SK2,
     # producing the burst after-hyperpolarisation that keeps TRN bursts short
@@ -615,8 +640,10 @@ class AuditoryThalamoCorticalSleep:
             })
             if role == "TC":
                 # Ca2+ -> I_h pathway: the spindle-termination / refractory
-                # mechanism (see HHParams.beta_Ca_TC).
-                p.update({"beta_Ca": hh.beta_Ca_TC, "tau_Ca": hh.tau_Ca_TC})
+                # mechanism (see HHParams.beta_Ca_TC); plus the hyperpolarised
+                # Cl- reversal that enables synaptic rebound bursting.
+                p.update({"beta_Ca": hh.beta_Ca_TC, "tau_Ca": hh.tau_Ca_TC,
+                          "E_rev_GABA_A": hh.E_rev_GABA_A_TC})
         else:
             # cortical persistent-Na drive + Na-dependent-K adaptation; no T/h
             p.update({
@@ -1102,6 +1129,14 @@ class AuditoryThalamoCorticalSleep:
                         "frequency": self.hh.infraslow_freq,
                         "phase": 0.0})
                     nest.Connect(infra, thal)
+                # Spontaneous, non-SO-locked initiation via Poisson drive on
+                # nRT (review sect. VI.E: 30-50% of spindles have no SO).
+                if s.spontaneous_re_rate and re is not None and len(re) > 0:
+                    pg = nest.Create("poisson_generator", len(re),
+                                     params={"rate": s.spontaneous_re_rate})
+                    wsp = s.spontaneous_re_weight * self.WEIGHT_SCALE
+                    self._safe_connect(pg, re, {"rule": "one_to_one"},
+                                       self._exc_syn_spec(wsp, self._min_delay()))
                 # (A) phasic corticothalamic-like trigger onto RE
                 if s.spindle_trigger:
                     self._attach_spindle_trigger(re, tc)
