@@ -360,6 +360,23 @@ class HHParams:
     # partly cancel and only a big excursion modulates sigma power. Calibrated
     # by sweeping the sigma-envelope modulation ratio (see the runner's
     # "sigma infraslow mod" metric): ~40 pA gives a clear peak, ~20 pA none.
+    # --- topographic intra-thalamic wiring (Fernandez & Luthi 2020, sect. V.C)
+    # The review attributes SUSTAINED spindles to progressive recruitment of TRN
+    # cells, via topographic "slabs" and -- critically -- OPEN-LOOP TC->TRN
+    # projections: a relay cell excites TRN cells *adjacent* to the ones that
+    # inhibited it (<10% of TC-TRN pairs are closed-loop). That lateral spread
+    # of glutamatergic excitation is what propagates a spindle-like rhythm.
+    # All-to-all wiring has no recruitment dynamics, so nothing sustains the
+    # oscillation -- our loop rings ~2-3 cycles and dies.
+    # (Gap junctions, the review's third synchronising mechanism, are NOT
+    # implementable here: NEST gap_junction needs waveform relaxation and
+    # ht_neuron reports node_uses_wfr = False.)
+    topographic: bool = False        # opt-in; False = the validated all-to-all
+    re_tc_radius: int = 2            # RE -> TC inhibitory footprint (cells)
+    tc_re_radius: int = 2            # TC -> RE excitatory footprint
+    tc_re_offset: int = 2            # OPEN-LOOP lateral offset (the key term)
+    re_re_radius: int = 1            # RE -> RE lateral inhibition footprint
+
     infraslow_freq: float = 0.02     # Hz (~50 s period)
     infraslow_amp: float = 40.0      # pA swing of the thalamic baseline
     # Calibrated TOTAL intra-thalamic conductance onto each post-synaptic cell
@@ -608,6 +625,51 @@ class AuditoryThalamoCorticalSleep:
         for iaf_cond_exp so its validated tuning is untouched."""
         return w * self.hh.loop_weight_gain if self._is_ht else w
 
+    def _connect_topographic(self, src_pop, tgt_pop, radius, offset,
+                             total_weight, delay, inhibitory=False,
+                             gaba_b_total=None):
+        """Ring-topographic intra-thalamic connection.
+
+        Each source projects to a local neighbourhood of targets
+        (``+/- radius``) centred ``offset`` cells away -- a non-zero ``offset``
+        gives the review's **open-loop** TC->TRN arrangement, where a relay cell
+        excites reticular cells adjacent to those that inhibited it, letting
+        excitation spread laterally and recruit more TRN over a spindle.
+
+        ``total_weight`` is the target TOTAL conductance onto each post-synaptic
+        cell; it is divided by the actual convergence so the operating point is
+        preserved when the footprint or population size changes.
+        """
+        nest = self._nest
+        src = self.flatten(src_pop)
+        tgt = self.flatten(tgt_pop)
+        if src is None or tgt is None or len(src) == 0 or len(tgt) == 0:
+            return
+        ns, nt = len(src), len(tgt)
+        src_ids, tgt_ids = list(src.tolist()), list(tgt.tolist())
+        span = 2 * int(radius) + 1
+        # convergence: how many sources land on each target, on average
+        conv = max(1.0, span * ns / float(nt))
+        w_per = (total_weight / conv) / (self.WEIGHT_SCALE * self._w_scale)
+        d = max(self._min_delay(), delay)
+        for i in range(ns):
+            centre = int(round(i * nt / float(ns))) + int(offset)
+            idxs = sorted({(centre + k) % nt for k in range(-int(radius),
+                                                            int(radius) + 1)})
+            ssel = nest.NodeCollection([src_ids[i]])
+            tsel = nest.NodeCollection([tgt_ids[j] for j in idxs])
+            spec = {"rule": "all_to_all"}
+            w_nS = w_per * self.WEIGHT_SCALE * self._w_scale
+            if inhibitory:
+                self._safe_connect(ssel, tsel, spec, self._inh_syn_spec(w_nS, d))
+                if self._is_ht and gaba_b_total:
+                    wb = (gaba_b_total / conv)
+                    self._safe_connect(ssel, tsel, spec,
+                                       self._inh_syn_spec(wb, d,
+                                                          receptor="GABA_B"))
+            else:
+                self._safe_connect(ssel, tsel, spec, self._exc_syn_spec(w_nS, d))
+
     def _ht_thal_w(self, iaf_weight, target_total, n_presyn):
         """Weight for an all-to-all (prob=1.0) intra-thalamic loop synapse.
 
@@ -709,11 +771,22 @@ class AuditoryThalamoCorticalSleep:
         # recruit cortical interneurons, sharpening the UP-state response.
         self.connect_exc(pops["thalamus_E"], pops["L4_I"],
                          weight=0.004, delay=self.syn.exc_delay_mean, prob=0.3)
-        self.connect_exc(pops["thalamus_E"], pops["thalamus_I"],  # TCR -> nRT
-                         weight=self._ht_thal_w(self.sleep.tr_exc_weight,
-                                                self.hh.tot_tc_re_ampa,
-                                                self.cfg.N_thalamus_E),
-                         delay=self.sleep.tr_exc_delay, prob=1.0)
+        topo = self._is_ht and self.hh.topographic
+        if topo:
+            # OPEN-LOOP TC -> RE: excite reticular cells offset from those that
+            # inhibited this relay cell, so excitation spreads laterally and
+            # recruits more TRN across the spindle (review sect. V.C.1).
+            self._connect_topographic(
+                pops["thalamus_E"], pops["thalamus_I"],
+                radius=self.hh.tc_re_radius, offset=self.hh.tc_re_offset,
+                total_weight=self.hh.tot_tc_re_ampa,
+                delay=self.sleep.tr_exc_delay)
+        else:
+            self.connect_exc(pops["thalamus_E"], pops["thalamus_I"],  # TCR -> nRT
+                             weight=self._ht_thal_w(self.sleep.tr_exc_weight,
+                                                    self.hh.tot_tc_re_ampa,
+                                                    self.cfg.N_thalamus_E),
+                             delay=self.sleep.tr_exc_delay, prob=1.0)
         self.connect_exc(pops["L4_E"], pops["L4_E"])
         self.connect_exc(pops["L4_E"], pops["L23_E_RS"])
         self.connect_exc(pops["L4_E"], pops["L23_E_FRB"])
@@ -768,16 +841,30 @@ class AuditoryThalamoCorticalSleep:
         # crucially, hyperpolarises TC enough to de-inactivate I_T for the
         # rebound burst -- so the spindle is emergent, not imposed.
         n_re = self.cfg.N_thalamus_I
-        self.connect_inh(pops["thalamus_I"], pops["thalamus_E"],
-                         weight=self._ht_thal_w(s.rt_inh_weight,
-                                                self.hh.tot_re_tc_gaba_a, n_re),
-                         delay=s.rt_inh_delay, prob=1.0,
-                         gaba_b=self._ht_thal_w(s.rt_inh_gaba_b,
-                                                self.hh.tot_re_tc_gaba_b, n_re))
-        self.connect_inh(pops["thalamus_I"], pops["thalamus_I"],
-                         weight=self._ht_thal_w(s.nrt_self_weight,
-                                                self.hh.tot_re_re_gaba_a, n_re),
-                         delay=s.rt_inh_delay, prob=1.0)
+        if topo:
+            # focal RE -> TC inhibition ("slabs"), aligned (offset 0)
+            self._connect_topographic(
+                pops["thalamus_I"], pops["thalamus_E"],
+                radius=self.hh.re_tc_radius, offset=0,
+                total_weight=self.hh.tot_re_tc_gaba_a, delay=s.rt_inh_delay,
+                inhibitory=True, gaba_b_total=self.hh.tot_re_tc_gaba_b)
+            # local RE -> RE lateral (antisynchronising) inhibition
+            self._connect_topographic(
+                pops["thalamus_I"], pops["thalamus_I"],
+                radius=self.hh.re_re_radius, offset=0,
+                total_weight=self.hh.tot_re_re_gaba_a, delay=s.rt_inh_delay,
+                inhibitory=True)
+        else:
+            self.connect_inh(pops["thalamus_I"], pops["thalamus_E"],
+                             weight=self._ht_thal_w(s.rt_inh_weight,
+                                                    self.hh.tot_re_tc_gaba_a, n_re),
+                             delay=s.rt_inh_delay, prob=1.0,
+                             gaba_b=self._ht_thal_w(s.rt_inh_gaba_b,
+                                                    self.hh.tot_re_tc_gaba_b, n_re))
+            self.connect_inh(pops["thalamus_I"], pops["thalamus_I"],
+                             weight=self._ht_thal_w(s.nrt_self_weight,
+                                                    self.hh.tot_re_re_gaba_a, n_re),
+                             delay=s.rt_inh_delay, prob=1.0)
 
     # -- drives ------------------------------------------------------------
 
