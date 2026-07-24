@@ -61,14 +61,22 @@ cd neuron
   T-current-driven, not an artefact). This is the mechanism no NEST point model
   (`ht_neuron`, AdEx) could produce.
 
+- **SK2 burst terminator is now functional** (`mod/sk2.mod` + `mod/cad.mod`,
+  opt-in via `gsk > 0`). The earlier cad↔cav3 feedback bug is **fixed**: `cad`
+  now accumulates into a **private ion species** (`sk`, valence 2) that only SK2
+  reads, so the submembrane pool no longer perturbs the T-current's Ca²⁺
+  reversal. With this, the rebound burst survives (`gsk = 0` → ~13 spikes) and
+  SK2 **controls its length** — raising `gsk` shortens it (→ 2 spikes). `depth`
+  (Ca accumulation rate) and `kd` set when SK crosses threshold.
+
 **Next**
-- **Shorten the burst to the physiological 2–6 spikes.** The rebound burst
-  currently runs long (~20–30 spikes / ~250 ms). The review's own terminator is
-  **SK2** (Ca²⁺-activated K⁺): `mod/sk2.mod` + `mod/cad.mod` are written and
-  compile, and are opt-in via `gsk > 0`, but the cad↔cav3 Ca²⁺ coupling is not
-  yet calibrated (sharing the `ca` ion makes the submembrane pool feed back into
-  the T-current driving force; the fix is a separate Ca pool for SK, or GHK for
-  the T-current). Off by default so the verified burst is unaffected.
+- **A *tight* physiological 2–6 spike burst.** SK2 shortens the burst but not yet
+  into a clean 2–6 spike / ~30 ms packet: it currently yields a couple of spikes
+  spread across the LTS. Root cause is upstream of SK2 — the low-threshold
+  Ca²⁺ **plateau is too long (~250 ms)** because somatic spikes back-propagate
+  and *re-prime* the dendritic T-current. Fixing this needs a richer relay-cell
+  model (proper dendritic geometry + additional currents, as in Destexhe's full
+  TC cell), not more SK2 tuning. This is the honest remaining gap.
 - Reticular (RE) cell with Ca_v3.3 + SK2 and **gap junctions** (the synchrony
   mechanism NEST could not provide).
 - Port the network topology; validate against the same 10-criteria harness.

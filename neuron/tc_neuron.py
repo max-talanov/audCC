@@ -133,6 +133,22 @@ if __name__ == "__main__":
     print("The T-current de-inactivates (h ~ 1), draws a strong inward Ca")
     print("current scaling with gCaT, and the hh2 soma fires a multi-spike")
     print("rebound BURST -- the mechanism NEST's point models could not express.")
-    print("\nRemaining: the burst runs long (~10-40 spikes); shortening it to the")
-    print("physiological 2-6 spikes needs the SK2 terminator (mod/sk2.mod,")
-    print("mod/cad.mod, opt-in via gsk>0) calibrated. See neuron/README.md.")
+    print("\nSK2 terminator (mod/sk2.mod + mod/cad.mod, opt-in via gsk>0): the")
+    print("Ca pool is decoupled from the T-current via a private ion, so the")
+    print("burst survives and SK2 now shortens it --")
+    print(f"\n{'SK2 gkbar':<12}{'rebound spikes':<16}")
+    print("-" * 28)
+    for gsk in [0.0, 0.05, 0.1, 0.2]:
+        cell = TCCell(gcat=0.03, gsk=gsk)
+        if gsk > 0:
+            cell.dend.kd_sk2 = 0.5
+            cell.dend.depth_cad = 3.0
+        cell.record()
+        ic = h.IClamp(cell.soma(0.5)); ic.delay, ic.dur, ic.amp = 300, 800, -0.3
+        h.celsius = 36; h.finitialize(-70); h.continuerun(1600)
+        sp = np.asarray(cell.spikes)
+        n = int(((sp > 1100) & (sp < 1400)).sum())
+        print(f"{gsk:<12}{n:<16}")
+    print("-" * 28)
+    print("A tight 2-6 spike packet still needs a richer relay model (the long")
+    print("LTS plateau re-primes via back-propagation). See neuron/README.md.")
