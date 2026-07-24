@@ -224,3 +224,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# NEURON migration venv (local only)
+.venv-neuron/
+
+# NEURON compiled mechanisms (rebuilt via nrnivmodl)
+neuron/arm64/
+neuron/x86_64/
