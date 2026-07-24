@@ -24,6 +24,29 @@ Run:
     python3 tc_validate.py --no-trigger              # ungated HH model
 
 Exits non-zero if any criterion fails, so it can gate CI.
+
+Simulator-agnostic
+------------------
+``validate()`` operates only on spike times and voltage traces, via pure-numpy
+signal helpers -- it has **no NEST dependency** and can score a run from any
+backend (NEST, NEURON, ...). A backend need only emit three plain dicts (the
+"result contract"); the NEST driver in ``main()`` is just one producer.
+
+Result contract (all times in **ms**, voltages in **mV**):
+
+  spikes:  {layer: {"times":   float[],     # spike times, ms
+                    "senders": int[]}}      # per-spike cell id (for burst
+                                            # structure; may be empty)
+  traces:  {layer: {"time":    float[],     # sample times, ms
+                    "voltage": float[]}}    # mean V_m of the layer, mV
+  meta:    {"tstop": float,                 # run length, ms
+            "seed":  int}                   # for reproducible EEG-proxy noise
+
+  Required layer keys: "MGB" (TC relay) and "nRT" (RE reticular). The cortical
+  keys "L23"/"L5"/"L6" feed the slow-wave component of the EEG proxy; absent
+  layers are treated as silent. ``validate_result(spikes, traces, meta)`` is the
+  backend-facing entry point; ``self_test()`` proves the path runs on synthetic
+  data with neither NEST nor NEURON present.
 """
 
 import argparse
@@ -214,6 +237,64 @@ def validate(spikes, traces, meta, infraslow_hz=0.02, verbose=True):
     return rows, all_ok
 
 
+def validate_result(spikes, traces, meta, infraslow_hz=0.02, verbose=True):
+    """Backend-facing entry point: score a result that satisfies the contract in
+    the module docstring, from ANY simulator. Thin wrapper over ``validate`` that
+    does not depend on ``tc_network``/NEST, so a NEURON backend can call it
+    directly."""
+    return validate(spikes, traces, meta, infraslow_hz=infraslow_hz,
+                    verbose=verbose)
+
+
+def _synthetic_run(tstop=200000.0, n_spindles=None, seed=1):
+    """Fabricate a contract-shaped result with spindle-like thalamic bursting,
+    for testing the validator with neither NEST nor NEURON present."""
+    rng = np.random.default_rng(seed)
+    n_spindles = n_spindles or int(tstop / 1000.0 / 7.0)   # ~7 s apart
+    n_tc, n_re = 40, 40
+    mgb_t, mgb_s, nrt_t, nrt_s = [], [], [], []
+    starts = 3000.0 + np.arange(n_spindles) * (tstop - 6000.0) / max(1, n_spindles)
+    for s0 in starts:
+        dur = rng.uniform(600.0, 900.0)                    # 0.6-0.9 s spindle
+        for cyc in np.arange(s0, s0 + dur, 1000.0 / 13.0):  # ~13 Hz cycles
+            for cells, tl, sl in [(n_re, nrt_t, nrt_s), (n_tc, mgb_t, mgb_s)]:
+                nb = rng.integers(3, 6)                     # burst of 3-5 spikes
+                who = rng.integers(0, cells)
+                for k in range(nb):
+                    tl.append(cyc + k * rng.uniform(4.0, 6.0))  # ~200 Hz
+                    sl.append(int(who))
+    grid = np.arange(0.0, tstop, 1.0)
+    # thalamic V_m: rests hyperpolarised, dips deeper during spindles
+    base = -68.0 + 3.0 * np.sin(2 * np.pi * 1.0 * grid / 1000.0)
+    thal_v = base.copy()
+    for s0 in starts:
+        m = (grid >= s0) & (grid <= s0 + 800.0)
+        thal_v[m] -= 18.0
+    cort_v = -63.0 + 6.0 * np.sin(2 * np.pi * 1.0 * grid / 1000.0)
+    spikes = {"MGB": {"times": np.array(mgb_t), "senders": np.array(mgb_s)},
+              "nRT": {"times": np.array(nrt_t), "senders": np.array(nrt_s)}}
+    traces = {"MGB": {"time": grid, "voltage": thal_v},
+              "nRT": {"time": grid, "voltage": thal_v + 2.0},
+              "L23": {"time": grid, "voltage": cort_v},
+              "L5": {"time": grid, "voltage": cort_v},
+              "L6": {"time": grid, "voltage": cort_v}}
+    meta = {"tstop": tstop, "seed": seed}
+    return spikes, traces, meta
+
+
+def self_test():
+    """Prove the validation path is simulator-agnostic: run it on synthetic data
+    (no NEST, no NEURON) and confirm it produces a full criteria table."""
+    print("Self-test: validating a SYNTHETIC spindling result "
+          "(no simulator involved)...")
+    spikes, traces, meta = _synthetic_run(tstop=120000.0)
+    rows, _ = validate_result(spikes, traces, meta)
+    assert len(rows) >= 8, f"expected >=8 criteria, got {len(rows)}"
+    print(f"\nSelf-test OK: {len(rows)} criteria evaluated on synthetic data "
+          f"with no simulator present.")
+    return 0
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -228,7 +309,12 @@ def main(argv=None):
                     help="disable the external modulatory spindle trigger")
     ap.add_argument("--no-assert", action="store_true",
                     help="always exit 0, even if criteria fail")
+    ap.add_argument("--self-test", action="store_true",
+                    help="validate synthetic data (no simulator) and exit")
     args = ap.parse_args(argv)
+
+    if args.self_test:
+        return self_test()
 
     cfg = NetworkConfig.from_file(args.config)
     cfg.tstop = args.tstop
