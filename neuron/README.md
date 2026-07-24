@@ -25,8 +25,11 @@ scale both are fast enough.
 | path | purpose |
 |------|---------|
 | `mod/cav3.mod` | Ca_v3.1 / Ca_v3.3 low-threshold T-current (Huguenard & McCormick kinetics) |
-| `tc_neuron.py` | two-compartment TC relay cell + single-cell rebound demo |
-| `arm64/` (git-ignored) | compiled mechanism, from `nrnivmodl mod` |
+| `mod/hh2.mod` | Traub-Miles fast Na⁺ / K⁺; fires repetitively on a plateau (no depol. block) |
+| `mod/cad.mod` | submembrane Ca²⁺ pool (feeds SK2) — experimental |
+| `mod/sk2.mod` | SK2 Ca²⁺-activated K⁺ burst terminator — experimental |
+| `tc_neuron.py` | two-compartment TC relay cell + single-cell rebound-burst demo |
+| `arm64/` (git-ignored) | compiled mechanisms, from `nrnivmodl mod` |
 
 ## Build & run
 
@@ -48,16 +51,24 @@ cd neuron
   (spikes/traces/meta), imports and runs with **no NEST**, and gives
   byte-identical results under both interpreters (`--self-test`).
 - `cav3.mod` implements a correct T-current: it **de-inactivates under
-  hyperpolarisation** (h → 0.99) and drives a strong **inward Ca current that
-  scales with gCaT** (−0.7 to −1.3 mA/cm²) on release — the exact mechanism the
-  NEST point models could not express. It produces a post-inhibitory rebound to
-  spike threshold.
+  hyperpolarisation** (h → 1.0) and drives a strong **inward Ca current that
+  scales with gCaT** (−0.6 to −1.4 mA/cm²) on release — the exact mechanism the
+  NEST point models could not express.
+- **Multi-spike rebound BURST achieved.** Swapping the built-in `hh` soma for
+  Traub–Miles `hh2` kinetics **solves the depolarisation block**: the soma now
+  fires a genuine **repetitive rebound burst** on the T-current plateau (21 / 26
+  / 31 spikes at gCaT = 0.01 / 0.02 / 0.05, and **0** at gCaT = 0 — the burst is
+  T-current-driven, not an artefact). This is the mechanism no NEST point model
+  (`ht_neuron`, AdEx) could produce.
 
 **Next**
-- **Multi-spike rebound burst.** The T-current fires, but the HH soma emits only
-  one Na⁺ spike and then enters depolarisation block on the Ca²⁺ plateau. A full
-  2–6 spike burst needs proper delayed-rectifier / A-type K⁺ kinetics in the
-  soma (HH's Na/K do not support bursting here) — a dedicated soma `.mod`.
+- **Shorten the burst to the physiological 2–6 spikes.** The rebound burst
+  currently runs long (~20–30 spikes / ~250 ms). The review's own terminator is
+  **SK2** (Ca²⁺-activated K⁺): `mod/sk2.mod` + `mod/cad.mod` are written and
+  compile, and are opt-in via `gsk > 0`, but the cad↔cav3 Ca²⁺ coupling is not
+  yet calibrated (sharing the `ca` ion makes the submembrane pool feed back into
+  the T-current driving force; the fix is a separate Ca pool for SK, or GHK for
+  the T-current). Off by default so the verified burst is unaffected.
 - Reticular (RE) cell with Ca_v3.3 + SK2 and **gap junctions** (the synchrony
   mechanism NEST could not provide).
 - Port the network topology; validate against the same 10-criteria harness.
