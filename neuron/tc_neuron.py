@@ -38,51 +38,46 @@ if not hasattr(h, "cav3"):
 
 
 class TCCell:
-    """Two-compartment thalamocortical relay cell: soma (fast Na/K) + dendrite
-    carrying the low-threshold Ca_v3.1 T-current that produces rebound bursts."""
+    """Single-compartment thalamocortical relay cell (Destexhe et al. 1996).
 
-    def __init__(self, gcat=0.02, gsk=0.0):
+    Traub-Miles fast Na+/K+ (hh2) for spikes + the Destexhe low-threshold
+    T-current (itd; GHK driving force, temperature-scaled kinetics) for the
+    post-inhibitory rebound. A SINGLE compartment is used deliberately: the
+    2-compartment version re-primed the T-current through somatic back-
+    propagation and gave a ~250 ms plateau, whereas this produces a genuine,
+    brief low-threshold Ca2+ spike carrying a physiological 2-6 spike burst.
+
+    Default parameters are calibrated to a 6-spike rebound burst at ~160 Hz
+    over ~31 ms (see neuron/README.md).
+    """
+
+    def __init__(self, pcabar=1.7e-4, gk=0.011, gna=0.1, gsk=0.0):
         self.soma = h.Section(name="soma", cell=self)
-        self.dend = h.Section(name="dend", cell=self)
-        self.soma.L = self.soma.diam = 20
-        self.dend.L, self.dend.diam = 100, 3
-        self.dend.connect(self.soma(0.5))
-        for sec in (self.soma, self.dend):
-            sec.Ra, sec.cm = 100, 1
-        # Soma: Traub-Miles fast Na/K (hh2), which fire REPETITIVELY on the
-        # T-current Ca2+ plateau instead of blocking after one spike like the
-        # built-in `hh`. Dendrite: PASSIVE + the T-current only, so the low-
-        # threshold Ca2+ spike (not dendritic Na) drives the soma into a rebound
-        # BURST -- the standard thalamic-relay compartmentalisation.
+        self.soma.L = self.soma.diam = 80
+        self.soma.Ra, self.soma.cm = 100, 1
         self.soma.insert("hh2")
-        self.soma.gnabar_hh2 = 0.1
-        self.soma.gkbar_hh2 = 0.015   # in the burst-robust range; too low -> block
+        self.soma.gnabar_hh2, self.soma.gkbar_hh2 = gna, gk
+        self.soma.insert("itd")           # Destexhe 1996 T-current
+        self.soma.pcabar_itd = pcabar
         self.soma.insert("pas")
-        self.soma.g_pas, self.soma.e_pas = 1e-4, -70
-        self.dend.insert("cav3")
-        self.dend.gmax_cav3 = gcat
-        # Optional Ca2+ pool + SK2 burst terminator (Fernandez & Luthi sect.
-        # V.A.1). EXPERIMENTAL / opt-in via gsk > 0: the intended role is to
-        # activate a Ca-dependent K+ current during the LTS and terminate it at
-        # the physiological 2-6 spikes, but the cad/sk2 <-> cav3 Ca coupling is
-        # not yet calibrated (see neuron/README.md). Off by default so the
-        # verified hh2 rebound burst is unaffected.
+        self.soma.g_pas, self.soma.e_pas = 5e-5, -74
+        h.ion_style("ca_ion", 1, 2, 0, 0, 0, sec=self.soma)
+        self.soma.cai, self.soma.cao = 2.4e-4, 2.0
+        # Optional SK2 burst terminator (needs its own Ca pool `cad`, private
+        # `sk` ion). The Destexhe LTS is already brief (~31 ms), so SK2 is not
+        # needed for the TC burst; it is retained for the RE cell and longer
+        # plateaus. Enabling it re-styles Ca to let cad accumulate.
         if gsk > 0:
-            self.dend.insert("cad")
-            self.dend.insert("sk2")
-            self.dend.gkbar_sk2 = gsk
-        self.dend.insert("pas")
-        self.dend.g_pas, self.dend.e_pas = 2e-5, -70
-        h.ion_style("ca_ion", 3, 2, 1, 1, 0, sec=self.dend)
-        self.dend.cai, self.dend.cao = 5e-5, 2.0
+            h.ion_style("ca_ion", 1, 2, 1, 0, 0, sec=self.soma)
+            self.soma.insert("cad")
+            self.soma.insert("sk2")
+            self.soma.gkbar_sk2 = gsk
 
     def record(self):
         self.t = h.Vector().record(h._ref_t)
         self.vsoma = h.Vector().record(self.soma(0.5)._ref_v)
-        self.vdend = h.Vector().record(self.dend(0.5)._ref_v)
-        self.ica = h.Vector().record(self.dend(0.5)._ref_ica)
-        self.mT = h.Vector().record(self.dend(0.5)._ref_m_cav3)
-        self.hT = h.Vector().record(self.dend(0.5)._ref_h_cav3)
+        self.ica = h.Vector().record(self.soma(0.5)._ref_ica)
+        self.hT = h.Vector().record(self.soma(0.5)._ref_h_itd)
         nc = h.NetCon(self.soma(0.5)._ref_v, None, sec=self.soma)
         nc.threshold = -10
         self.spikes = h.Vector()
@@ -90,65 +85,47 @@ class TCCell:
         self._nc = nc
 
 
-def rebound_demo(gcat=0.05, hyper_amp=-0.3, hyper_dur=800.0):
-    """Hyperpolarise the relay cell, release, and measure the T-current-driven
-    rebound. Returns both the mechanism proof (peak inward Ca current, I_T
-    (de)inactivation) and the somatic spike count."""
-    cell = TCCell(gcat=gcat)
+def rebound_demo(pcabar=1.7e-4, gk=0.011, hyper_amp=-0.2, hyper_dur=500.0):
+    """Hyperpolarise the relay cell, release, and measure the rebound burst."""
+    cell = TCCell(pcabar=pcabar, gk=gk)
     cell.record()
     ic = h.IClamp(cell.soma(0.5))
-    ic.delay, ic.dur, ic.amp = 300.0, hyper_dur, hyper_amp   # nA, hyperpolarising
+    ic.delay, ic.dur, ic.amp = 300.0, hyper_dur, hyper_amp
     h.celsius = 36
-    h.finitialize(-70)
-    h.continuerun(ic.delay + ic.dur + 500.0)
+    h.finitialize(-74)
+    h.continuerun(ic.delay + ic.dur + 400.0)
     t = np.asarray(cell.t)
     sp = np.asarray(cell.spikes)
     release = ic.delay + ic.dur
-    burst = sp[(sp > release) & (sp < release + 400.0)]
+    burst = sp[(sp > release) & (sp < release + 250.0)]
     isi = float(np.mean(np.diff(burst))) if len(burst) > 1 else 0.0
-    win = (t > release - 5) & (t < release + 200)
     return {
         "n_rebound": int(len(burst)),
         "burst_hz": (1000.0 / isi) if isi > 0 else 0.0,
-        "ica_peak": float(np.asarray(cell.ica)[win].min()),   # inward (negative)
-        "h_at_release": float(np.asarray(cell.hT)[
-            (t > release - 5) & (t < release)].mean()),        # de-inactivation
-        "vdend_min": float(np.asarray(cell.vdend).min()),
+        "burst_ms": float(burst[-1] - burst[0]) if len(burst) > 1 else 0.0,
+        "ica_peak": float(np.asarray(cell.ica)[
+            (t > release - 5) & (t < release + 150)].min()),
     }
 
 
 if __name__ == "__main__":
-    print("NEURON multi-compartment TC relay cell: rebound BURST demo\n")
-    print("A Ca_v3.1 T-current in the dendrite + Traub-Miles (hh2) soma. The")
-    print("hh2 kinetics fire REPETITIVELY on the T-current Ca2+ plateau instead")
-    print("of the depolarisation block that the built-in `hh` soma suffered.\n")
-    print(f"{'gCaT (S/cm2)':<14}{'I_Ca peak':<12}{'h(release)':<12}"
-          f"{'rebound spikes':<16}burst?")
-    print("-" * 68)
-    for g in [0.0, 0.01, 0.02, 0.05]:
-        r = rebound_demo(gcat=g)
-        print(f"{g:<14}{r['ica_peak']:<12.3f}{r['h_at_release']:<12.2f}"
-              f"{r['n_rebound']:<16}{'YES' if r['n_rebound'] >= 2 else 'no'}")
-    print("-" * 68)
-    print("The T-current de-inactivates (h ~ 1), draws a strong inward Ca")
-    print("current scaling with gCaT, and the hh2 soma fires a multi-spike")
-    print("rebound BURST -- the mechanism NEST's point models could not express.")
-    print("\nSK2 terminator (mod/sk2.mod + mod/cad.mod, opt-in via gsk>0): the")
-    print("Ca pool is decoupled from the T-current via a private ion, so the")
-    print("burst survives and SK2 now shortens it --")
-    print(f"\n{'SK2 gkbar':<12}{'rebound spikes':<16}")
-    print("-" * 28)
-    for gsk in [0.0, 0.05, 0.1, 0.2]:
-        cell = TCCell(gcat=0.03, gsk=gsk)
-        if gsk > 0:
-            cell.dend.kd_sk2 = 0.5
-            cell.dend.depth_cad = 3.0
-        cell.record()
-        ic = h.IClamp(cell.soma(0.5)); ic.delay, ic.dur, ic.amp = 300, 800, -0.3
-        h.celsius = 36; h.finitialize(-70); h.continuerun(1600)
-        sp = np.asarray(cell.spikes)
-        n = int(((sp > 1100) & (sp < 1400)).sum())
-        print(f"{gsk:<12}{n:<16}")
-    print("-" * 28)
-    print("A tight 2-6 spike packet still needs a richer relay model (the long")
-    print("LTS plateau re-primes via back-propagation). See neuron/README.md.")
+    print("NEURON single-compartment TC relay cell (Destexhe 1996): rebound "
+          "BURST demo\n")
+    print("Traub-Miles (hh2) spikes + the Destexhe low-threshold T-current (itd,")
+    print("GHK + temperature-scaled kinetics). Release from hyperpolarisation")
+    print("evokes a brief low-threshold Ca2+ spike carrying a fast spike burst.\n")
+    print(f"{'pcabar':<12}{'I_Ca peak':<12}{'spikes':<10}{'freq (Hz)':<12}"
+          f"{'burst (ms)':<12}")
+    print("-" * 58)
+    for pca in [0.0, 1.0e-4, 1.7e-4, 2.5e-4]:
+        r = rebound_demo(pcabar=pca)
+        print(f"{pca:<12.1e}{r['ica_peak']:<12.3f}{r['n_rebound']:<10}"
+              f"{r['burst_hz']:<12.0f}{r['burst_ms']:<12.0f}")
+    print("-" * 58)
+    r = rebound_demo()   # locked defaults
+    print(f"\nDefault relay cell: a {r['n_rebound']}-spike rebound burst at "
+          f"{r['burst_hz']:.0f} Hz over {r['burst_ms']:.0f} ms -- a genuine")
+    print("thalamic low-threshold Ca2+ spike, in the review's 2-6 spike range.")
+    print("Conductance-based (Destexhe 1996 I_T, GHK) -- not a phenomenological")
+    print("fit, and no depolarisation block. This is the mechanism the NEST")
+    print("point models (ht_neuron, AdEx) could not express.")

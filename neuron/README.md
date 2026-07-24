@@ -24,11 +24,12 @@ scale both are fast enough.
 
 | path | purpose |
 |------|---------|
-| `mod/cav3.mod` | Ca_v3.1 / Ca_v3.3 low-threshold T-current (Huguenard & McCormick kinetics) |
+| `mod/itd.mod` | **Destexhe et al. 1996 low-threshold T-current** (GHK + φ-scaled kinetics) — the relay burst mechanism |
 | `mod/hh2.mod` | Traub-Miles fast Na⁺ / K⁺; fires repetitively on a plateau (no depol. block) |
-| `mod/cad.mod` | submembrane Ca²⁺ pool (feeds SK2) — experimental |
-| `mod/sk2.mod` | SK2 Ca²⁺-activated K⁺ burst terminator — experimental |
-| `tc_neuron.py` | two-compartment TC relay cell + single-cell rebound-burst demo |
+| `mod/cav3.mod` | earlier Huguenard-McCormick T-current (ohmic, unscaled τ) — superseded by `itd` |
+| `mod/cad.mod` | submembrane Ca²⁺ pool in a private `sk` ion (feeds SK2) |
+| `mod/sk2.mod` | SK2 Ca²⁺-activated K⁺ burst terminator |
+| `tc_neuron.py` | single-compartment Destexhe TC relay cell + rebound-burst demo |
 | `arm64/` (git-ignored) | compiled mechanisms, from `nrnivmodl mod` |
 
 ## Build & run
@@ -54,31 +55,31 @@ cd neuron
   hyperpolarisation** (h → 1.0) and drives a strong **inward Ca current that
   scales with gCaT** (−0.6 to −1.4 mA/cm²) on release — the exact mechanism the
   NEST point models could not express.
-- **Multi-spike rebound BURST achieved.** Swapping the built-in `hh` soma for
-  Traub–Miles `hh2` kinetics **solves the depolarisation block**: the soma now
-  fires a genuine **repetitive rebound burst** on the T-current plateau (21 / 26
-  / 31 spikes at gCaT = 0.01 / 0.02 / 0.05, and **0** at gCaT = 0 — the burst is
-  T-current-driven, not an artefact). This is the mechanism no NEST point model
-  (`ht_neuron`, AdEx) could produce.
+- **Physiological rebound BURST achieved.** A single-compartment cell with
+  Traub–Miles `hh2` spikes + the **Destexhe et al. 1996 T-current** (`itd`, GHK
+  driving force + temperature-scaled kinetics) fires a genuine thalamic
+  low-threshold Ca²⁺ spike:
 
-- **SK2 burst terminator is now functional** (`mod/sk2.mod` + `mod/cad.mod`,
-  opt-in via `gsk > 0`). The earlier cad↔cav3 feedback bug is **fixed**: `cad`
-  now accumulates into a **private ion species** (`sk`, valence 2) that only SK2
-  reads, so the submembrane pool no longer perturbs the T-current's Ca²⁺
-  reversal. With this, the rebound burst survives (`gsk = 0` → ~13 spikes) and
-  SK2 **controls its length** — raising `gsk` shortens it (→ 2 spikes). `depth`
-  (Ca accumulation rate) and `kd` set when SK crosses threshold.
+  | pcabar | I_Ca peak | spikes | freq | burst |
+  |---|---|---|---|---|
+  | 0 | 0.000 | 0 | — | — (control) |
+  | 1.0e-4 | −0.054 | 8 | 257 Hz | 27 ms |
+  | **1.7e-4** | **−0.089** | **6** | **161 Hz** | **31 ms** (default) |
+  | 2.5e-4 | −0.126 | 3 | 49 Hz | 41 ms |
+
+  The default is a **6-spike burst at 161 Hz over 31 ms** — in the review's 2–6
+  spike range, at physiological intra-burst frequency and LTS duration.
+  Conductance-based, no depolarisation block, and **not** a phenomenological fit
+  (unlike AdEx). Two things were decisive: (1) a **single compartment** (the
+  2-compartment version re-primed the T-current via somatic back-propagation,
+  giving a ~250 ms plateau); (2) the **φ (temperature) scaling** of the τ's,
+  which the earlier `cav3` omitted — without it the LTS was ~3× too long.
 
 **Next**
-- **A *tight* physiological 2–6 spike burst.** SK2 shortens the burst but not yet
-  into a clean 2–6 spike / ~30 ms packet: it currently yields a couple of spikes
-  spread across the LTS. Root cause is upstream of SK2 — the low-threshold
-  Ca²⁺ **plateau is too long (~250 ms)** because somatic spikes back-propagate
-  and *re-prime* the dendritic T-current. Fixing this needs a richer relay-cell
-  model (proper dendritic geometry + additional currents, as in Destexhe's full
-  TC cell), not more SK2 tuning. This is the honest remaining gap.
 - Reticular (RE) cell with Ca_v3.3 + SK2 and **gap junctions** (the synchrony
-  mechanism NEST could not provide).
+  mechanism NEST could not provide). SK2 (`mod/sk2.mod` + `mod/cad.mod`, private
+  `sk` ion) is ready for it — it is not needed for the brief TC LTS, but shapes
+  the longer RE bursts.
 - Port the network topology; validate against the same 10-criteria harness.
 - The NEST model stays the working reference throughout; consider keeping it for
   MareNostrum 5 scale-out (NEST is the better large-network tool).
