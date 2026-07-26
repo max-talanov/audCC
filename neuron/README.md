@@ -31,6 +31,7 @@ scale both are fast enough.
 | `mod/sk2.mod` | SK2 Ca²⁺-activated K⁺ burst terminator |
 | `mod/gap.mod` | electrical (gap-junction) coupling between TRN cells (connexin-36) |
 | `tc_neuron.py` | `TCCell` (relay), `RECell` (reticular), `gap_junction()` + demos |
+| `tc_network_nrn.py` | `ThalamicNet` — the TC↔RE loop network; emits the `tc_validate` contract |
 | `arm64/` (git-ignored) | compiled mechanisms, from `nrnivmodl mod` |
 
 ## Build & run
@@ -92,8 +93,22 @@ cd neuron
   TRN synchrony mechanism (Fernandez & Lüthi §V.C.1) is **only** available in the
   NEURON port.
 
-**Next**
-- Port the network topology (TC↔RE loop, corticothalamic drive); validate
-  against the same 10-criteria harness (`tc_validate.py`, simulator-agnostic).
-- The NEST model stays the working reference throughout; consider keeping it for
-  MareNostrum 5 scale-out (NEST is the better large-network tool).
+- **Network port running** (`tc_network_nrn.py`, `ThalamicNet`). The TC↔RE loop
+  is assembled from the verified cells — RE→TC GABA_A (e=−85 mV, for rebound),
+  TC→RE AMPA, RE→RE GABA_A + gap junctions, and a 1 Hz SO-gated corticothalamic
+  drive to RE. It runs, emits the `tc_validate` result contract, and the
+  thalamic loop **oscillates at ~10 Hz** (in the spindle band). It is scored by
+  the same simulator-agnostic 10-criteria harness as the NEST model:
+  **currently 2/5** (V_m operating ranges pass; the loop oscillates).
+
+**Next — the remaining gap is RE synchronisation.** The cells still fire mostly
+single spikes rather than synchronised bursts (RE ~1.9, TC ~2.0 spikes/burst),
+so no discrete ≥0.5 s spindle *events* form yet (density 0). Stronger RE→TC
+inhibition already doubled TC bursting; the full fix is to make **RE fire
+synchronised bursts** (gap-junction + cortical-volley timing + RE operating
+point), which then delivers the deep, synchronised IPSP that drives TC rebound
+bursts. This is the same multi-parameter spindle-synchronisation tuning the NEST
+model needed, now on a fully mechanistic substrate.
+
+The NEST model stays the working reference throughout; keep it for MareNostrum 5
+scale-out (NEST is the better large-network tool).
