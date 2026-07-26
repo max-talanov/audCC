@@ -32,6 +32,7 @@ scale both are fast enough.
 | `mod/gap.mod` | electrical (gap-junction) coupling between TRN cells (connexin-36) |
 | `tc_neuron.py` | `TCCell` (relay), `RECell` (reticular), `gap_junction()` + demos |
 | `tc_network_nrn.py` | `ThalamicNet` — the TC↔RE loop network; emits the `tc_validate` contract |
+| `tc_neuron_figures.py` | six-panel spindle figure (`out/tc_neuron_spindles.png`): cell bursts → gap-junction sync → network raster / LFP / spectrogram |
 | `arm64/` (git-ignored) | compiled mechanisms, from `nrnivmodl mod` |
 
 ## Build & run
