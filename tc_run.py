@@ -376,6 +376,88 @@ def make_decomposition_plot(traces, meta, slow_peak, spindle_peak, out_png,
     print(f"Saved decomposition plot to {out_png}")
 
 
+def make_layer_spindle_plot(spikes, meta, out_png, sigma=(10.0, 15.0)):
+    """Show the spindle propagating UP the auditory column.
+
+    For each layer -- thalamus (MGB, nRT) then cortex (L4, L2/3, L5, L6) -- the
+    population firing rate is band-passed into the sigma band (10-15 Hz) and its
+    waxing/waning envelope drawn, with per-layer spindle (SP) epochs shaded.
+    Reading bottom (MGB) to top (L6) shows the ~13 Hz spindle enter at the
+    thalamus and reappear, UP-state-locked, in each cortical layer.
+    """
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    tstop = meta["tstop"]
+    fs = 1000.0
+    # column order, plotted MGB at bottom -> L6 at top
+    order = ["MGB", "nRT", "L4", "L23", "L5", "L6"]
+    colors = {"MGB": "#1f77b4", "nRT": "#ff7f0e", "L4": "#2ca02c",
+              "L23": "#d62728", "L5": "#9467bd", "L6": "#8c564b"}
+    layers = [l for l in order if l in spikes and len(spikes[l]["times"]) > 5]
+    if not layers:
+        return
+
+    # a common slow-wave reference (cortical rate, <2 Hz) for UP-state gating
+    cort = [l for l in ["L23", "L5", "L6", "L4"] if l in spikes]
+    if cort:
+        allc = np.concatenate([spikes[l]["times"] for l in cort])
+        _, rc = population_rate(allc, tstop, bin_ms=1.0, smooth_ms=20.0)
+        slow_ref = _lowpass(rc, fs, 2.0)
+    else:
+        slow_ref = None
+
+    fig, ax = plt.subplots(figsize=(12, 1.5 + 1.15 * len(layers)))
+    t = np.arange(0.0, tstop, 1.0)
+    offset_step = 1.0
+    yticks, ylabels = [], []
+    for i, layer in enumerate(layers):
+        _, rate = population_rate(spikes[layer]["times"], tstop,
+                                  bin_ms=1.0, smooth_ms=3.0)
+        sig, env = bandpass_envelope(rate, fs, sigma[0], sigma[1])
+        sc = np.percentile(env, 99) or 1.0
+        sig, env = sig / sc, env / sc            # normalise per layer
+        y0 = i * offset_step
+        n = min(len(t), len(sig))
+        ax.plot(t[:n], y0 + 0.45 * sig[:n], color=colors.get(layer, "k"), lw=0.5)
+        ax.plot(t[:n], y0 + 0.45 * env[:n], color="k", lw=0.6, alpha=0.5)
+        # per-layer spindle epochs: envelope above 55th pct for >= 150 ms
+        thr = np.percentile(env, 55)
+        above = env[:n] > thr
+        edges = np.diff(above.astype(int))
+        starts = list(np.where(edges == 1)[0] + 1) + ([0] if above[0] else [])
+        ends = list(np.where(edges == -1)[0] + 1) + ([n - 1] if above[-1] else [])
+        for s, e in zip(sorted(starts), sorted(ends)):
+            if (e - s) >= 150:
+                ax.axvspan(t[s], t[e], y0 / (len(layers)),
+                           (y0 + 0.9) / (len(layers)),
+                           color=colors.get(layer, "k"), alpha=0.08, lw=0)
+        yticks.append(y0)
+        region = "cortex" if layer.startswith("L") else "thalamus"
+        ylabels.append(f"{layer}\n({region})")
+
+    if slow_ref is not None:
+        s = slow_ref[:len(t)]
+        s = 0.5 * s / (np.percentile(np.abs(s), 99) or 1.0)
+        ax.plot(t[:len(s)], (len(layers) - 0.4) + s, color="0.3", lw=1.2)
+        ax.text(tstop, len(layers) - 0.4, "  slow wave (cortex)", va="center",
+                fontsize=8, color="0.3")
+
+    ax.set_yticks(yticks); ax.set_yticklabels(ylabels, fontsize=9)
+    ax.set_xlabel("time (ms)")
+    ax.set_xlim(0, tstop)
+    ax.set_title(f"Sleep spindle ({sigma[0]:.0f}-{sigma[1]:.0f} Hz) propagating "
+                 "up the auditory column: thalamus (bottom) -> cortex (top)",
+                 fontsize=11)
+    for spine in ("top", "right"):
+        ax.spines[spine].set_visible(False)
+    fig.tight_layout()
+    fig.savefig(out_png, dpi=140, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved per-layer spindle plot to {out_png}")
+
+
 def make_plot(spikes, traces, meta, slow_peak, spindle_peak, out_png):
     import matplotlib
     matplotlib.use("Agg")
@@ -620,6 +702,9 @@ def main(argv=None):
         # spindle bands decomposed beneath it (the requested integrated graph)
         make_decomposition_plot(traces, meta, slow_peak, spindle_peak,
                                 outdir / f"tc_sleep_{tag}_decomp.png")
+        # per-layer view: the spindle propagating up the auditory column
+        make_layer_spindle_plot(spikes, meta,
+                                outdir / f"tc_sleep_{tag}_layers.png")
 
     # ----- self-validation -----
     slow_ok = 0.5 <= slow_peak <= 1.8

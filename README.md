@@ -154,6 +154,17 @@ indexed panels:
   (spindle) and **SW** (slow-wave) epochs shaded;
 - **(c)** a zoom over ~2 slow cycles resolving the individual 13 Hz spindle
   wavelets riding on the slow wave (slow V_m component overlaid in black);
+
+It also writes `out/tc_sleep_<tag>_layers.png`, a **per-layer view of the
+spindle propagating up the auditory column**: each layer's population rate is
+band-passed into the sigma band (10–15 Hz) and its waxing/waning envelope drawn,
+stacked from **MGB/nRT (thalamus) at the bottom to L4 → L2/3 → L5 → L6 (cortex)
+at the top**, with per-layer spindle epochs shaded and the slow wave overlaid.
+Reading bottom-to-top shows the ~13 Hz spindle enter at the thalamus and
+reappear, UP-state-locked, in each cortical layer. This is the clearest way to
+*see the spindles in the auditory cortical column* (use an `iaf` config —
+`network_auditory_mushtaq.yaml` / `..._local.yaml` — where all cortical layers
+are active).
 - **(d)** a thalamic **V_m** spectrogram (13 Hz bursts gated to UP states);
 - **(e)** cortical and thalamic **V_m** PSDs (slow and spindle peaks).
 
