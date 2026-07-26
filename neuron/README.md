@@ -29,7 +29,8 @@ scale both are fast enough.
 | `mod/cav3.mod` | earlier Huguenard-McCormick T-current (ohmic, unscaled τ) — superseded by `itd` |
 | `mod/cad.mod` | submembrane Ca²⁺ pool in a private `sk` ion (feeds SK2) |
 | `mod/sk2.mod` | SK2 Ca²⁺-activated K⁺ burst terminator |
-| `tc_neuron.py` | single-compartment Destexhe TC relay cell + rebound-burst demo |
+| `mod/gap.mod` | electrical (gap-junction) coupling between TRN cells (connexin-36) |
+| `tc_neuron.py` | `TCCell` (relay), `RECell` (reticular), `gap_junction()` + demos |
 | `arm64/` (git-ignored) | compiled mechanisms, from `nrnivmodl mod` |
 
 ## Build & run
@@ -75,11 +76,24 @@ cd neuron
   giving a ~250 ms plateau); (2) the **φ (temperature) scaling** of the τ's,
   which the earlier `cav3` omitted — without it the LTS was ~3× too long.
 
+- **Reticular (RE/TRN) cell + gap junctions done.** `RECell` (I_T + SK2 + hh2,
+  no I_h) fires a **5-spike burst at ~85 Hz** (review: TRN bursts 2 to >10
+  spikes). `gap_junction()` electrically couples two RE cells; driving cell A
+  alone, the coupling **recruits and synchronises** cell B:
+
+  | g_gap (µS) | A spikes | B spikes | A–B coincidence |
+  |---|---|---|---|
+  | 0 | 18 | 0 | — (B silent) |
+  | 0.002 | 18 | 0 | — |
+  | 0.008 | 19 | 7 | 32% |
+  | 0.02 | 14 | 14 | **100%** |
+
+  Gap junctions require waveform relaxation, which `ht_neuron` lacks — so this
+  TRN synchrony mechanism (Fernandez & Lüthi §V.C.1) is **only** available in the
+  NEURON port.
+
 **Next**
-- Reticular (RE) cell with Ca_v3.3 + SK2 and **gap junctions** (the synchrony
-  mechanism NEST could not provide). SK2 (`mod/sk2.mod` + `mod/cad.mod`, private
-  `sk` ion) is ready for it — it is not needed for the brief TC LTS, but shapes
-  the longer RE bursts.
-- Port the network topology; validate against the same 10-criteria harness.
+- Port the network topology (TC↔RE loop, corticothalamic drive); validate
+  against the same 10-criteria harness (`tc_validate.py`, simulator-agnostic).
 - The NEST model stays the working reference throughout; consider keeping it for
   MareNostrum 5 scale-out (NEST is the better large-network tool).

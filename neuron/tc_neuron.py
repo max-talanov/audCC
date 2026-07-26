@@ -8,10 +8,12 @@ in distal dendrites, TC via Ca_v3.1 in primary dendrites (Fernandez & Luthi
 which is why in-network burst synchrony stalled. NEURON represents multi-
 compartment cells and the T-current natively.
 
-This module is a first, minimal step: a two-compartment TC (relay) cell with a
-Ca_v3.1 T-current in its dendrite, used to demonstrate a genuine **dendritic
-rebound burst**. The full network port is future work; the point here is to
-prove the mechanism NEURON gives us that the point models could not.
+This module now provides the two thalamic cell types as single-compartment
+Destexhe-style models -- **TCCell** (relay: I_T + hh2) and **RECell** (reticular:
+I_T + SK2 + hh2) -- plus **gap_junction()** for electrical coupling between RE
+cells. Each produces a genuine conductance-based rebound burst, and gap
+junctions synchronise RE cells -- the mechanisms NEST's point models could not
+express. The full network port is the next step.
 
 Build the mechanism once, then run:
 
@@ -85,6 +87,61 @@ class TCCell:
         self._nc = nc
 
 
+class RECell:
+    """Single-compartment reticular (TRN / nRT) cell.
+
+    Traub-Miles spikes (hh2) + the low-threshold T-current (itd; the TRN Ca_v3.3
+    isoform expresses at high density, so a larger pcabar -> more vigorous
+    bursting than TC) + SK2 Ca2+-activated K+ (the burst after-hyperpolarisation
+    that keeps TRN bursts short and repeatable; Fernandez & Luthi V.A.1). No I_h
+    (TRN lacks it). Reticular bursts are 2 to >10 spikes.
+    """
+
+    def __init__(self, pcabar=2.5e-4, gk=0.012, gna=0.1, gsk=0.003,
+                 kd=0.5, depth=1.0):
+        self.soma = h.Section(name="re", cell=self)
+        self.soma.L = self.soma.diam = 70
+        self.soma.Ra, self.soma.cm = 100, 1
+        self.soma.insert("hh2")
+        self.soma.gnabar_hh2, self.soma.gkbar_hh2 = gna, gk
+        self.soma.insert("itd")
+        self.soma.pcabar_itd = pcabar
+        self.soma.insert("pas")
+        self.soma.g_pas, self.soma.e_pas = 5e-5, -75
+        # Ca handling: itd reads cai/cao; cad accumulates the private `sk` pool
+        # for SK2 from ica (no feedback onto the T-current reversal).
+        h.ion_style("ca_ion", 1, 2, 0, 0, 0, sec=self.soma)
+        self.soma.cai, self.soma.cao = 2.4e-4, 2.0
+        if gsk > 0:
+            self.soma.insert("cad")
+            self.soma.depth_cad = depth
+            self.soma.insert("sk2")
+            self.soma.gkbar_sk2, self.soma.kd_sk2 = gsk, kd
+        self._gaps = []
+
+    def record(self):
+        self.t = h.Vector().record(h._ref_t)
+        self.vsoma = h.Vector().record(self.soma(0.5)._ref_v)
+        nc = h.NetCon(self.soma(0.5)._ref_v, None, sec=self.soma)
+        nc.threshold = -10
+        self.spikes = h.Vector()
+        nc.record(self.spikes)
+        self._nc = nc
+
+
+def gap_junction(cell_a, cell_b, g=2e-4):
+    """Bidirectional electrical coupling between two cells (a Gap on each,
+    pointing at the other's membrane potential). ``g`` in uS."""
+    ga = h.Gap(cell_a.soma(0.5))
+    gb = h.Gap(cell_b.soma(0.5))
+    ga.g = gb.g = g
+    h.setpointer(cell_b.soma(0.5)._ref_v, "vgap", ga)
+    h.setpointer(cell_a.soma(0.5)._ref_v, "vgap", gb)
+    cell_a._gaps.append(ga)
+    cell_b._gaps.append(gb)
+    return ga, gb
+
+
 def rebound_demo(pcabar=1.7e-4, gk=0.011, hyper_amp=-0.2, hyper_dur=500.0):
     """Hyperpolarise the relay cell, release, and measure the rebound burst."""
     cell = TCCell(pcabar=pcabar, gk=gk)
@@ -129,3 +186,36 @@ if __name__ == "__main__":
     print("Conductance-based (Destexhe 1996 I_T, GHK) -- not a phenomenological")
     print("fit, and no depolarisation block. This is the mechanism the NEST")
     print("point models (ht_neuron, AdEx) could not express.")
+
+    # ---- reticular (RE/TRN) cell rebound burst ----
+    print("\n\nReticular (TRN) cell rebound burst (Ca_v3.3 T-current + SK2):")
+    re = RECell()
+    re.record()
+    ic = h.IClamp(re.soma(0.5)); ic.delay, ic.dur, ic.amp = 300, 500, -0.2
+    h.finitialize(-75); h.continuerun(1200)
+    sp = np.asarray(re.spikes); b = sp[(sp > 800) & (sp < 1050)]
+    hz = 1000.0 / np.mean(np.diff(b)) if len(b) > 1 else 0
+    print(f"  {len(b)} spikes @ {hz:.0f} Hz  (review: TRN bursts 2 to >10 spikes)")
+
+    # ---- gap-junction synchronisation (the mechanism NEST could not provide) --
+    print("\nGap junctions between RE cells -- drive cell A only; does the")
+    print("electrical coupling recruit and synchronise cell B?\n")
+    print(f"{'g_gap (uS)':<12}{'A spikes':<10}{'B spikes':<10}{'coincidence'}")
+    print("-" * 46)
+    for g in [0.0, 0.002, 0.008, 0.02]:
+        A, B = RECell(gsk=0.0), RECell(gsk=0.0)
+        A.record(); B.record()
+        if g > 0:
+            gap_junction(A, B, g=g)
+        h.finitialize(-64); h.continuerun(150)     # settle (T-current inactivated)
+        stim = h.IClamp(A.soma(0.5)); stim.delay, stim.dur, stim.amp = 150, 200, 0.25
+        h.continuerun(500)
+        a = np.asarray(A.spikes); bb = np.asarray(B.spikes)
+        a, bb = a[a > 150], bb[bb > 150]
+        coinc = (np.mean([np.min(np.abs(bb - t)) < 4.0 for t in a]) * 100
+                 if len(a) and len(bb) else 0.0)
+        print(f"{g:<12}{len(a):<10}{len(bb):<10}{coinc:.0f}%")
+    print("-" * 46)
+    print("g=0: cell B stays silent. g>0: the gap junction depolarises B and")
+    print("recruits it, spike-coincident with A -- electrical synchronisation of")
+    print("TRN cells (Fernandez & Luthi V.C.1), which NEST's ht_neuron cannot do.")
