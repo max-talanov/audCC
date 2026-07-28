@@ -55,18 +55,35 @@ def make_figure(spikes, traces, meta, out_png, window_s=5.0):
     sp_win, _ = tc_run.detect_sp_sw(eeg)
 
     # Slow oscillation derived from CORTICAL FIRING RATE (unambiguous UP/DOWN:
-    # UP = cortex active). Note (verified): in this model the thalamic spindle
-    # is phase-locked to the slow oscillation but falls in the cortical DOWN
-    # phase, i.e. it alternates with cortical UP states rather than nesting on
-    # them -- so the figure is labelled "phase-locked", not "UP-nested".
+    # UP = cortex active), using whichever cortical layers are active.
     cort = [l for l in ["L23", "L5", "L6", "L4"] if l in spikes
             and len(spikes[l]["times"]) > 20]
+    crate = None
     if cort:
         allc = np.concatenate([spikes[l]["times"] for l in cort])
         _, crate = tc_run.population_rate(allc, tstop, bin_ms=1.0, smooth_ms=25.0)
         slow = tc_run._bandpass(crate, fs, 0.5, 2.0)
     else:
         slow = tc_run._bandpass(comp, fs, 0.5, 2.0)
+
+    # Measure the spindle-to-SO coupling from the data and LABEL the figure to
+    # match (never assert "UP-nested" unless the cortex is actually active at
+    # the spindle). ratio = cortical firing at spindle peaks / overall mean.
+    from scipy.signal import find_peaks
+    coupling_label = "phase-locked to the slow oscillation (~1 per cycle)"
+    ratio = np.nan
+    if crate is not None:
+        cr = crate[:len(env)]
+        pk, _ = find_peaks(env, height=np.percentile(env, 80), distance=300)
+        if len(pk) and cr.mean() > 0:
+            ratio = float(cr[pk].mean() / cr.mean())
+            if ratio > 1.1:
+                coupling_label = "nested on the slow-oscillation UP state"
+            elif ratio < 0.9:
+                coupling_label = ("phase-locked to the slow oscillation "
+                                  "(in the DOWN phase)")
+    print(f"Spindle-SO coupling: cortical firing at spindle / mean = "
+          f"{ratio:.2f}  -> {coupling_label}")
 
     # choose a clean window: start at a detected spindle, span window_s
     w0 = max(500.0, (sp_win[0][0] - 900.0) if sp_win else 500.0)
@@ -94,9 +111,8 @@ def make_figure(spikes, traces, meta, out_png, window_s=5.0):
                        color=SPIN, alpha=0.10, lw=0)
     ax.plot(tt, comp[m], color=LFP, lw=0.8, label="LFP (composite)")
     ax.plot(tt, sw, color=SLOW, lw=2.0, alpha=0.85, label="slow oscillation")
-    ax.set_title("Auditory-cortex LFP  —  sleep spindles (shaded) phase-locked "
-                 "to the slow oscillation (~1 per cycle)",
-                 fontsize=11, loc="left")
+    ax.set_title(f"Auditory-cortex LFP  —  sleep spindles (shaded) "
+                 f"{coupling_label}", fontsize=11, loc="left")
     ax.legend(fontsize=8, loc="lower right", framealpha=0.9, ncol=2)
     clean(ax)
     yr = comp[m].max() - comp[m].min()
@@ -136,7 +152,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--config", type=str,
-                    default="config/network_auditory_mushtaq.yaml")
+                    default="config/network_auditory_adex.yaml")
     ap.add_argument("--tstop", type=float, default=12000.0)
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--outdir", type=str, default="out")
