@@ -197,12 +197,25 @@ class SleepParams:
     slow_freq: float = 1.0            # Hz
     slow_amp_cortex: float = 120.0    # pA
     slow_offset_cortex: float = 50.0  # pA (DC bias toward threshold)
+    # Phase (deg) of the cortical slow drive. Also measured NOT to change the
+    # spindle-to-SO coupling under iaf: shifting the cortex shifts the rebound
+    # spindle with it, so they stay anti-phase (see slow_thal_phase_deg).
+    slow_cortex_phase_deg: float = 0.0
     # Thalamus operating point (rheobase ~= 150 pA): on the UP phase the DC
     # baseline (offset+amp ~= 150 pA) sits right at threshold so the 13 Hz
     # spindle peaks make it fire ~13-15 Hz; on the DOWN trough the baseline
     # drops to ~70 pA and even spindle peaks stay sub-threshold -> UP-gated.
     slow_amp_thalamus: float = 40.0   # pA
     slow_offset_thalamus: float = 110.0  # pA
+    # Phase (deg) of the thalamic slow gating relative to the cortical slow
+    # drive. NOTE (measured): under iaf_cond_exp this lever does NOT change the
+    # spindle-to-SO coupling -- the imposed-drive spindle is a rebound locked to
+    # cortical activity, so it stays in the cortical DOWN phase at every phase.
+    # Canonical UP-state nesting is instead achieved by the AdEx/HH model, whose
+    # spindle_trigger fires the corticothalamic volley at the UP-state onset
+    # (verified: cortical firing at the spindle is 1.19x the mean). Kept as a
+    # documented lever. See tc_present.py, which measures the coupling.
+    slow_thal_phase_deg: float = 0.0
 
     # spindle (~13 Hz): peaks push the (UP-phase, near-threshold) relay/reticular
     # cells over threshold once per cycle -> 13 Hz-locked firing nested on UP.
@@ -1083,7 +1096,7 @@ class AuditoryThalamoCorticalSleep:
                 "amplitude": cx_amp,
                 "offset": cx_off,
                 "frequency": s.slow_freq,
-                "phase": 0.0,
+                "phase": s.slow_cortex_phase_deg,
             })
             nest.Connect(slow_cortex, cortex_E)
 
@@ -1146,7 +1159,7 @@ class AuditoryThalamoCorticalSleep:
                     "amplitude": s.slow_amp_thalamus,
                     "offset": s.slow_offset_thalamus,
                     "frequency": s.slow_freq,
-                    "phase": 0.0,   # in-phase: thalamus depolarised during UP
+                    "phase": s.slow_thal_phase_deg,  # sets spindle-to-UP coupling
                 })
                 nest.Connect(slow_thal, thal)
 
