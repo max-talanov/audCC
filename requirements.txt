@@ -2,9 +2,9 @@
 #
 #   pip install -r requirements.txt
 #
-# These are the pip-installable packages used by the NEST model and its
-# analysis/plotting (tc_run.py, tc_validate.py, tc_analyze.py, tc_present.py,
-# tc_architecture.py, tc_spindle_figures.py).
+# Core analysis/plotting libraries used across the code (tc_run.py,
+# tc_validate.py, tc_analyze.py, tc_present.py, tc_architecture.py,
+# tc_spindle_figures.py, and the neuron/ port).
 
 numpy>=2.0        # np.trapezoid is used (numpy 2.0+)
 scipy>=1.10
@@ -12,28 +12,24 @@ matplotlib>=3.6
 pyyaml>=6.0
 
 # ==============================================================================
-#  NEUROSIMULATORS -- installed SEPARATELY, NOT by this requirements file
+#  NEUROSIMULATORS -- all THREE are REQUIRED (used across the project)
 # ==============================================================================
-# `pip install -r requirements.txt` does NOT install these. They are listed here
-# only for documentation; install the one(s) you need as described below.
-#
-# 1. NEST 3.x  --  REQUIRED (the whole NEST model: tc_run.py, tc_validate.py, ...)
-#      NEST is a spiking point-neuron simulator and is NOT on PyPI, so `pip
-#      install nest` will NOT work. Install via conda-forge or from source:
-#          conda install -c conda-forge nest-simulator
-#      Docs: https://nest-simulator.readthedocs.io/en/stable/installation/
-#      Tested with NEST 3.9. Verify with:  python -c "import nest"
-#
-# 2. NEURON >= 9  --  OPTIONAL (only the mechanistic port under neuron/)
-#      A multi-compartment / Hodgkin-Huxley simulator. This one IS on PyPI, but
-#      is kept out of the core list because the NEST model does not need it.
-#      Install in a separate venv (see neuron/README.md):
-#          pip install neuron
-#      Docs: https://nrn.readthedocs.io
-#
-# 3. The Virtual Brain (TVB)  --  NOT USED by this repository (informational)
-#      A large-scale / whole-brain network simulator (neural-mass / field level,
-#      a different scale from the spiking NEST/NEURON models here). It IS on PyPI
-#      (`pip install tvb-library tvb-data`) but this model does not import or use
-#      it; noted only because it is part of the wider neurosimulator landscape.
-#      Docs: https://www.thevirtualbrain.org
+# The two that are on PyPI are listed as active requirements below; NEST is not
+# on PyPI and must be installed separately (see its note). Heads-up: these are
+# large packages with their own dependency trees and can conflict in a single
+# environment (TVB in particular has historically pinned older numpy/scipy). If
+# `pip install -r requirements.txt` fails to resolve, install each simulator in
+# its OWN virtual environment (the NEURON port already uses a dedicated venv --
+# see neuron/README.md).
+
+neuron>=9          # NEURON -- multi-compartment / Hodgkin-Huxley (neuron/ port)
+                   #   Docs: https://nrn.readthedocs.io
+
+tvb-library        # The Virtual Brain -- large-scale / whole-brain simulator
+tvb-data           #   (neural-mass / field level). Docs: thevirtualbrain.org
+
+# NEST 3.x  --  REQUIRED, but NOT installable by pip (not on PyPI). Install via
+#   conda-forge or from source, then it is importable as `nest`:
+#       conda install -c conda-forge nest-simulator
+#   Docs: https://nest-simulator.readthedocs.io/en/stable/installation/
+#   Tested with NEST 3.9.  Verify with:  python -c "import nest"
