@@ -1,0 +1,23 @@
+# Python dependencies for the auditory thalamo-cortical sleep model.
+#
+#   pip install -r requirements.txt
+#
+# These are the pip-installable packages used by the NEST model and its
+# analysis/plotting (tc_run.py, tc_validate.py, tc_analyze.py, tc_present.py,
+# tc_architecture.py, tc_spindle_figures.py).
+
+numpy>=2.0        # np.trapezoid is used (numpy 2.0+)
+scipy>=1.10
+matplotlib>=3.6
+pyyaml>=6.0
+
+# --- NOT pip-installable / optional, install separately -----------------------
+#
+# NEST 3.x  -- REQUIRED to run the model (tc_run.py etc.). NEST is not on PyPI;
+#   install via conda ('conda install -c conda-forge nest-simulator') or from
+#   source. See https://nest-simulator.readthedocs.io/en/stable/installation/
+#   Tested with NEST 3.9.
+#
+# NEURON >= 9  -- OPTIONAL, only for the mechanistic NEURON port under neuron/.
+#   Pip-installable but kept out of the core list (the NEST model does not need
+#   it). Install in a separate venv: 'pip install neuron'. See neuron/README.md.

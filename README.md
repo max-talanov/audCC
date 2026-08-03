@@ -141,7 +141,7 @@ area-based conductances (mS/cm²·area) are not transferable** to our point
 Local sane test (seconds on a laptop with NEST 3.x installed):
 
 ```bash
-pip install -r ../requirements.txt   # numpy matplotlib scipy pyyaml (+ NEST)
+pip install -r requirements.txt   # numpy scipy matplotlib pyyaml (+ NEST, installed separately)
 python3 tc_sleep/tc_run.py --config tc_sleep/config/network_auditory_local.yaml --outdir out
 ```
 
