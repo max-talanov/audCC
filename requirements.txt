@@ -11,13 +11,29 @@ scipy>=1.10
 matplotlib>=3.6
 pyyaml>=6.0
 
-# --- NOT pip-installable / optional, install separately -----------------------
+# ==============================================================================
+#  NEUROSIMULATORS -- installed SEPARATELY, NOT by this requirements file
+# ==============================================================================
+# `pip install -r requirements.txt` does NOT install these. They are listed here
+# only for documentation; install the one(s) you need as described below.
 #
-# NEST 3.x  -- REQUIRED to run the model (tc_run.py etc.). NEST is not on PyPI;
-#   install via conda ('conda install -c conda-forge nest-simulator') or from
-#   source. See https://nest-simulator.readthedocs.io/en/stable/installation/
-#   Tested with NEST 3.9.
+# 1. NEST 3.x  --  REQUIRED (the whole NEST model: tc_run.py, tc_validate.py, ...)
+#      NEST is a spiking point-neuron simulator and is NOT on PyPI, so `pip
+#      install nest` will NOT work. Install via conda-forge or from source:
+#          conda install -c conda-forge nest-simulator
+#      Docs: https://nest-simulator.readthedocs.io/en/stable/installation/
+#      Tested with NEST 3.9. Verify with:  python -c "import nest"
 #
-# NEURON >= 9  -- OPTIONAL, only for the mechanistic NEURON port under neuron/.
-#   Pip-installable but kept out of the core list (the NEST model does not need
-#   it). Install in a separate venv: 'pip install neuron'. See neuron/README.md.
+# 2. NEURON >= 9  --  OPTIONAL (only the mechanistic port under neuron/)
+#      A multi-compartment / Hodgkin-Huxley simulator. This one IS on PyPI, but
+#      is kept out of the core list because the NEST model does not need it.
+#      Install in a separate venv (see neuron/README.md):
+#          pip install neuron
+#      Docs: https://nrn.readthedocs.io
+#
+# 3. The Virtual Brain (TVB)  --  NOT USED by this repository (informational)
+#      A large-scale / whole-brain network simulator (neural-mass / field level,
+#      a different scale from the spiking NEST/NEURON models here). It IS on PyPI
+#      (`pip install tvb-library tvb-data`) but this model does not import or use
+#      it; noted only because it is part of the wider neurosimulator landscape.
+#      Docs: https://www.thevirtualbrain.org
