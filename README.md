@@ -4,13 +4,25 @@ A closed-loop thalamo-cortical column for the **auditory** system that, under
 sleep drives, produces the **slow oscillation (~1 Hz)** with **sleep spindles
 (~13 Hz)** nested on its UP states. Built directly in NEST, **no optimisation**.
 
-The column architecture is adapted from the Cortical Column model
-([max-talanov/cc, `optimization_nest`](https://github.com/max-talanov/cc/tree/main/optimization_nest),
-`core/simulator.py`): five stages of `iaf_cond_exp` neurons — thalamus
-(TCR excitatory / nRT inhibitory), L4, L2/3 (RS + FRB), L5 (TuftRS + TuftIB),
-L6, with a shared L5/6 interneuron pool (Basket / LTS / Axoaxonic) — wired with
-`pairwise_bernoulli` connections. The optimisation harness (`run_opt.py`,
-`methods/`) is dropped; this builds one column and runs it.
+It is built on the **Cortical Column (CC)** model
+([max-talanov/cc](https://github.com/max-talanov/cc/tree/main/optimization_nest)):
+a biophysically-grounded NEST model of a single canonical thalamo-cortical
+column. CC captures the laminar cortical microcircuit — thalamic relay and
+reticular populations together with cortical layers L4, L2/3, L5 and L6, each
+with multiple excitatory pyramidal subtypes and inhibitory interneuron classes
+(after Traub et al. 2005 and Markram et al. 2015) — as a network of
+conductance-based neurons with probabilistic connectivity. CC is fundamentally
+an **optimisation** framework: it fits the column's cellular and synaptic
+parameters to target activity through a dedicated harness (`run_opt.py`,
+`methods/`). The present model reuses that column as its cortical substrate and
+repurposes it for sleep — dropping the optimisation, closing the thalamo-cortical
+loop, and adding the sleep drives that generate slow waves and spindles.
+
+Concretely, the column (from cc's `core/simulator.py`) is five stages of
+`iaf_cond_exp` neurons — thalamus (TCR excitatory / nRT inhibitory), L4, L2/3
+(RS + FRB), L5 (TuftRS + TuftIB), L6, with a shared L5/6 interneuron pool
+(Basket / LTS / Axoaxonic) — wired with `pairwise_bernoulli` connections. Here
+it is built once and run under sleep drives rather than optimised.
 
 ## Neuron model
 
