@@ -24,6 +24,27 @@ Concretely, the column (from cc's `core/simulator.py`) is five stages of
 (Basket / LTS / Axoaxonic) — wired with `pairwise_bernoulli` connections. Here
 it is built once and run under sleep drives rather than optimised.
 
+## Results
+
+![Slow oscillations and sleep spindles in the auditory thalamo-cortical model](out/slow_waves_and_spindles.png)
+
+Simulated auditory-cortex LFP (top), decomposed into the **sleep spindle band
+(10–15 Hz)** with its waxing/waning envelope (middle) and the **slow oscillation
+(0.5–2 Hz)** derived from cortical firing (bottom). Spindles (shaded) are
+**nested on the slow-oscillation UP state** — the canonical coupling; the figure
+caption is set from a measurement (cortical firing at the spindle is 1.19× the
+mean), not asserted. Produced by the AdEx configuration, which passes all ten
+[Fernandez & Lüthi (2020)](https://doi.org/10.1152/physrev.00042.2018) spindle
+criteria (`tc_validate.py`):
+
+```bash
+python3 tc_present.py --config config/network_auditory_adex.yaml --tstop 14000 --outdir out
+```
+
+Other figures each run writes: a five-panel overview, the SW/SP decomposition,
+and a **per-layer view of the spindle propagating up the column**
+(`out/tc_sleep_<tag>_layers.png`) — see [Run](#run).
+
 ## Neuron model
 
 Two neuron models are selectable via `--neuron-model` (or `simulation.neuron_model`
