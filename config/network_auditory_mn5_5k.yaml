@@ -1,0 +1,66 @@
+# Auditory thalamo-cortical sleep model -- MareNostrum 5, ~5000-neuron run.
+#
+# Large bio-plausible column with the HODGKIN-HUXLEY neuron model (ht_neuron),
+# so the intrinsic currents behind spindles are present: I_T (T-type Ca2+
+# rebound), I_h, I_NaP/I_KNa, and the SK2 burst after-hyperpolarisation on the
+# reticular cells (HHParams.g_peak_KNa_RE, default 0.5).
+#
+#   srun python3 tc_run.py --config config/network_auditory_mn5_5k.yaml \
+#       --threads $SLURM_CPUS_PER_TASK --outdir out --tag mn5_5k
+#
+# ---------------------------------------------------------------------------
+# IMPORTANT -- these are DECLARED sizes, not the final neuron count.
+# build_network() instantiates each SUBTYPE separately, so the actual network is
+# ~1.65x larger than the sum below:
+#     L23 E -> RS + FRB            (x2)
+#     L23 I -> Basket + LTS + Axax (x3)
+#     L5  E -> TuftRS + TuftIB     (x2)
+#     L5/6 I -> Basket + LTS + Axax (x3, shared pool)
+# The values here are calibrated so the model builds 5010 real neurons
+# (verify with: cfg.total_neurons reports the declared 3050 -- the smaller,
+# misleading number; see the README note).
+# ---------------------------------------------------------------------------
+#
+# Measured cost at this size (8 threads, laptop; MN5 will differ):
+#     ht_neuron (with SK):    ~31 s wall per   3 s of simulation
+#                             ~5 min           30 s
+#                             ~35 min         200 s  (needed for spindle
+#                                                     density / ISI statistics)
+#     iaf_cond_exp:           ~4x faster, but no intrinsic currents / no SK.
+#
+# NOTE on duration: 3 s spans only ~3 slow-oscillation cycles -- enough as a
+# smoke test / scaling check, but NOT enough for spindle density, inter-spindle
+# interval, or the ~0.02 Hz infraslow clustering (that needs >= 150 s). Override
+# with --tstop for production runs.
+
+network:
+  thalamus:        # MGB: TC relay (E) + RE reticular (I) -- SK2 lives on RE
+    E: 210
+    I: 55
+  L4:
+    E: 640
+    I: 160
+  L23:
+    E: 640
+    I: 160
+  L5:
+    E: 530
+    I: 130
+  L6:
+    E: 420
+    I: 105
+
+splits:
+  L23_E: 2      # RS + FRB
+  L23_I: 3      # Basket, LTS, Axoaxonic
+  L4_E: 1
+  L4_I: 1
+  L5_E: 2       # TuftRS + TuftIB
+  L56_I: 3      # shared L5/6 Basket, LTS, Axoaxonic
+  L6_E: 1
+
+simulation:
+  neuron_model: ht_neuron   # Hodgkin-Huxley: I_T / I_h / I_NaP / I_KNa + SK2
+  tstop: 3000.0             # ms -- 3 s (smoke test); raise for statistics
+  dt: 0.1                   # ms
+  v_init: -65
