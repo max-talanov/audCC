@@ -168,6 +168,8 @@ area-based conductances (mS/cm²·area) are not transferable** to our point
 | `config/network_auditory_hh.yaml` | Hodgkin–Huxley (`ht_neuron`) — emergent slow wave + spindles |
 | `config/network_auditory_mn5.yaml` | realistic (~1150 neurons), long — bio-plausible MN5 |
 | `config/network_auditory_mn5_5k.yaml` | **~5000 neurons** (5010 actual), `ht_neuron` **with SK2** — large MN5 run |
+| `run.sh` | **MN5 job script** — `sbatch --export=ALL,CONFIG=...,TSTOP=... run.sh` |
+| `MN5_UPLOAD.md` | what to scp to MareNostrum 5 (and what not to) |
 | `slurm/tc_sleep_mn5.sbatch` | MareNostrum 5 submission (single long, multi-threaded run) |
 
 ## Run
