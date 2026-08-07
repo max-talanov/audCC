@@ -1,7 +1,7 @@
 #!/bin/bash -l
 #SBATCH --job-name=AUDCC_NEST
-#SBATCH --output=audcc_%A_%a.slurmout
-#SBATCH --error=audcc_%A_%a.slurmerr
+#SBATCH --output=audcc_%j.slurmout
+#SBATCH --error=audcc_%j.slurmerr
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=50
@@ -49,8 +49,13 @@ ANALYZE=${ANALYZE:-0}           # 1 = per-layer spindle metrics + propagation la
 PRESENT=${PRESENT:-0}           # 1 = presentation figure (slow waves + spindles)
 NO_PLOT=${NO_PLOT:-0}           # 1 = skip figures (faster)
 OUTDIR=${OUTDIR:-out}
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-cd "$SCRIPT_DIR" || exit 1
+# Work from the directory sbatch was invoked in. Do NOT derive this from
+# ${BASH_SOURCE[0]}: under sbatch that resolves to SLURM's spooled copy of this
+# script (e.g. /scratch/slurm/jobNNN/slurm_script), so cd-ing there lands in a
+# directory with no sources and no write permission. SLURM_SUBMIT_DIR is the
+# submit directory; the fallback covers running ./run.sh directly.
+WORKDIR="${SLURM_SUBMIT_DIR:-$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )}"
+cd "$WORKDIR" || { echo "[Slurm] FATAL: cannot cd to $WORKDIR"; exit 1; }
 
 export LANG=${LANG:-C.UTF-8}
 export LC_ALL=${LC_ALL:-C.UTF-8}
@@ -70,6 +75,14 @@ export OMP_PLACES=cores
 # source "$HOME/audcc-venv/bin/activate"
 
 echo "[Slurm] job=$SLURM_JOB_ID  ntasks=$SLURM_NTASKS  cpus-per-task=$SLURM_CPUS_PER_TASK"
+echo "[Slurm] workdir=$(pwd)"
+
+# Fail fast with a clear message if the sources are not here (the usual
+# cause is submitting from the wrong directory).
+for req in tc_run.py tc_network.py "$CONFIG"; do
+  [ -e "$req" ] || { echo "[Slurm] FATAL: missing '$req' in $(pwd)."; \
+                     echo "[Slurm] sbatch from the directory holding the sources."; exit 2; }
+done
 echo "[Slurm] config=${CONFIG}  tstop=${TSTOP:-<from yaml>}  model=${MODEL:-<from yaml>}  seed=${SEED}"
 echo "[Slurm] trigger=${TRIGGER}  validate=${VALIDATE}  analyze=${ANALYZE}  present=${PRESENT}  no_plot=${NO_PLOT}"
 
