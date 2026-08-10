@@ -39,7 +39,7 @@ auditory relay; its drive represents auditory-nerve / inferior-colliculus input.
 
 import math
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from pathlib import Path
 from typing import Dict, Optional, Union
 
@@ -425,6 +425,34 @@ class HHParams:
     tot_tc_re_ampa: float = 30.0
     tot_re_re_gaba_a: float = 18.0
 
+    @classmethod
+    def from_dict(cls, config: dict) -> "HHParams":
+        """Build from a config dict's optional ``hh:`` block; unknown keys are
+        ignored so a config cannot silently mistype a parameter into oblivion
+        without it being visible in the printed summary."""
+        hh = (config or {}).get("hh", {}) or {}
+        known = {f.name for f in fields(cls)}
+        kwargs = {k: v for k, v in hh.items() if k in known}
+        unknown = set(hh) - known
+        if unknown:
+            print(f"Warning: unknown hh: keys ignored: {sorted(unknown)}")
+        return cls(**kwargs)
+    @classmethod
+    def from_file(cls, path) -> "HHParams":
+        path = Path(path)
+        if not path.exists():
+            return cls()
+        with open(path, "r") as f:
+            if path.suffix in (".yaml", ".yml"):
+                import yaml
+                config = yaml.safe_load(f)
+            elif path.suffix == ".json":
+                config = json.load(f)
+            else:
+                return cls()
+        return cls.from_dict(config or {})
+
+
 
 @dataclass
 class AdExParams:
@@ -473,8 +501,6 @@ class AdExParams:
     tot_re_tc: float = 12.0
     tot_tc_re: float = 8.0
     tot_re_re: float = 5.0
-
-
 @dataclass
 class SimulationConfig:
     num_threads: int = 1
@@ -513,7 +539,8 @@ class AuditoryThalamoCorticalSleep:
     def __init__(self, network_config: Optional[NetworkConfig] = None,
                  syn: Optional[SynapseParams] = None,
                  sleep: Optional[SleepParams] = None,
-                 sim_config: Optional[SimulationConfig] = None):
+                 sim_config: Optional[SimulationConfig] = None,
+                 hh: Optional["HHParams"] = None):
         self.cfg = network_config or NetworkConfig()
         self.syn = syn or SynapseParams()
         self.sleep = sleep or SleepParams()
@@ -528,7 +555,7 @@ class AuditoryThalamoCorticalSleep:
         self._is_cond_model = False
         self._is_ht = False
         self._is_adex = False
-        self.hh = HHParams()
+        self.hh = hh or HHParams()
         self.adex = AdExParams()
         self._setup_nest()
 

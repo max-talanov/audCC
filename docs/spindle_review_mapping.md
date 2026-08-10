@@ -687,6 +687,59 @@ work. **Remaining gap for HH: in-network RE burst synchrony** (the review's
 sect. V.C mechanisms -- gap junctions, topographic slabs -- which NEST/ht_neuron
 partly cannot express).
 
+## 5.9 5k-scale diagnosis: MGB is non-bursting, not "silenced by scale"
+
+Running the 5000-neuron `ht_neuron` config on MareNostrum 5 produced a clean
+~1.2 Hz slow oscillation but a **spurious spindle**: the spectrogram had no
+sigma-band structure, the thalamic PSD had no sigma peak, MGB looked nearly
+silent and nRT fired densely and continuously. The detected "9.6 Hz" sat at the
+very bottom edge of the 9-16 Hz search window -- consistent with band-passing a
+train of ~250 ms cortical UP-state bursts recurring at 1.2 Hz, not with a
+thalamic spindle.
+
+**The cause is NOT network scale.** MGB fires at essentially the same rate at
+both sizes, i.e. the fan-in normalisation of the intra-thalamic loop is working:
+
+| network | MGB | nRT |
+|---|---|---|
+| 1890 neurons | 1.26 Hz/neuron | 13.1 Hz |
+| 5010 neurons | 1.13 Hz/neuron | 13.0 Hz |
+
+MGB is not silent; it is **non-bursting**, and nRT is **tonic**. 1.1 Hz spread
+over 212 relay cells simply looks sparse in a raster next to nRT's 13 Hz. This
+is the same limitation as sect. 5.5.1, now confirmed at scale.
+
+**Partial remedy (measured, 4 s runs at 5010 neurons).** Deeper RE->TC
+inhibition drives the T-current rebound, which is the actual spindle mechanism:
+
+| `tc_slow_offset` | `tot_re_tc_gaba_a` | TC spikes/burst |
+|---|---|---|
+| 34 (default) | 45 (default) | 1.77 |
+| 34 | 90 | 2.09 |
+| **50** | **90** | **2.45** (crosses the review's >= 2) |
+
+Available as `config/network_auditory_mn5_5k_tuned.yaml` via the new `hh:`
+config block (see below), left **opt-in** rather than made the default.
+
+**Why it is only partial.** The RETICULAR cells still fire tonically
+(1.66-1.82 spikes/burst) at every setting tried, including deep
+hyperpolarisation, and there is a genuine tension: hyperpolarising RE raises
+TC's *rate* (0.9 -> 2.8 Hz) but *lowers* TC bursting (2.45 -> 1.41), because the
+inhibition that drives the rebound is exactly what is being removed. So
+`ht_neuron` still does not generate a true spindle in-network at any scale, and
+the full 10-criteria validation of the tuned values has not yet been run.
+
+**Configuring HH parameters.** Any `HHParams` field can now be overridden from a
+YAML `hh:` block, so thalamic tuning is data, not code:
+
+```yaml
+hh:
+  tc_slow_offset: 50.0
+  tot_re_tc_gaba_a: 90.0
+```
+
+Unknown keys are reported rather than silently ignored.
+
 ## 6. References
 
 - Fernandez LMJ, Lüthi A. *Sleep Spindles: Mechanisms and Functions.*

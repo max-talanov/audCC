@@ -28,12 +28,12 @@ import numpy as np
 
 try:
     from tc_sleep.tc_network import (AuditoryThalamoCorticalSleep, NetworkConfig,
-                                     SimulationConfig, SynapseParams, SleepParams)
+                                     SimulationConfig, SynapseParams, SleepParams, HHParams)
     from tc_sleep import tc_run
 except ImportError:
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     from tc_network import (AuditoryThalamoCorticalSleep, NetworkConfig,
-                            SimulationConfig, SynapseParams, SleepParams)
+                            SimulationConfig, SynapseParams, SleepParams, HHParams)
     import tc_run
 
 SIGMA = (10.0, 15.0)
@@ -185,7 +185,9 @@ def main(argv=None):
     sleep = (SleepParams(emergent_spindles=True) if nm != "iaf_cond_exp"
              else SleepParams())
     print(f"Running column ({args.tstop/1000:.0f} s, model {nm}) for analysis...")
-    model = AuditoryThalamoCorticalSleep(cfg, SynapseParams(), sleep, sim)
+    hh_params = HHParams.from_file(args.config)
+    model = AuditoryThalamoCorticalSleep(cfg, SynapseParams(), sleep, sim,
+                                         hh=hh_params)
     spikes, traces, meta = model.run()
     meta["seed"] = args.seed
 

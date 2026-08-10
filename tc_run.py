@@ -29,13 +29,13 @@ import numpy as np
 try:
     from tc_sleep.tc_network import (
         AuditoryThalamoCorticalSleep, NetworkConfig, SimulationConfig,
-        SynapseParams, SleepParams,
+        SynapseParams, SleepParams, HHParams,
     )
 except ImportError:
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     from tc_network import (  # type: ignore
         AuditoryThalamoCorticalSleep, NetworkConfig, SimulationConfig,
-        SynapseParams, SleepParams,
+        SynapseParams, SleepParams, HHParams,
     )
 
 
@@ -610,8 +610,10 @@ def main(argv=None):
     sleep = (SleepParams(emergent_spindles=True,
                          spindle_trigger=args.spindle_trigger)
              if is_hh else SleepParams())
+    hh_params = HHParams.from_file(args.config) if args.config else HHParams()
     model = AuditoryThalamoCorticalSleep(network_config=cfg, syn=SynapseParams(),
-                                         sleep=sleep, sim_config=sim_config)
+                                         sleep=sleep, sim_config=sim_config,
+                                         hh=hh_params)
     spikes, traces, meta = model.run()
     meta["seed"] = args.seed
     meta["config"] = str(args.config) if args.config else ""
