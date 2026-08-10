@@ -324,7 +324,9 @@ def main(argv=None):
                         spindle_trigger=not args.no_trigger)
     print(f"Validating {args.neuron_model} ({cfg.tstop/1000:.0f} s, "
           f"trigger={'off' if args.no_trigger else 'on'})...")
-    model = AuditoryThalamoCorticalSleep(cfg, SynapseParams(), sleep, sim)
+    hh_params = HHParams.from_file(args.config)
+    model = AuditoryThalamoCorticalSleep(cfg, SynapseParams(), sleep, sim,
+                                         hh=hh_params)
     spikes, traces, meta = model.run()
     meta["seed"] = args.seed
     _, ok = validate(spikes, traces, meta,

@@ -25,6 +25,10 @@
 # Classic iaf column (fast, full cortical activity, imposed-drive spindles)
 #  sbatch --export=ALL,CONFIG=config/network_auditory_mn5.yaml,TSTOP=30000,ANALYZE=1 run.sh
 #
+# Tuned-vs-baseline thalamus A/B at 5k (submit both; compare the VALIDATE tables)
+#  sbatch --export=ALL,CONFIG=config/network_auditory_mn5_5k.yaml,TSTOP=60000,VALIDATE=1 run.sh
+#  sbatch --export=ALL,CONFIG=config/network_auditory_mn5_5k_tuned.yaml,TSTOP=60000,VALIDATE=1 run.sh
+#
 # Force a neuron model regardless of what the config says
 #  sbatch --export=ALL,CONFIG=config/network_auditory_mn5.yaml,MODEL=ht_neuron run.sh
 #
