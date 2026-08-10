@@ -16,6 +16,7 @@ only source and configs go up. Outputs are generated on MN5.
 | `tc_spindle_figures.py` | **required by `tc_validate.py`** (imports `tc_episodes`) |
 | `tc_analyze.py` | per-layer spindle metrics + propagation lag — needed if `ANALYZE=1` |
 | `tc_present.py` | presentation figure — needed if `PRESENT=1` |
+| `tc_io.py` | **required** — writes the `.h5` raw result (`SAVE_H5=1`, the default) |
 | `tc_architecture.py` | architecture schematic (optional; no NEST needed) |
 | `__init__.py` | package marker |
 
@@ -35,7 +36,7 @@ One-liner from the repo root (creates the remote dir first):
 
 ```bash
 ssh USER@glogin1.bsc.es 'mkdir -p ~/audCC/config'
-scp run.sh requirements.txt tc_network.py tc_run.py tc_validate.py \
+scp run.sh requirements.txt tc_network.py tc_run.py tc_io.py tc_validate.py \
     tc_spindle_figures.py tc_analyze.py tc_present.py tc_architecture.py \
     __init__.py  USER@glogin1.bsc.es:~/audCC/
 scp config/*.yaml  USER@glogin1.bsc.es:~/audCC/config/
@@ -69,3 +70,16 @@ ssh USER@glogin1.bsc.es 'git clone https://github.com/max-talanov/audCC.git'
    sbatch --export=ALL,CONFIG=config/network_auditory_mn5_5k.yaml,TSTOP=3000 run.sh
    ```
    ~1 min, 5010 neurons. Then the real run with `TSTOP=200000,VALIDATE=1,ANALYZE=1`.
+
+## Getting results back
+
+`SAVE_H5=1` (the default) writes the raw spikes/traces to `out/<TAG>.h5`. Pull it
+back and regenerate **every** figure locally — no NEST, no re-simulation:
+
+```bash
+scp USER@glogin1.bsc.es:'~/audCC/out/*.h5' .
+python3 tc_plot_h5.py mn5_5k_200s.h5 --outdir out     # figures + validation + analysis
+python3 tc_plot_h5.py mn5_5k_200s.h5 --info           # just summarise the file
+```
+
+`tc_plot_h5.py` runs locally only and needs just numpy / scipy / matplotlib / h5py.

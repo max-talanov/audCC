@@ -231,3 +231,6 @@ __marimo__/
 # NEURON compiled mechanisms (rebuilt via nrnivmodl)
 neuron/arm64/
 neuron/x86_64/
+
+# JetBrains IDE
+.idea/

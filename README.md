@@ -157,6 +157,8 @@ area-based conductances (mS/cm²·area) are not transferable** to our point
 |------|---------|
 | `tc_network.py` | `AuditoryThalamoCorticalSleep` — builds/wires/drives/runs the column |
 | `tc_run.py` | CLI driver: run, build LFP-proxy signals, verify 1 Hz & 13 Hz, plot |
+| `tc_io.py` | save/load raw results as HDF5 (the `--save-h5` flag) |
+| `tc_plot_h5.py` | regenerate **all** figures + validation locally from a downloaded `.h5` (no NEST) |
 | `tc_analyze.py` | per-layer spindle metrics + thalamus→cortex propagation lag (writes `out/spindle_analysis.md`) |
 | `tc_present.py` | clean presentation figure of slow waves + spindles (`out/slow_waves_and_spindles.png`) |
 | `tc_architecture.py` | draws the thalamo-cortical loop architecture schematic (`out/tc_architecture.png`, no NEST needed) |
