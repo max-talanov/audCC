@@ -149,14 +149,14 @@ if [ "$ANALYZE" = "1" ]; then
   echo "[Slurm] per-layer spindle analysis..."
   srun --cpu-bind=cores \
     python3 -u tc_analyze.py --config "$CONFIG" --seed "$SEED" \
-      ${TSTOP:+--tstop "$TSTOP"} --outdir "$OUTDIR"
+      ${TSTOP:+--tstop "$TSTOP"} --outdir "$OUTDIR" --tag "$TAG"
 fi
 
 if [ "$PRESENT" = "1" ]; then
   echo "[Slurm] presentation figure..."
   srun --cpu-bind=cores \
     python3 -u tc_present.py --config "$CONFIG" --seed "$SEED" \
-      ${TSTOP:+--tstop "$TSTOP"} --outdir "$OUTDIR"
+      ${TSTOP:+--tstop "$TSTOP"} --outdir "$OUTDIR" --tag "$TAG"
 fi
 
 echo "[Slurm] done. outputs in ${OUTDIR}/"
