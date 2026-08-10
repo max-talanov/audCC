@@ -176,6 +176,8 @@ def main(argv=None):
     ap.add_argument("--tstop", type=float, default=15000.0)
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--outdir", type=str, default="out")
+    ap.add_argument("--tag", type=str, default=None,
+                    help="filename tag; keeps parallel jobs from overwriting")
     args = ap.parse_args(argv)
 
     cfg = NetworkConfig.from_file(args.config)
@@ -196,7 +198,8 @@ def main(argv=None):
     print(_fmt_table(rows))
 
     outdir = Path(args.outdir); outdir.mkdir(parents=True, exist_ok=True)
-    md = outdir / "spindle_analysis.md"
+    stem = f"spindle_analysis_{args.tag}" if args.tag else "spindle_analysis"
+    md = outdir / f"{stem}.md"
     _write_md(rows, meta, md)
     print(f"\nWrote {md}")
     return 0

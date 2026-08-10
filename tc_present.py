@@ -157,6 +157,8 @@ def main(argv=None):
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--outdir", type=str, default="out")
     ap.add_argument("--window", type=float, default=5.0, help="window shown (s)")
+    ap.add_argument("--tag", type=str, default=None,
+                    help="filename tag; keeps parallel jobs from overwriting")
     args = ap.parse_args(argv)
 
     cfg = NetworkConfig.from_file(args.config); cfg.tstop = args.tstop
@@ -172,7 +174,9 @@ def main(argv=None):
 
     outdir = Path(args.outdir); outdir.mkdir(parents=True, exist_ok=True)
     make_figure(spikes, traces, meta,
-                outdir / "slow_waves_and_spindles.png", window_s=args.window)
+                outdir / (f"slow_waves_and_spindles_{args.tag}.png" if args.tag
+                          else "slow_waves_and_spindles.png"),
+                window_s=args.window)
     return 0
 
 
