@@ -576,6 +576,8 @@ def main(argv=None):
                     choices=["iaf_cond_exp", "ht_neuron", "aeif_cond_exp"],
                     help="neuron model: iaf_cond_exp (default, point LIF) or "
                          "ht_neuron (Hodgkin-Huxley, emergent spindles)")
+    ap.add_argument("--save-h5", type=str, default=None,
+                    help="write raw spikes/traces/meta to this HDF5 file, so\nfigures and validation can be regenerated locally (see tc_plot_h5.py)")
     ap.add_argument("--spindle-trigger", action="store_true",
                     help="ht_neuron only: add the phasic corticothalamic-like "
                          "kick onto nRT that initiates each spindle (the "
@@ -612,6 +614,13 @@ def main(argv=None):
                                          sleep=sleep, sim_config=sim_config)
     spikes, traces, meta = model.run()
     meta["seed"] = args.seed
+    meta["config"] = str(args.config) if args.config else ""
+
+    # ----- save raw result (optional) -----
+    if args.save_h5:
+        from tc_io import save_h5
+        p = save_h5(spikes, traces, meta, args.save_h5)
+        print(f"Saved raw result to {p}")
 
     # ----- build LFP-proxy signals -----
     # Cortex: coarser bin, more smoothing -> clean ~1 Hz slow wave.

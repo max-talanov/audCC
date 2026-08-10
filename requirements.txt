@@ -10,6 +10,7 @@ numpy>=2.0        # np.trapezoid is used (numpy 2.0+)
 scipy>=1.10
 matplotlib>=3.6
 pyyaml>=6.0
+h5py>=3.0         # HDF5 result files (tc_io.py / tc_plot_h5.py)
 
 # ==============================================================================
 #  NEUROSIMULATORS -- all THREE are REQUIRED (used across the project)

@@ -48,6 +48,9 @@ VALIDATE=${VALIDATE:-0}         # 1 = score vs Fernandez & Luthi 2020 criteria
 ANALYZE=${ANALYZE:-0}           # 1 = per-layer spindle metrics + propagation lag
 PRESENT=${PRESENT:-0}           # 1 = presentation figure (slow waves + spindles)
 NO_PLOT=${NO_PLOT:-0}           # 1 = skip figures (faster)
+SAVE_H5=${SAVE_H5:-1}           # 1 = save raw spikes/traces to HDF5 (recommended:
+                                #     lets you regenerate every figure locally with
+                                #     tc_plot_h5.py, without re-simulating)
 OUTDIR=${OUTDIR:-out}
 # Work from the directory sbatch was invoked in. Do NOT derive this from
 # ${BASH_SOURCE[0]}: under sbatch that resolves to SLURM's spooled copy of this
@@ -79,12 +82,14 @@ echo "[Slurm] workdir=$(pwd)"
 
 # Fail fast with a clear message if the sources are not here (the usual
 # cause is submitting from the wrong directory).
-for req in tc_run.py tc_network.py "$CONFIG"; do
+REQ="tc_run.py tc_network.py $CONFIG"
+[ "$SAVE_H5" = "1" ] && REQ="$REQ tc_io.py"
+for req in $REQ; do
   [ -e "$req" ] || { echo "[Slurm] FATAL: missing '$req' in $(pwd)."; \
                      echo "[Slurm] sbatch from the directory holding the sources."; exit 2; }
 done
 echo "[Slurm] config=${CONFIG}  tstop=${TSTOP:-<from yaml>}  model=${MODEL:-<from yaml>}  seed=${SEED}"
-echo "[Slurm] trigger=${TRIGGER}  validate=${VALIDATE}  analyze=${ANALYZE}  present=${PRESENT}  no_plot=${NO_PLOT}"
+echo "[Slurm] trigger=${TRIGGER}  validate=${VALIDATE}  analyze=${ANALYZE}  present=${PRESENT}  no_plot=${NO_PLOT}  save_h5=${SAVE_H5}"
 
 python3 - <<'PY'
 import nest
@@ -110,6 +115,7 @@ FLAGS=""
 [ -n "$MODEL" ]      && FLAGS="$FLAGS --neuron-model $MODEL"
 [ "$TRIGGER" = "1" ] && FLAGS="$FLAGS --spindle-trigger"
 [ "$NO_PLOT" = "1" ] && FLAGS="$FLAGS --no-plot"
+[ "$SAVE_H5" = "1" ] && FLAGS="$FLAGS --save-h5 ${OUTDIR}/${TAG}.h5"
 
 # ---- main run (self-validating: non-zero exit if a rhythm is missing) --------
 srun --cpu-bind=cores \
@@ -150,4 +156,6 @@ if [ "$PRESENT" = "1" ]; then
 fi
 
 echo "[Slurm] done. outputs in ${OUTDIR}/"
+[ "$SAVE_H5" = "1" ] && echo "[Slurm] raw data: ${OUTDIR}/${TAG}.h5 "\
+  "-- scp it back and run: python3 tc_plot_h5.py ${TAG}.h5 --outdir out"
 exit $RC
