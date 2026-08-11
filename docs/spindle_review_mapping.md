@@ -709,25 +709,37 @@ MGB is not silent; it is **non-bursting**, and nRT is **tonic**. 1.1 Hz spread
 over 212 relay cells simply looks sparse in a raster next to nRT's 13 Hz. This
 is the same limitation as sect. 5.5.1, now confirmed at scale.
 
-**Partial remedy (measured, 4 s runs at 5010 neurons).** Deeper RE->TC
-inhibition drives the T-current rebound, which is the actual spindle mechanism:
+**Attempted remedy -- TESTED ON MN5 AND FALSIFIED.** A short (4 s) local sweep
+suggested that deeper RE->TC inhibition (`tc_slow_offset` 34->50,
+`tot_re_tc_gaba_a` 45->90) roughly doubled TC bursting, 1.77 -> 2.45
+spikes/burst. A 60 s baseline-vs-tuned A/B on MareNostrum 5 **refuted this**:
 
-| `tc_slow_offset` | `tot_re_tc_gaba_a` | TC spikes/burst |
+| 60 s run | baseline | tuned |
 |---|---|---|
-| 34 (default) | 45 (default) | 1.77 |
-| 34 | 90 | 2.09 |
-| **50** | **90** | **2.45** (crosses the review's >= 2) |
+| criteria passed | **2/5** | **2/5** |
+| TC spikes/burst | 1.22 | 1.18 |
+| RE spikes/burst | 1.44 | 1.44 |
+| spindle density | 0.0/min | 0.0/min |
+| MGB rate | 0.21 Hz | 0.43 Hz |
 
-Available as `config/network_auditory_mn5_5k_tuned.yaml` via the new `hh:`
-config block (see below), left **opt-in** rather than made the default.
+The only real effect is that the relay fires about twice as often -- but still
+**not in bursts**, so no spindles form either way.
 
-**Why it is only partial.** The RETICULAR cells still fire tonically
-(1.66-1.82 spikes/burst) at every setting tried, including deep
-hyperpolarisation, and there is a genuine tension: hyperpolarising RE raises
-TC's *rate* (0.9 -> 2.8 Hz) but *lowers* TC bursting (2.45 -> 1.41), because the
-inhibition that drives the rebound is exactly what is being removed. So
-`ht_neuron` still does not generate a true spindle in-network at any scale, and
-the full 10-criteria validation of the tuned values has not yet been run.
+**Why the short sweep misled (a methodological lesson worth keeping).** The
+network settles from its initial condition with a large synchronous burst.
+Measured *within the same 60 s run*:
+
+| window | baseline | tuned |
+|---|---|---|
+| first 4 s | 1.71 | 1.66 |
+| steady state 10-60 s | **1.07** | **1.11** |
+
+The 4 s sweep was measuring the startup transient, which inflates burst metrics
+by ~60%. `tc_validate.py` now discards the first 2 s by default
+(`discard_ms`), and **bursting must not be judged from runs of a few seconds**.
+
+The tuned config is retained as a recorded negative result and as a worked
+example of the `hh:` block.
 
 **Configuring HH parameters.** Any `HHParams` field can now be overridden from a
 YAML `hh:` block, so thalamic tuning is data, not code:

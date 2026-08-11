@@ -116,12 +116,31 @@ def detect_spindles(mgb, nrt, tstop, lo=10.0, hi=15.0, k_sd=1.5,
     return s[ok], e[ok]
 
 
-def validate(spikes, traces, meta, infraslow_hz=0.02, verbose=True):
+def validate(spikes, traces, meta, infraslow_hz=0.02, verbose=True,
+             discard_ms=2000.0):
     """Measure every criterion. Returns (rows, all_ok).
 
     ``rows`` is a list of (criterion, paper_target, measured, ok).
     """
     tstop = meta["tstop"]
+    # Discard the startup transient. The network settles from its initial
+    # condition with a large synchronous burst that inflates burst metrics --
+    # measured on a 60 s run, TC spikes/burst reads 1.71 over the first 4 s but
+    # 1.07 in steady state. Short runs are therefore NOT a valid substitute for
+    # long ones when judging bursting.
+    if discard_ms and tstop > 2 * discard_ms:
+        spikes = {k: {"times": np.asarray(v["times"], float)[
+                          np.asarray(v["times"], float) >= discard_ms] - discard_ms,
+                      "senders": np.asarray(v["senders"])[
+                          np.asarray(v["times"], float) >= discard_ms]}
+                  for k, v in spikes.items()}
+        traces = {k: {"time": np.asarray(v["time"], float)[
+                          np.asarray(v["time"], float) >= discard_ms] - discard_ms,
+                      "voltage": np.asarray(v["voltage"], float)[
+                          np.asarray(v["time"], float) >= discard_ms]}
+                  for k, v in traces.items()}
+        meta = dict(meta); meta["tstop"] = tstop - discard_ms
+        tstop = meta["tstop"]
     mgb = np.asarray(spikes.get("MGB", {}).get("times", []), float)
     nrt = np.asarray(spikes.get("nRT", {}).get("times", []), float)
     rows = []
