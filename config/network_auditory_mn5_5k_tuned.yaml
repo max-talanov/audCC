@@ -66,29 +66,31 @@ simulation:
   v_init: -65
 
 # ---------------------------------------------------------------------------
-# TUNED thalamic parameters (the only difference from network_auditory_mn5_5k).
+# TUNED thalamic parameters -- TESTED ON MN5 AND FALSIFIED. Kept as a recorded
+# negative result and as a worked example of the `hh:` config block.
 #
-# Measured problem: with the defaults the relay (TC/MGB) fires ~1.1-1.3 Hz and,
-# critically, does NOT burst -- ~1.8 spikes per burst against the >=2 the
-# review requires -- so the "spindle" the runner detects is largely an artefact
-# of the cortical UP-state burst train rather than a thalamic spindle.
+# Hypothesis: deeper RE->TC inhibition would drive the T-current rebound and so
+# increase TC bursting. A short (4 s) local sweep appeared to support it,
+# reporting TC 1.77 -> 2.45 spikes/burst.
 #
-# Deeper RE->TC inhibition drives the T-current rebound, which is the actual
-# spindle mechanism. Measured at 5010 neurons, 4 s runs:
+# The 60 s MN5 A/B refuted it. Both configs score 2/5 on the Fernandez & Luthi
+# criteria, and steady-state TC bursting is unchanged:
 #
-#   tc_slow_offset  tot_re_tc_gaba_a   TC spikes/burst
-#         34 (def)        45 (def)          1.77
-#         34              90                2.09
-#         50              90                2.45   <- these values
+#                        baseline      tuned
+#   TC spikes/burst        1.22         1.18     (whole 60 s run)
+#   RE spikes/burst        1.44         1.44
+#   spindle density      0.0/min      0.0/min
+#   MGB rate            0.21 Hz      0.43 Hz     (only real effect: TC fires
+#                                                 more, but still not in bursts)
 #
-# TC bursting roughly doubles and crosses the review's >=2 threshold.
+# WHY THE SHORT SWEEP MISLED: the network settles from its initial condition
+# with a large synchronous burst. Measured within the same 60 s run,
+# TC spikes/burst reads 1.71 over the first 4 s but 1.07 from 10-60 s. The 4 s
+# sweep was measuring the startup transient. tc_validate.py now discards the
+# first 2 s by default; do not judge bursting from runs of a few seconds.
 #
-# CAVEAT -- this is an improvement, not a solution: the RETICULAR cells still
-# fire tonically (~1.7 spikes/burst) at every setting tried, including deep
-# hyperpolarisation, so the RE<->TC loop still does not generate a true
-# spindle. The full 10-criteria validation of these values has NOT been run
-# (it is slow locally; run it on MN5 -- see run.sh). For spindles that pass all
-# ten criteria today, use config/network_auditory_adex.yaml with TRIGGER=1.
+# For spindles that pass all ten criteria today, use
+# config/network_auditory_adex.yaml with TRIGGER=1.
 hh:
   tc_slow_offset: 50.0        # relay baseline drive, pA (default 34)
   tot_re_tc_gaba_a: 90.0      # total RE->TC GABA_A conductance, nS (default 45)
