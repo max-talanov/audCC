@@ -94,7 +94,7 @@ cd neuron
   TRN synchrony mechanism (Fernandez & Lüthi §V.C.1) is **only** available in the
   NEURON port.
 
-- **Network: 4/5 criteria, 12.0 Hz, both cell types bursting.** The TC↔RE loop
+- **Network: 4/5 criteria, both cell types bursting — but the loop runs at 5 Hz, not spindle frequency.** The TC↔RE loop
   (`tc_network_nrn.py`, `ThalamicNet`) now runs the real mechanism in-network —
   up from 2/5:
 
@@ -131,7 +131,45 @@ cd neuron
   The compiled mechanism measures τ_h ≈ 87 ms at −85 mV against the formula's
   85.4 ms.
 
-**Next — the one remaining gap: event duration.** Events last ~0.15 s (≈2 cycles
+### ⚠️ Correction: the loop oscillates at 5 Hz, not 12 Hz
+
+An earlier version of this file (and PR #37) reported the thalamic loop running
+at **12.0 Hz, "in the spindle band"**. That was **wrong** — it came from calling
+`detect_peak(rate, fs, 6.0, 20.0)`, i.e. searching a window that *excluded the
+true peak*. Measured three independent ways:
+
+| method | result |
+|---|---|
+| direct population inter-burst interval | 195 ms → **5.1 Hz** (n=91, IQR 173–212 ms) |
+| spectrum, unconstrained 1–30 Hz | **5.0 Hz** |
+| TC alone / RE alone | 5.0 / 5.1 Hz |
+| mean-field V_m spectrum | **5.0 Hz** |
+
+and the reported frequency simply tracks the search window:
+
+| search range | "peak" found |
+|---|---|
+| 1–30 Hz (honest) | **5.0 Hz** |
+| 6–20 Hz | 7.0 Hz |
+| 9–16 Hz | 11.0 Hz |
+
+This is the same error class caught earlier in the NEST model (a "9.6 Hz"
+detection sitting at the edge of its window) — **always search unconstrained
+first**.
+
+**What this means.** The cells burst correctly (that part stands: TC 3.35, RE
+4.35 spikes/burst, driven by a genuine Ca_v3.1 current). But the *network*
+rhythm is ~5 Hz — the **delta/theta** range, not the 10–15 Hz spindle band. The
+period (~195 ms) is close to single-cell I_T de-inactivation (τ_h ≈ 85 ms) plus
+burst duration and synaptic delays, which suggests the network is expressing the
+**intrinsic I_T/I_h delta-like oscillation** rather than the faster RE↔TC *loop*
+rhythm that produces spindles. Destexhe's thalamic models generate both regimes;
+distinguishing them is the next real question.
+
+This also fully explains the "duration" failure: at 5 Hz a 0.15 s event is under
+one cycle, and the 10–15 Hz detector was reading harmonics of a 5 Hz rhythm.
+
+**Superseded framing — event duration.** Events last ~0.15 s (≈2 cycles
 at 12 Hz) against the review's 0.5–3 s, so no event passes the ≥0.5 s criterion
 and density reads 0.
 
