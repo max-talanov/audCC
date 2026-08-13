@@ -146,10 +146,28 @@ wrong** — it omitted the temperature factor `phi_h = 3.0^1.2 = 3.74`:
   | −90 mV | 79 ms | 65% toward h∞ = 0.85 |
 
 τ_h is *comparable to* the cycle, so I_T recovers substantially each cycle and
-the duration limit has some other, still-unidentified cause. Ruled out to date:
-I_T recovery kinetics, loop gain (`g_tc_re`/`g_re_tc`), population size (10→40),
-gap-junction strength (0.03→0), heterogeneous resting potentials, and
-progressive recruitment (`recruit_ms` 0→800 ms).
+the duration limit has some other, still-unidentified cause.
+
+**Eight hypotheses tested and ruled out** (all leave duration at ~0.15 s):
+
+| # | hypothesis | result |
+|---|---|---|
+| 1 | I_T recovery kinetics too slow | τ_h ≈ 85 ms ≈ one cycle — not limiting |
+| 2 | loop gain (`g_tc_re`, `g_re_tc`) | no effect over 7× range |
+| 3 | population size (10→40) | no effect |
+| 4 | gap-junction strength (0.03→0) | no effect |
+| 5 | heterogeneous resting potentials | no effect |
+| 6 | progressive recruitment (0→800 ms) | no effect |
+| 7 | **SK2 on RE** (burst terminator, 0→0.03) | no effect on duration *or* bursting |
+| 8 | **GABA_B on RE→TC** (slow inhibition) | max event 0.17→0.25 s, but TC bursting collapses 3.24→0.00 |
+
+GABA_B is implemented and available (`g_re_tc_b`, **default 0**): the review
+(§V.B.3) identifies it as the slow inhibition pacing spindle waxing/waning, and
+it does lengthen the longest event slightly — but at these conductances it
+hyperpolarises TC past what the corticothalamic drive can overcome, so relay
+bursting collapses. A narrow useful window may exist between 0 and 0.003.
+
+This is now a genuine open research question rather than an untuned parameter.
 
 The NEST model stays the working reference throughout; keep it for MareNostrum 5
 scale-out (NEST is the better large-network tool).

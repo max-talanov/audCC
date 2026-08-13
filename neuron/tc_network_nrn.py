@@ -38,7 +38,8 @@ except ImportError:
 
 class ThalamicNet:
     def __init__(self, n_tc=10, n_re=10, seed=1,
-                 g_re_tc=0.015, g_tc_re=0.004, g_re_re=0.002, g_gap=0.03,
+                 g_re_tc=0.015, g_re_tc_b=0.0, g_tc_re=0.004,
+                 g_re_re=0.002, g_gap=0.03,
                  g_cort=0.01, g_cort_tc=0.035, so_freq=1.0,
                  tc_bias=0.0, re_bias=0.0, tc_e_pas=-80.0,
                  re_e_pas=-82.0, recruit_ms=0.0):
@@ -73,7 +74,7 @@ class ThalamicNet:
         for c in self.re:
             self._bias(c, re_bias)
 
-        self._wire_re_tc(g_re_tc)     # RE -> TC (GABA_A, e=-85)
+        self._wire_re_tc(g_re_tc, g_re_tc_b)   # RE -> TC (GABA_A [+ GABA_B])
         self._wire_tc_re(g_tc_re)     # TC -> RE (AMPA)
         self._wire_re_re(g_re_re)     # RE -> RE (GABA_A)
         self._wire_gap(g_gap)         # RE <-> RE gap junctions (nearest neighbour)
@@ -93,13 +94,22 @@ class ThalamicNet:
         self._syn.append(syn); self._nc.append(nc)
 
     # -- wiring -----------------------------------------------------------
-    def _wire_re_tc(self, g):
+    def _wire_re_tc(self, g, g_b=0.0):
         # each TC inhibited by ~half the RE cells (fan-in normalised)
         k = max(1, self.n_re // 2)
         for tc in self.tc:
             for j in self.rng.choice(self.n_re, k, replace=False):
                 self._syn_connect(self.re[j], tc, e=-85, tau1=1, tau2=8,
                                   w=g / k, delay=1.0)
+                # Optional slow GABA_B component (E_K = -90 mV, rise 60 /
+                # decay 200 ms). Fernandez & Luthi sect. V.B.3: the slow
+                # reticular inhibition is what paces spindle waxing/waning, and
+                # it holds TC hyperpolarised BETWEEN cycles so I_T stays
+                # de-inactivated -- the candidate mechanism for spindle-length
+                # events (the network otherwise has GABA_A only).
+                if g_b:
+                    self._syn_connect(self.re[j], tc, e=-90, tau1=60, tau2=200,
+                                      w=g_b / k, delay=1.0)
 
     def _wire_tc_re(self, g):
         k = max(1, self.n_tc // 2)
