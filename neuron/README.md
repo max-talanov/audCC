@@ -94,22 +94,62 @@ cd neuron
   TRN synchrony mechanism (Fernandez & Lüthi §V.C.1) is **only** available in the
   NEURON port.
 
-- **Network port running** (`tc_network_nrn.py`, `ThalamicNet`). The TC↔RE loop
-  is assembled from the verified cells — RE→TC GABA_A (e=−85 mV, for rebound),
-  TC→RE AMPA, RE→RE GABA_A + gap junctions, and a 1 Hz SO-gated corticothalamic
-  drive to RE. It runs, emits the `tc_validate` result contract, and the
-  thalamic loop **oscillates at ~10 Hz** (in the spindle band). It is scored by
-  the same simulator-agnostic 10-criteria harness as the NEST model:
-  **currently 2/5** (V_m operating ranges pass; the loop oscillates).
+- **Network: 4/5 criteria, 12.0 Hz, both cell types bursting.** The TC↔RE loop
+  (`tc_network_nrn.py`, `ThalamicNet`) now runs the real mechanism in-network —
+  up from 2/5:
 
-**Next — the remaining gap is RE synchronisation.** The cells still fire mostly
-single spikes rather than synchronised bursts (RE ~1.9, TC ~2.0 spikes/burst),
-so no discrete ≥0.5 s spindle *events* form yet (density 0). Stronger RE→TC
-inhibition already doubled TC bursting; the full fix is to make **RE fire
-synchronised bursts** (gap-junction + cortical-volley timing + RE operating
-point), which then delivers the deep, synchronised IPSP that drives TC rebound
-bursts. This is the same multi-parameter spindle-synchronisation tuning the NEST
-model needed, now on a fully mechanistic substrate.
+  | criterion | measured | |
+  |---|---|---|
+  | RE spikes/burst | **4.35** | ✅ |
+  | TC spikes/burst | **3.35** | ✅ |
+  | RE V_m < −55 mV | 92% | ✅ |
+  | TC V_m < −65 mV | 91% | ✅ |
+  | spindle density (events ≥0.5 s) | 0.0/min | ❌ |
+
+  Two fixes got there, both diagnosed by measurement:
+
+  1. **A corticothalamic volley onto TC, not just RE.** The relay had *no
+     excitatory input at all*, so once hyperpolarised for I_T de-inactivation it
+     could never reach threshold — at `e_pas = −88` it fell silent entirely.
+     L6 excites both (≈2:1, Mushtaq Table 3).
+  2. **Sleep-state hyperpolarised rest** (`tc_e_pas = −80`, `re_e_pas = −82`).
+     The I_T inactivation gate measured **h = 0.05** in-network — 95%
+     inactivated, rebound impossible. TC must also stay **above the GABA_A
+     reversal (−85 mV)**, or reticular input depolarises instead of inhibiting:
+     a narrow window.
+
+- **Kinetics verified against the published model.** `mod/itd.mod` checked
+  term-by-term against Destexhe et al. 1996 (`TC.tem` / `IT.mod`):
+
+  | quantity | max relative difference, −100…−40 mV |
+  |---|---|
+  | m∞ | **0.00%** |
+  | h∞ | **0.00%** |
+  | τ_m | 2.05% → corrected, now exact |
+  | τ_h | 13.9% (>−80 mV branch) → corrected, now exact |
+
+  The compiled mechanism measures τ_h ≈ 87 ms at −85 mV against the formula's
+  85.4 ms.
+
+**Next — the one remaining gap: event duration.** Events last ~0.15 s (≈2 cycles
+at 12 Hz) against the review's 0.5–3 s, so no event passes the ≥0.5 s criterion
+and density reads 0.
+
+**Correction:** an earlier version of this file claimed I_T recovery takes
+~320 ms against an 83 ms cycle, making sustained bursting impossible. **That was
+wrong** — it omitted the temperature factor `phi_h = 3.0^1.2 = 3.74`:
+
+  | V | τ_h at 36 °C | recovery per 83 ms cycle |
+  |---|---|---|
+  | −80 mV | 73 ms | 68% toward h∞ = 0.32 |
+  | −85 mV | **85 ms** | 62% toward h∞ = 0.62 |
+  | −90 mV | 79 ms | 65% toward h∞ = 0.85 |
+
+τ_h is *comparable to* the cycle, so I_T recovers substantially each cycle and
+the duration limit has some other, still-unidentified cause. Ruled out to date:
+I_T recovery kinetics, loop gain (`g_tc_re`/`g_re_tc`), population size (10→40),
+gap-junction strength (0.03→0), heterogeneous resting potentials, and
+progressive recruitment (`recruit_ms` 0→800 ms).
 
 The NEST model stays the working reference throughout; keep it for MareNostrum 5
 scale-out (NEST is the better large-network tool).
