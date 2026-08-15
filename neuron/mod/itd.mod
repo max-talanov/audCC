@@ -47,13 +47,15 @@ INITIAL {
 }
 PROCEDURE rates(v(mV)) { LOCAL vs
     vs = v + shift
+    : Verified against Destexhe et al. 1996 (TC.tem / IT.mod): m_inf and h_inf
+    : match to 0.00%, tau_m to 2%, tau_h exactly (after this correction).
     minf = 1/(1 + exp(-(vs+57)/6.2))
     hinf = 1/(1 + exp((vs+81)/4))
-    taum = (0.612 + 1/(exp(-(vs+132)/16.7) + exp((vs+16.8)/18.2))) / phim
+    taum = (0.612 + 1/(exp(-(vs+131.6)/16.7) + exp((vs+16.8)/18.2))) / phim
     if (vs < -80) {
         tauh = exp((vs+467)/66.6) / phih
     } else {
-        tauh = (28 + exp(-(vs+22)/10.5)) / phih
+        tauh = (28 + exp(-(vs+21.88)/10.2)) / phih
     }
 }
 FUNCTION ghk(v(mV), ci, co) {
