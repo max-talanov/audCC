@@ -261,14 +261,41 @@ def _report(net, t, g, wall, tstop):
         if abs(med - 1000.0 / net.so_freq) < 30.0 and iqr < 25.0:
             print("  WARNING: drive-locked -- this is the %.1f Hz drive, not an "
                   "intrinsic rhythm" % net.so_freq)
-    # unconstrained spectrum (the discipline that caught the 12 Hz error)
-    bins = np.arange(2000.0, t.max() + 1.0, 1.0)
+    print("spectral peak (unconstrained 1-30 Hz): %.2f Hz" % spectral_peak(t))
+
+
+def spectral_peak(t, fs=1000.0, smooth_ms=3.0, lo=1.0, hi=30.0):
+    """Peak of the population-rate spectrum, searched UNCONSTRAINED over lo-hi.
+
+    Matches tc_run.detect_peak: bin at 1 ms, SMOOTH, detrend, then Welch. The
+    smoothing is not cosmetic. An unsmoothed 1 ms spike histogram is dominated
+    by the intra-burst spike train (~100+ Hz) and its aliases, and a plain
+    rectangular-window periodogram of it reported 5.0 Hz for a network whose
+    inter-burst interval plainly says 13.7 Hz -- the estimator was reading a
+    harmonic, not the rhythm. Welch + smoothing recovers the burst rhythm.
+
+    Search unconstrained: constraining the window makes the reported peak track
+    the window edge rather than the signal (see neuron/README.md).
+    """
+    bins = np.arange(t.min(), t.max() + 1.0, 1000.0 / fs)
     rate = np.histogram(t, bins=bins)[0].astype(float)
+    # Gaussian smooth -> the burst envelope, not the intra-burst spikes
+    n = max(1, int(smooth_ms))
+    k = np.exp(-0.5 * (np.arange(-3 * n, 3 * n + 1) / n) ** 2)
+    rate = np.convolve(rate, k / k.sum(), mode="same")
     rate -= rate.mean()
-    f = np.fft.rfftfreq(len(rate), 1e-3)
-    p = np.abs(np.fft.rfft(rate)) ** 2
-    sel = (f >= 1.0) & (f <= 30.0)
-    print("spectral peak (unconstrained 1-30 Hz): %.2f Hz" % f[sel][np.argmax(p[sel])])
+    if len(rate) < 16:
+        return 0.0
+    try:
+        from scipy.signal import welch
+        nper = min(len(rate), int(8 * fs))          # 8 s segments
+        f, p = welch(rate, fs=fs, nperseg=nper, detrend="linear")
+    except ImportError:                              # scipy-free fallback
+        w = np.hanning(len(rate))
+        f = np.fft.rfftfreq(len(rate), 1.0 / fs)
+        p = np.abs(np.fft.rfft(rate * w)) ** 2
+    sel = (f >= lo) & (f <= hi)
+    return float(f[sel][np.argmax(p[sel])]) if sel.any() else 0.0
 
 
 def main():
