@@ -138,11 +138,37 @@ class ParallelThalamicNet:
                     self._connect(n_tc + j, self.syns[("gabaa_re", gid)],
                                   g_re_re, 1.0)
 
-        # ---- rank-local gap junctions between RE cells -----------------------
-        if g_gap > 0:
-            loc = [self.cells[g] for g in self.re_gids]
-            for a, b in zip(loc[:-1], loc[1:]):
-                self.gaps.append(T.gap_junction(a, b, g=g_gap))
+        # ---- CROSS-RANK gap junctions (pc.setup_transfer) --------------------
+        # Electrical coupling cannot go through NetCon: it is a continuous
+        # exchange of membrane potential, not an event. NEURON handles it with
+        # source_var/target_var + setup_transfer, which moves v between ranks
+        # every dt.
+        #
+        # Topology is the serial model's RING (_wire_gap: j = (i+1) % n_re), so
+        # it is now IDENTICAL at any rank count -- previously the chain was
+        # rank-local, making the electrical topology a function of --ntasks and
+        # the result rank-count dependent (13.6 Hz at 1 rank vs 3.5 Hz at 4).
+        #
+        # Transfer sgids live in their own space; offset well past the cell gids
+        # so the two never collide.
+        self.SGID = n_tc + n_re + 1000
+        if g_gap > 0 and n_re > 1:
+            # 1. publish v for every RE cell this rank owns
+            for gid in self.re_gids:
+                sec = self.cells[gid].soma
+                self.pc.source_var(sec(0.5)._ref_v, self.SGID + (gid - n_tc),
+                                   sec=sec)
+            # 2. each owned RE cell gets a Gap toward each ring neighbour
+            for gid in self.re_gids:
+                i = gid - n_tc
+                for nb in ((i + 1) % n_re, (i - 1) % n_re):
+                    if nb == i:
+                        continue
+                    gap = h.GapMPI(self.cells[gid].soma(0.5))
+                    gap.g = g_gap
+                    self.pc.target_var(gap, gap._ref_vgap, self.SGID + nb)
+                    self.gaps.append(gap)
+            self.pc.setup_transfer()
 
         # ---- corticothalamic drive (UP-state gated burst volleys) ------------
         self._drive(g_cort, g_cort_tc)
