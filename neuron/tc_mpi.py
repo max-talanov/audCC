@@ -87,37 +87,56 @@ class ParallelThalamicNet:
             self._register(gid, c)
 
         # ---- synapses (created on the TARGET's rank) -------------------------
+        # Synaptic kinetics COPIED from the serial model's _syn_connect calls
+        # (tc_network_nrn.py) -- these must match or the two networks are not
+        # the same model.
         for gid in self.tc_gids:                    # RE -> TC : GABA_A
             s = h.Exp2Syn(self.cells[gid].soma(0.5))
-            s.tau1, s.tau2, s.e = 0.5, 12.0, -85.0
+            s.tau1, s.tau2, s.e = 1.0, 8.0, -85.0
             self.syns[("gabaa", gid)] = s
             s2 = h.Exp2Syn(self.cells[gid].soma(0.5))   # cortex -> TC : AMPA
-            s2.tau1, s2.tau2, s2.e = 0.3, 3.0, 0.0
+            s2.tau1, s2.tau2, s2.e = 0.5, 2.0, 0.0
             self.syns[("ampa_c", gid)] = s2
         for gid in self.re_gids:                    # TC -> RE : AMPA
             s = h.Exp2Syn(self.cells[gid].soma(0.5))
-            s.tau1, s.tau2, s.e = 0.3, 3.0, 0.0
+            s.tau1, s.tau2, s.e = 0.5, 2.0, 0.0
             self.syns[("ampa", gid)] = s
             s2 = h.Exp2Syn(self.cells[gid].soma(0.5))   # RE -> RE : GABA_A
-            s2.tau1, s2.tau2, s2.e = 0.5, 12.0, -85.0
+            s2.tau1, s2.tau2, s2.e = 1.0, 6.0, -75.0
             self.syns[("gabaa_re", gid)] = s2
             s3 = h.Exp2Syn(self.cells[gid].soma(0.5))   # cortex -> RE : AMPA
-            s3.tau1, s3.tau2, s3.e = 0.3, 3.0, 0.0
+            s3.tau1, s3.tau2, s3.e = 0.5, 2.0, 0.0
             self.syns[("ampa_c", gid)] = s3
 
         # ---- wire across ranks via gid_connect ------------------------------
-        # Convergence-limited random connectivity: each target draws `conv`
-        # sources. Identical rule on every rank, seeded by TARGET gid, so the
-        # topology is reproducible and rank-count independent.
+        # Rule RECONCILED with the serial model (tc_network_nrn.py):
+        #   RE -> TC : each TC draws n_re//2 reticular sources, weight g/k
+        #   TC -> RE : each RE draws n_tc//2 relay sources,     weight g/k
+        #   RE -> RE : nearest neighbours |i-j| <= 2,           weight g (NOT
+        #              normalised, matching _wire_re_re)
+        # The g/k FAN-IN NORMALISATION is the critical part: an earlier version
+        # used a fixed conv=10 at full weight, giving each target ~10x the
+        # intended total conductance and running the loop at 20 Hz instead of
+        # 13 Hz.
+        #
+        # The serial model draws from one shared RNG stream, so its exact
+        # realisation depends on call order and cannot be reproduced
+        # rank-independently. Seeding per TARGET gid instead gives the same
+        # convergence and weight distribution, reproducible and independent of
+        # rank count -- statistically equivalent, not bit-identical.
+        k_re = max(1, n_re // 2)
+        k_tc = max(1, n_tc // 2)
         for gid in self.tc_gids:                                   # RE -> TC
-            for src in self._draw(gid, n_tc, n_tc + n_re, conv):
-                self._connect(src, self.syns[("gabaa", gid)], g_re_tc, 1.0)
+            for src in self._draw(gid, n_tc, n_tc + n_re, k_re):
+                self._connect(src, self.syns[("gabaa", gid)], g_re_tc / k_re, 1.0)
         for gid in self.re_gids:                                   # TC -> RE
-            for src in self._draw(gid, 0, n_tc, conv):
-                self._connect(src, self.syns[("ampa", gid)], g_tc_re, 1.0)
-            for src in self._draw(gid + 7919, n_tc, n_tc + n_re, min(conv, 4)):
-                if src != gid:                                     # RE -> RE
-                    self._connect(src, self.syns[("gabaa_re", gid)], g_re_re, 1.0)
+            for src in self._draw(gid, 0, n_tc, k_tc):
+                self._connect(src, self.syns[("ampa", gid)], g_tc_re / k_tc, 1.0)
+            i = gid - n_tc                                         # RE -> RE
+            for j in range(max(0, i - 2), min(n_re, i + 3)):
+                if j != i:
+                    self._connect(n_tc + j, self.syns[("gabaa_re", gid)],
+                                  g_re_re, 1.0)
 
         # ---- rank-local gap junctions between RE cells -----------------------
         if g_gap > 0:
