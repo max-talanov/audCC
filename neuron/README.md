@@ -269,25 +269,42 @@ At cell level it works as specified:
 
 I_h acts as both pacemaker (2 → 62 bursts) and depolarising terminator.
 
-### ⚠️ Open: at network level the mechanism currently over-damps the loop
+### In-network: I_h sets the loop frequency — and reaches the spindle band
 
-With both mechanisms working, the network stops oscillating intrinsically and
-simply follows the 1 Hz slow-oscillation drive:
+`ThalamicNet` now exposes `gsk_re` / `gh_tc` (it previously **hardcoded
+`gsk=0.003`**, 60× the calibrated value and inside the burst-abolishing range —
+an early "the mechanism over-damps the loop to 1 Hz" reading was that hardcoded
+value, not the calibrated defaults).
 
-| | before (dead SK2, no I_h) | now (both working) |
-|---|---|---|
-| population rhythm | 5.0 Hz (intrinsic) | **1.0 Hz, IQR 998–1002 ms** |
+With the calibrated defaults the network self-oscillates, and **I_h raises the
+loop frequency monotonically** — the physiologically expected pacemaker action:
 
-An interval that exact is not biological — `so_freq = 1.0`, so the thalamus is
-firing once per drive cycle and nothing else. The cell-level calibration is
-sound (measured above); the **network** conductances are not. Note the search
-windows again betray the absence of a real peak (6–20 Hz → "6.0", 10–15 Hz →
-"10.0" — both pinned to the window edge).
+| `gh_tc` | loop frequency | IQR | spectral peak (unconstrained 1–30 Hz) |
+|---|---|---|---|
+| 0 | 5.1 Hz | 38 ms | 5.0 Hz |
+| 5×10⁻⁶ | 6.5 Hz | 5 ms | 6.0 Hz |
+| 2×10⁻⁵ | 8.3 Hz | 3 ms | 8.0 Hz |
+| 5×10⁻⁵ | 9.3 Hz | 5 ms | 9.0 Hz |
+| 2×10⁻⁴ | 7.1 Hz | 193 ms | 3.0 Hz (irregular — broken regime) |
+| **4×10⁻⁴** | **13.4 Hz** | **31 ms** | **13.0 Hz** ✅ |
 
-**Next step:** sweep `gsk` / `gh` *in-network* to find the window where the loop
-still self-oscillates and SK+Ca shapes it, rather than suppressing it. The
-mechanism is now real and correctly calibrated per-cell — this is a coupling
-problem, not a missing-mechanism problem.
+**At `gh_tc = 4×10⁻⁴` the loop runs at 13 Hz — in the 10–15 Hz spindle band for
+the first time in this model.** All frequencies above are measured with an
+*unconstrained* 1–30 Hz search.
+
+Two honest caveats:
+
+1. **`4×10⁻⁴` is ~20× Destexhe's `ghbar = 2×10⁻⁵`.** Reaching spindle frequency
+   by that large a departure from the published conductance needs justification
+   before it counts as a result — it may be compensating for something else
+   (single compartment, small population, the 1 Hz drive).
+2. **The response is non-monotonic** — 2×10⁻⁴ gives a broken, irregular 3 Hz
+   regime between the 9 Hz and 13 Hz points. That discontinuity is unexplained
+   and should be mapped before trusting the 13 Hz point.
+
+**Event duration is still unsolved**: max 0.18–0.22 s across the whole sweep,
+against the review's 0.5–3 s. Frequency and duration are evidently set by
+different mechanisms; getting the band right did not lengthen the events.
 
 The NEST model stays the working reference throughout; keep it for MareNostrum 5
 scale-out (NEST is the better large-network tool).

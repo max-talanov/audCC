@@ -42,7 +42,8 @@ class ThalamicNet:
                  g_re_re=0.002, g_gap=0.03,
                  g_cort=0.01, g_cort_tc=0.035, so_freq=1.0,
                  tc_bias=0.0, re_bias=0.0, tc_e_pas=-80.0,
-                 re_e_pas=-82.0, recruit_ms=0.0):
+                 re_e_pas=-82.0, recruit_ms=0.0,
+                 gsk_re=5e-5, gh_tc=2e-5):
         self.rng = np.random.default_rng(seed)
         self.n_tc, self.n_re = n_tc, n_re
         self.so_freq = so_freq
@@ -54,14 +55,18 @@ class ThalamicNet:
         # therefore makes the whole population deplete I_T together and the
         # event dies after ~2 cycles; staggering sustains the population rhythm.
         self.recruit_ms = recruit_ms
-        self.tc = [T.TCCell(gsk=0.0) for _ in range(n_tc)]
+        # gh_tc: Ca2+-dependent I_h on the relay cells (ihca). gsk_re: SK2 on the
+        # reticular cells. Both are swept in-network -- per-cell they are
+        # calibrated (see neuron/README.md), but they can over-damp the loop.
+        self.gsk_re, self.gh_tc = gsk_re, gh_tc
+        self.tc = [T.TCCell(gsk=0.0, gh=gh_tc) for _ in range(n_tc)]
         # Sleep state: relay cells rest HYPERPOLARISED (raised K-leak), which is
         # what de-inactivates I_T. At -71 mV the inactivation gate h sits at 0.05
         # (95% inactivated) and no rebound is possible; near -80 mV h ~ 0.4-0.5.
         # Must stay ABOVE the GABA_A reversal (-85 mV) or RE input depolarises TC.
         for c in self.tc:
             c.soma.e_pas = tc_e_pas
-        self.re = [T.RECell(gsk=0.003) for _ in range(n_re)]
+        self.re = [T.RECell(gsk=gsk_re) for _ in range(n_re)]
         # RE likewise needs a hyperpolarised sleep rest for its own I_T to
         # de-inactivate -- the review's 'TRN bursts only below ~-55 mV'.
         for c in self.re:
