@@ -53,7 +53,8 @@ class TCCell:
     over ~31 ms (see neuron/README.md).
     """
 
-    def __init__(self, pcabar=1.7e-4, gk=0.011, gna=0.1, gsk=0.0):
+    def __init__(self, pcabar=1.7e-4, gk=0.011, gna=0.1, gsk=0.0,
+                 gh=2e-5, depth=10.0, cac=0.002):
         self.soma = h.Section(name="soma", cell=self)
         self.soma.L = self.soma.diam = 80
         self.soma.Ra, self.soma.cm = 100, 1
@@ -69,11 +70,22 @@ class TCCell:
         # `sk` ion). The Destexhe LTS is already brief (~31 ms), so SK2 is not
         # needed for the TC burst; it is retained for the RE cell and longer
         # plateaus. Enabling it re-styles Ca to let cad accumulate.
-        if gsk > 0:
-            h.ion_style("ca_ion", 1, 2, 1, 0, 0, sec=self.soma)
+        # The submembrane Ca2+ pool (cad, private `sk` ion) feeds BOTH SK2 and
+        # the Ca2+-dependent I_h, so insert it if either is enabled.
+        if gsk > 0 or gh > 0:
             self.soma.insert("cad")
+            self.soma.depth_cad = depth
+        if gsk > 0:
             self.soma.insert("sk2")
             self.soma.gkbar_sk2 = gsk
+        if gh > 0:
+            # Ca2+-dependent I_h (Destexhe et al. 1996): Ca2+ entering on
+            # successive rebound bursts locks I_h open, depolarising the cell
+            # until I_T can no longer de-inactivate -> spindle TERMINATION, then
+            # a slow (~2.5 s) unbinding -> the refractory period.
+            self.soma.insert("ihca")
+            self.soma.ghbar_ihca = gh
+            self.soma.cac_ihca = cac
 
     def record(self):
         self.t = h.Vector().record(h._ref_t)
@@ -97,8 +109,8 @@ class RECell:
     (TRN lacks it). Reticular bursts are 2 to >10 spikes.
     """
 
-    def __init__(self, pcabar=2.5e-4, gk=0.012, gna=0.1, gsk=0.003,
-                 kd=0.5, depth=1.0):
+    def __init__(self, pcabar=2.5e-4, gk=0.012, gna=0.1, gsk=5e-5,
+                 kd=0.0005, depth=10.0):
         self.soma = h.Section(name="re", cell=self)
         self.soma.L = self.soma.diam = 70
         self.soma.Ra, self.soma.cm = 100, 1

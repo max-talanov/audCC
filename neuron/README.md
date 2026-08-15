@@ -27,8 +27,9 @@ scale both are fast enough.
 | `mod/itd.mod` | **Destexhe et al. 1996 low-threshold T-current** (GHK + φ-scaled kinetics) — the relay burst mechanism |
 | `mod/hh2.mod` | Traub-Miles fast Na⁺ / K⁺; fires repetitively on a plateau (no depol. block) |
 | `mod/cav3.mod` | earlier Huguenard-McCormick T-current (ohmic, unscaled τ) — superseded by `itd` |
-| `mod/cad.mod` | submembrane Ca²⁺ pool in a private `sk` ion (feeds SK2) |
+| `mod/cad.mod` | submembrane Ca²⁺ pool in a private `sk` ion (feeds SK2 **and** `ihca`) |
 | `mod/sk2.mod` | SK2 Ca²⁺-activated K⁺ burst terminator |
+| `mod/ihca.mod` | **Ca²⁺-dependent I_h** (Destexhe et al. 1996) — the spindle terminator / refractory mechanism |
 | `mod/gap.mod` | electrical (gap-junction) coupling between TRN cells (connexin-36) |
 | `tc_neuron.py` | `TCCell` (relay), `RECell` (reticular), `gap_junction()` + demos |
 | `tc_network_nrn.py` | `ThalamicNet` — the TC↔RE loop network; emits the `tc_validate` contract |
@@ -196,7 +197,7 @@ the duration limit has some other, still-unidentified cause.
 | 4 | gap-junction strength (0.03→0) | no effect |
 | 5 | heterogeneous resting potentials | no effect |
 | 6 | progressive recruitment (0→800 ms) | no effect |
-| 7 | **SK2 on RE** (burst terminator, 0→0.03) | no effect on duration *or* bursting |
+| 7 | ~~**SK2 on RE** (burst terminator, 0→0.03)~~ | ~~no effect~~ — **INVALID, see below** |
 | 8 | **GABA_B on RE→TC** (slow inhibition) | max event 0.17→0.25 s, but TC bursting collapses 3.24→0.00 |
 
 GABA_B is implemented and available (`g_re_tc_b`, **default 0**): the review
@@ -206,6 +207,87 @@ hyperpolarises TC past what the corticothalamic drive can overcome, so relay
 bursting collapses. A narrow useful window may exist between 0 and 0.003.
 
 This is now a genuine open research question rather than an untuned parameter.
+
+## The SK + Ca²⁺-dependent mechanism (Aug 2026)
+
+### ⚠️ Correction: hypothesis #7 was invalid — SK2's Ca²⁺ sensor was never in range
+
+`sk2.mod` had **`kd = 0.5`**, a **µM value left in a mM field** — 1000× too high.
+The submembrane pool peaks near 3.7×10⁻² mM, so with `hill = 4`:
+
+| | SK2 open fraction |
+|---|---|
+| peak activation, old `kd = 0.5` | **3×10⁻⁵** (channel effectively absent) |
+
+**SK2 never opened.** The earlier finding that sweeping `gkbar_sk2` from 0 → 0.03
+"had no effect on duration *or* bursting" was therefore an artifact of a dead
+channel, not evidence against SK2. Hypothesis #7 is withdrawn.
+
+Two fixes, each verified by measurement:
+
+1. **`kd` → 5×10⁻⁴ mM** (0.5 µM; Hirschberg et al. 1998, Xia et al. 1998).
+2. **`depth_cad` → 10** — with `depth = 1` the *resting* pool sat at 6×10⁻⁴ mM
+   (600 nM) from the standing T-window current, already above any physiological
+   K_d, which pinned SK2 open and abolished bursting. At `depth = 10` resting
+   [Ca²⁺] is ~2×10⁻⁴ mM and the sensor spans its range: **z = 0.028 at rest →
+   0.997 during a burst**.
+
+SK2 then does exactly what the review (§V.A.1) describes — it keeps bursts
+**short** without abolishing them:
+
+| `gkbar_sk2` | spikes | freq | burst |
+|---|---|---|---|
+| 0 | 4 | 73 Hz | 41 ms |
+| **5×10⁻⁵** (default) | **3** | **63 Hz** | **32 ms** |
+| 1×10⁻⁴ | 2 | 40 Hz | 25 ms |
+| ≥1×10⁻³ | 1 | — | abolished |
+
+### New: `ihca.mod` — Ca²⁺-dependent I_h
+
+The canonical thalamic spindle terminator (Destexhe et al. 1996), previously
+**absent from both cell types**:
+
+```
+C  <-> O                 voltage-dependent opening
+P0 + 4 Ca <-> P1         Ca2+ binds the regulating factor   (k1ca, k2)
+O  + P1   <-> OL         the "locked open" form             (k3p, k4)
+I_h = ghbar * (O + 2*OL) * (v - eh)
+```
+
+Ca²⁺ from successive rebound bursts locks I_h open → depolarisation → I_T can no
+longer de-inactivate → **spindle terminates**; slow unbinding (k2 = 4×10⁻⁴ /ms,
+τ ≈ 2.5 s) → **refractory period**. It reads the same private `sk` pool, so the
+regulating Ca²⁺ never perturbs the T-current's GHK reversal.
+
+At cell level it works as specified:
+
+| `ghbar` | peak locked-open | V_m drift | bursts fired |
+|---|---|---|---|
+| 0 | — | +0.3 mV | 2 |
+| 1×10⁻⁵ | 0.93 | **+3.4 mV** | 49 |
+| **2×10⁻⁵** (default) | 0.90 | **+5.2 mV** | 62 |
+
+I_h acts as both pacemaker (2 → 62 bursts) and depolarising terminator.
+
+### ⚠️ Open: at network level the mechanism currently over-damps the loop
+
+With both mechanisms working, the network stops oscillating intrinsically and
+simply follows the 1 Hz slow-oscillation drive:
+
+| | before (dead SK2, no I_h) | now (both working) |
+|---|---|---|
+| population rhythm | 5.0 Hz (intrinsic) | **1.0 Hz, IQR 998–1002 ms** |
+
+An interval that exact is not biological — `so_freq = 1.0`, so the thalamus is
+firing once per drive cycle and nothing else. The cell-level calibration is
+sound (measured above); the **network** conductances are not. Note the search
+windows again betray the absence of a real peak (6–20 Hz → "6.0", 10–15 Hz →
+"10.0" — both pinned to the window edge).
+
+**Next step:** sweep `gsk` / `gh` *in-network* to find the window where the loop
+still self-oscillates and SK+Ca shapes it, rather than suppressing it. The
+mechanism is now real and correctly calibrated per-cell — this is a coupling
+problem, not a missing-mechanism problem.
 
 The NEST model stays the working reference throughout; keep it for MareNostrum 5
 scale-out (NEST is the better large-network tool).

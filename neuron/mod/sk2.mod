@@ -15,7 +15,13 @@ UNITS {
 }
 PARAMETER {
     gkbar = 0.002 (S/cm2)
-    kd    = 0.5
+    : Half-activating Ca2+ concentration, in NEURON's native mM. SK channels
+    : have K_d ~= 0.3-0.7 uM (Hirschberg et al. 1998; Xia et al. 1998), i.e.
+    : 3e-4 - 7e-4 mM. NOTE: this was 0.5 -- a uM value left in a mM field, so
+    : 1000x too high. With the submembrane pool peaking near 3.7e-2 mM and
+    : hill=4, that held activation at ~3e-5 of gkbar: the channel never opened,
+    : which is why earlier sweeps of gkbar (0 -> 0.03) changed nothing.
+    kd    = 0.0005
     hill  = 4
     tauz  = 12 (ms)
 }
