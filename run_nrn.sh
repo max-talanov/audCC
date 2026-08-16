@@ -32,22 +32,21 @@ cd "$WORKDIR"
 # Nothing is pip-installed here -- MN5 does not permit it. NEURON comes from a
 # site module. Override any of these from the sbatch --export line if the names
 # differ; find them with `module avail neuron` / `module spider neuron`.
-# DO NOT `module purge` here. MN5's login/batch default environment already
-# provides mkl, impi and UCX; purging strips them and then python/3.12.1 fails
-# on each dependency in turn (first "needs intel", then "needs mkl"), and srun
-# loses its MPI stack. Load what we need ON TOP of the defaults instead.
-# Set MODULE_PURGE=1 only if you know the full chain for your site.
-if [ "${MODULE_PURGE:-0}" = "1" ]; then module purge; fi
-module load "${INTEL_MODULE:-intel}" || true
-module load "${MKL_MODULE:-mkl}"     || true
-module load "${PYTHON_MODULE:-python}"
-module load "${NEURON_MODULE:-neuron}" || {
-    echo "WARNING: could not load module '${NEURON_MODULE:-neuron}'."
-    echo "         Find the right name with:  module spider neuron"
-    echo "         then resubmit with --export=ALL,NEURON_MODULE=<name>,..."
-}
+# --- environment ------------------------------------------------------------
+# This script loads NO modules, matching run.sh. The environment is set up
+# OUTSIDE it (e.g. `module load miniforge`, which provides python + NEURON).
+#
+# Earlier versions loaded modules here and failed three times over, each time
+# for a different reason: `module purge` stripped MN5's default mkl/impi, then
+# python/3.12.1 wanted intel, then mkl -- and finally python/3.12.1 CONFLICTS
+# with an already-loaded miniforge ("Cannot load module python/3.12.1 because
+# these module(s) are loaded: miniforge"). Whatever module set you use, load it
+# before sbatch and leave this script alone.
+#
+# If you ever need a module here, uncomment and adjust:
+# module load miniforge
+# module load neuron
 
-# Prefer a local venv if one exists, otherwise use the module's python.
 PY="${PY:-}"
 if [ -z "$PY" ]; then
     if [ -x ./.venv-neuron/bin/python ]; then PY=./.venv-neuron/bin/python
