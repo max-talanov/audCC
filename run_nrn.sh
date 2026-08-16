@@ -32,8 +32,14 @@ cd "$WORKDIR"
 # Nothing is pip-installed here -- MN5 does not permit it. NEURON comes from a
 # site module. Override any of these from the sbatch --export line if the names
 # differ; find them with `module avail neuron` / `module spider neuron`.
-module purge
-module load "${INTEL_MODULE:-intel}"
+# DO NOT `module purge` here. MN5's login/batch default environment already
+# provides mkl, impi and UCX; purging strips them and then python/3.12.1 fails
+# on each dependency in turn (first "needs intel", then "needs mkl"), and srun
+# loses its MPI stack. Load what we need ON TOP of the defaults instead.
+# Set MODULE_PURGE=1 only if you know the full chain for your site.
+if [ "${MODULE_PURGE:-0}" = "1" ]; then module purge; fi
+module load "${INTEL_MODULE:-intel}" || true
+module load "${MKL_MODULE:-mkl}"     || true
 module load "${PYTHON_MODULE:-python}"
 module load "${NEURON_MODULE:-neuron}" || {
     echo "WARNING: could not load module '${NEURON_MODULE:-neuron}'."
