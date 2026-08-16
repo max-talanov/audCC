@@ -225,6 +225,26 @@ class ParallelThalamicNet:
         wall = self.pc.allreduce(wall, 2)          # max over ranks
         return wall
 
+    def teardown(self):
+        """Drop every NEURON object, then clear the gid/transfer tables.
+
+        REQUIRED before building another network in the same process. gids and
+        the source_var/target_var transfer tables are ParallelContext-global:
+        constructing a second network without this re-registers live gids and
+        calls setup_transfer() while the previous network's transfer pointers
+        are still dangling, which segfaults on every rank. Python references
+        must go first so the destructors run before gid_clear().
+        """
+        self.cells.clear()
+        self.syns.clear()
+        self.ncs.clear()
+        self.stims.clear()
+        self.gaps.clear()
+        self.tspk = self.gspk = None
+        import gc
+        gc.collect()
+        self.pc.gid_clear()
+
     def gather(self):
         """Collect all spikes onto rank 0. Returns (times, gids) or (None, None)."""
         t_all = self.pc.py_gather(np.asarray(self.tspk), 0)
@@ -308,6 +328,10 @@ def main():
     ap.add_argument("--out", default="")
     ap.add_argument("--bench", action="store_true",
                     help="scaling benchmark: 100/500/2000/5000 cells, 1 s each")
+    ap.add_argument("--bench-sizes", default="",
+                    help="comma-separated cell counts, e.g. 40,80 (for testing)")
+    ap.add_argument("--bench-ms", type=float, default=1000.0,
+                    help="simulated ms per benchmark point (default 1000)")
     a = ap.parse_args()
 
     if a.bench:
@@ -320,13 +344,17 @@ def main():
             print("%-9s %-9s %-11s %-13s" % ("cells", "wall (s)", "x realtime",
                                              "s per 1k cells"))
             print("-" * 46)
-        for n in (100, 500, 2000, 5000):
+        sizes = [int(s) for s in a.bench_sizes.split(",")] if a.bench_sizes \
+            else [100, 500, 2000, 5000]
+        for n in sizes:
             net = ParallelThalamicNet(n_tc=n // 2, n_re=n // 2,
                                       gh_tc=a.gh_tc, gsk_re=a.gsk_re)
-            wall = net.run(tstop=1000.0)
+            wall = net.run(tstop=a.bench_ms)
             if rank == 0:
                 print("%-9d %-9.1f %-11.2f %-13.2f"
-                      % (n, wall, wall / 1.0, wall / (n / 1000.0)))
+                      % (n, wall, wall / (a.bench_ms / 1000.0),
+                         wall / (n / 1000.0)))
+            net.teardown()          # MUST clear gids/transfer before the next
             del net
         if rank == 0:
             print("-" * 46)
