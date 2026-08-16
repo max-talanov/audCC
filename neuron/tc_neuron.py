@@ -32,11 +32,24 @@ h.load_file("stdrun.hoc")
 # load the compiled T-current (arm64/x86_64 dir next to this file)
 _here = os.path.dirname(os.path.abspath(__file__))
 if not hasattr(h, "cav3"):
-    for arch in ("arm64", "x86_64"):
-        dll = os.path.join(_here, arch, "libnrnmech.dylib")
-        if os.path.exists(dll):
-            h.nrn_load_dll(dll)
+    # .so on Linux (MN5), .dylib on macOS -- checking only .dylib silently left
+    # every mechanism unloaded on the cluster, surfacing much later as
+    # "ValueError: argument not a density mechanism name" on insert("hh2").
+    _found = False
+    for arch in ("arm64", "x86_64", "aarch64", "."):
+        for lib in ("libnrnmech.so", "libnrnmech.dylib", ".libs/libnrnmech.so"):
+            dll = os.path.join(_here, arch, lib)
+            if os.path.exists(dll):
+                h.nrn_load_dll(dll)
+                _found = True
+                break
+        if _found:
             break
+    if not _found and not hasattr(h, "hh2"):
+        raise RuntimeError(
+            "NMODL mechanisms not found under %s (looked for libnrnmech.so / "
+            ".dylib in arm64/, x86_64/, aarch64/).\nCompile them first:\n"
+            "    cd %s && nrnivmodl mod" % (_here, _here))
 
 
 class TCCell:
