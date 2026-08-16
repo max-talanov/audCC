@@ -306,5 +306,35 @@ Two honest caveats:
 against the review's 0.5–3 s. Frequency and duration are evidently set by
 different mechanisms; getting the band right did not lengthen the events.
 
-The NEST model stays the working reference throughout; keep it for MareNostrum 5
-scale-out (NEST is the better large-network tool).
+## MN5 scaling benchmark (job 44671355, 100 ranks) — NEURON scales linearly
+
+Measured on MareNostrum 5, 100 MPI ranks, 1 s of simulation per point:
+
+| cells | wall (s) | ×realtime | s per 1k cells |
+|---|---|---|---|
+| 100 | 0.3 | 0.28 | 2.78 |
+| 500 | 0.4 | 0.45 | 0.90 |
+| 2000 | 0.9 | 0.91 | 0.46 |
+| **5000** | **2.1** | **2.14** | **0.43** |
+
+**This retires the `N^1.67` figure.** That was measured thread-parallel on one
+laptop and does not describe NEURON under MPI. Cost per 1k cells *falls* with N
+and flattens (0.46 → 0.43): fixed overhead dominates at small N, and the
+marginal cost per cell is near-constant at scale. Between 2000 and 5000 cells
+the exponent is **N^0.92** — essentially linear, comparable to NEST's N^1.06.
+
+**Consequence: a 5000-cell HH production run is cheap.** At 2.14× realtime, 200 s
+of biological time costs **~7 minutes** of wall clock (plus setup), well inside a
+2 h allocation. The earlier advice to hold MN5 time because NEURON-at-scale was
+unaffordable was based on the laptop extrapolation and is withdrawn.
+
+⚠️ **One scaling caveat in the model, not the machine.** Convergence follows the
+serial model's `k = n/2` rule, so at 5000 cells each neuron integrates ~2500
+inputs (~12.5 M synapses) — biologically implausible and O(N²). The `g/k` fan-in
+normalisation keeps the *total* conductance constant, so the dynamics should
+carry over, but the connectivity rule should become a fixed convergence
+(~100–200 sources) before going beyond this size.
+
+The NEST model stays the working reference and the cross-check for the
+simulator-agnostic validator; it is no longer the scale-out path, since its
+point neurons cannot express the SK2 / Ca-dependent mechanism.
