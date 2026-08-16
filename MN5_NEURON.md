@@ -41,11 +41,36 @@ scp neuron/mod/*.mod USER@glogin1.bsc.es:~/audCC/neuron/mod/
 
 ## On MN5
 
-One-time setup:
+**Do not pip install anything** — MN5 does not permit it, and NEURON is already
+provided as a site module. `run_nrn.sh` loads modules rather than building a
+venv.
+
+Module order matters (Lmod): `python/3.12.1` has a hard dependency on `intel`,
+so `module load python` on its own fails with *"Cannot load module
+python/3.12.1 without these module(s) loaded: intel"*. The script loads `intel`
+first.
+
+Find the NEURON module name once:
 
 ```bash
-cd ~/audCC && python3 -m venv .venv-neuron && ./.venv-neuron/bin/pip install neuron numpy scipy
+module spider neuron
 ```
+
+If it is not called `neuron`, pass the real name on the sbatch line
+(`NEURON_MODULE=...`); `INTEL_MODULE` and `PYTHON_MODULE` override the other two
+the same way.
+
+Compile the mechanisms once on the login node (keeps a serial build out of your
+100-CPU allocation and surfaces compiler errors immediately):
+
+```bash
+module load intel python neuron
+cd ~/audCC/neuron && nrnivmodl mod
+```
+
+`scipy` is **optional** — the spectral estimator falls back to a Hann-windowed
+FFT, verified to agree with the scipy path to **0.01 Hz**. Only `neuron` and
+`numpy` are required.
 
 Edit `run_nrn.sh` to set `--account` / `--qos` for your project (both are
 commented out at the top), then:

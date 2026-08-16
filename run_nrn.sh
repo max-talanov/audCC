@@ -25,18 +25,47 @@ WORKDIR="${SLURM_SUBMIT_DIR:-$(pwd)}"
 cd "$WORKDIR"
 [ -f neuron/tc_mpi.py ] || { echo "ERROR: run sbatch from the repo root (no neuron/tc_mpi.py in $WORKDIR)"; exit 1; }
 
+# --- modules ---------------------------------------------------------------
+# ORDER MATTERS on MN5 (Lmod): python/3.12.1 declares a hard dependency on
+# intel, so `module load python` alone fails with
+#   "Cannot load module python/3.12.1 without these module(s) loaded: intel"
+# Nothing is pip-installed here -- MN5 does not permit it. NEURON comes from a
+# site module. Override any of these from the sbatch --export line if the names
+# differ; find them with `module avail neuron` / `module spider neuron`.
 module purge
-module load python || true
-# module load openmpi   # uncomment if NEURON's MPI needs the system stack
+module load "${INTEL_MODULE:-intel}"
+module load "${PYTHON_MODULE:-python}"
+module load "${NEURON_MODULE:-neuron}" || {
+    echo "WARNING: could not load module '${NEURON_MODULE:-neuron}'."
+    echo "         Find the right name with:  module spider neuron"
+    echo "         then resubmit with --export=ALL,NEURON_MODULE=<name>,..."
+}
 
-PY="${PY:-./.venv-neuron/bin/python}"
-[ -x "$PY" ] || { echo "ERROR: no python at $PY -- create .venv-neuron and pip install neuron"; exit 1; }
+# Prefer a local venv if one exists, otherwise use the module's python.
+PY="${PY:-}"
+if [ -z "$PY" ]; then
+    if [ -x ./.venv-neuron/bin/python ]; then PY=./.venv-neuron/bin/python
+    else PY="$(command -v python3 || command -v python)"; fi
+fi
+[ -n "$PY" ] && [ -x "$PY" ] || { echo "ERROR: no python found (set PY=... )"; exit 1; }
+echo "python : $PY"
 
-# Compile the NMODL mechanisms next to the sources (itd, hh2, cad, sk2, ihca, gap)
+"$PY" -c "import neuron" 2>/dev/null || {
+    echo "ERROR: '$PY' cannot import neuron."
+    echo "       NEURON is provided by a module on MN5 -- do NOT pip install."
+    echo "       Try:  module spider neuron   then resubmit with NEURON_MODULE=<name>"
+    exit 1
+}
+"$PY" -c "import numpy" 2>/dev/null || { echo "ERROR: numpy unavailable"; exit 1; }
+# scipy is OPTIONAL -- the spectral estimator falls back to a Hann-windowed FFT.
+"$PY" -c "import scipy" 2>/dev/null || echo "note: no scipy; using the FFT fallback"
+
+# --- compile the NMODL mechanisms (itd, hh2, cad, sk2, ihca, gap, gapmpi) ----
 cd neuron
 if [ ! -f x86_64/libnrnmech.so ]; then
     echo "== compiling NMODL mechanisms =="
-    "../$(dirname "$PY")/nrnivmodl" mod || ../.venv-neuron/bin/nrnivmodl mod
+    command -v nrnivmodl >/dev/null || { echo "ERROR: nrnivmodl not on PATH -- is the NEURON module loaded?"; exit 1; }
+    nrnivmodl mod
 fi
 cd "$WORKDIR"
 
