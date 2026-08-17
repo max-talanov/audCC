@@ -62,7 +62,8 @@ class ParallelThalamicNet:
                  g_re_tc=0.015, g_tc_re=0.004, g_re_re=0.002, g_gap=0.03,
                  g_cort=0.01, g_cort_tc=0.035, so_freq=1.0,
                  tc_e_pas=-80.0, re_e_pas=-82.0,
-                 gsk_re=5e-5, gh_tc=4e-4, conv=10):
+                 gsk_re=5e-5, gh_tc=4e-4, conv=150,
+                 gap_deg=6, gap_short=2):
         self.pc = h.ParallelContext()
         self.rank = int(self.pc.id())
         self.nhost = int(self.pc.nhost())
@@ -124,8 +125,16 @@ class ParallelThalamicNet:
         # rank-independently. Seeding per TARGET gid instead gives the same
         # convergence and weight distribution, reproducible and independent of
         # rank count -- statistically equivalent, not bit-identical.
-        k_re = max(1, n_re // 2)
-        k_tc = max(1, n_tc // 2)
+        # SCALE-FREE CONVERGENCE. The serial rule was k = n/2, which is fine at
+        # n=10 but at n=5000 gives each cell ~2500 inputs: g/k holds the MEAN
+        # conductance constant but not the VARIANCE, so 2500 weak inputs average
+        # into a near-constant current instead of discrete volleys. Rebound
+        # bursting needs synchronised inhibition then release, so the 5000-cell
+        # run went tonic (RE 25 Hz/cell, 78% of ISIs < 10 ms) and the 13 Hz
+        # rhythm collapsed to ~1 Hz. Fixed convergence keeps the per-cell input
+        # statistics -- and hence the dynamics -- independent of population size.
+        k_re = max(1, min(conv, n_re))
+        k_tc = max(1, min(conv, n_tc))
         for gid in self.tc_gids:                                   # RE -> TC
             for src in self._draw(gid, n_tc, n_tc + n_re, k_re):
                 self._connect(src, self.syns[("gabaa", gid)], g_re_tc / k_re, 1.0)
@@ -158,12 +167,26 @@ class ParallelThalamicNet:
                 sec = self.cells[gid].soma
                 self.pc.source_var(sec(0.5)._ref_v, self.SGID + (gid - n_tc),
                                    sec=sec)
-            # 2. each owned RE cell gets a Gap toward each ring neighbour
+            # 2. SMALL-WORLD electrical coupling (Watts-Strogatz style).
+            # A 2-neighbour ring is effectively global coupling at n=10 but a
+            # thin local chain at n=2500, with no population-wide synchrony --
+            # a second reason the 5000-cell run lost the rhythm. A ring of
+            # degree gap_deg plus gap_short random long-range shortcuts per
+            # cell keeps the path length short (~log n) at ANY size, so
+            # synchrony propagates globally regardless of population.
+            half = max(1, gap_deg // 2)
             for gid in self.re_gids:
                 i = gid - n_tc
-                for nb in ((i + 1) % n_re, (i - 1) % n_re):
-                    if nb == i:
-                        continue
+                nbrs = set()
+                for d in range(1, half + 1):                  # local ring
+                    nbrs.add((i + d) % n_re)
+                    nbrs.add((i - d) % n_re)
+                if gap_short > 0 and n_re > 2 * half + 1:      # shortcuts
+                    r = np.random.default_rng(1000003 + i)
+                    for _ in range(gap_short):
+                        nbrs.add(int(r.integers(0, n_re)))
+                nbrs.discard(i)
+                for nb in nbrs:
                     gap = h.GapMPI(self.cells[gid].soma(0.5))
                     gap.g = g_gap
                     self.pc.target_var(gap, gap._ref_vgap, self.SGID + nb)
