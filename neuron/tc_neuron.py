@@ -66,15 +66,20 @@ class TCCell:
     over ~31 ms (see neuron/README.md).
     """
 
-    def __init__(self, pcabar=1.7e-4, gk=0.011, gna=0.1, gsk=0.0,
+    def __init__(self, gcabar=0.002, gk=0.011, gna=0.1, gsk=0.0,
                  gh=2e-5, depth=10.0, cac=3e-4):
         self.soma = h.Section(name="soma", cell=self)
         self.soma.L = self.soma.diam = 80
         self.soma.Ra, self.soma.cm = 100, 1
         self.soma.insert("hh2")
         self.soma.gnabar_hh2, self.soma.gkbar_hh2 = gna, gk
-        self.soma.insert("itd")           # Destexhe 1996 T-current
-        self.soma.pcabar_itd = pcabar
+        # PUBLISHED Destexhe IT.mod (suffix `it`), not the local itd.mod port.
+        # itd.mod implemented the two-branch tau_h that IT.mod explicitly
+        # COMMENTS OUT, making tau_h 30-35% too slow at -80..-70 mV -- exactly
+        # the range the network runs in. It also used GHK where the published
+        # relay current is ohmic with m_inf^2*h (instantaneous activation).
+        self.soma.insert("it")
+        self.soma.gcabar_it = gcabar
         self.soma.insert("pas")
         self.soma.g_pas, self.soma.e_pas = 5e-5, -74
         h.ion_style("ca_ion", 1, 2, 0, 0, 0, sec=self.soma)
@@ -104,7 +109,7 @@ class TCCell:
         self.t = h.Vector().record(h._ref_t)
         self.vsoma = h.Vector().record(self.soma(0.5)._ref_v)
         self.ica = h.Vector().record(self.soma(0.5)._ref_ica)
-        self.hT = h.Vector().record(self.soma(0.5)._ref_h_itd)
+        self.hT = h.Vector().record(self.soma(0.5)._ref_h_it)
         nc = h.NetCon(self.soma(0.5)._ref_v, None, sec=self.soma)
         nc.threshold = -10
         self.spikes = h.Vector()
@@ -122,8 +127,8 @@ class RECell:
     (TRN lacks it). Reticular bursts are 2 to >10 spikes.
     """
 
-    def __init__(self, pcabar=2.5e-4, gk=0.012, gna=0.1, gsk=5e-5,
-                 kd=0.0005, depth=10.0, cav33=False):
+    def __init__(self, gcabar=0.003, gk=0.012, gna=0.1, gsk=5e-5,
+                 kd=0.0005, depth=10.0):
         self.soma = h.Section(name="re", cell=self)
         self.soma.L = self.soma.diam = 70
         self.soma.Ra, self.soma.cm = 100, 1
@@ -134,9 +139,12 @@ class RECell:
         # wrong and forces both populations onto the same cycle period. TRN is
         # the spindle pacemaker (Fernandez & Luthi V), so its kinetics set the
         # loop rhythm. cav33=False restores the old shared-mechanism behaviour.
-        self.tname = "its" if cav33 else "itd"
-        self.soma.insert(self.tname)
-        setattr(self.soma, "pcabar_" + self.tname, pcabar)
+        # PUBLISHED Destexhe IT2.mod (suffix `it2`) -- the RETICULAR isoform.
+        # Replaces the local its.mod port, which had all four voltage midpoints
+        # 2 mV off (shift applied twice), q10 bases 5.0/3.0 instead of 2.5/2.5,
+        # and a GHK driving force where the published current is ohmic.
+        self.soma.insert("it2")
+        self.soma.gcabar_it2 = gcabar
         self.soma.insert("pas")
         self.soma.g_pas, self.soma.e_pas = 5e-5, -75
         # Ca handling: itd reads cai/cao; cad accumulates the private `sk` pool
@@ -277,7 +285,7 @@ class TCCell2C:
     what `coupling_demo()` below measures.
     """
 
-    def __init__(self, pcabar=1.7e-4, gk=0.011, gna=0.1, gsk=0.0, gh=0.0,
+    def __init__(self, gcabar=0.002, gk=0.011, gna=0.1, gsk=0.0, gh=0.0,
                  depth=10.0, cac=3e-4, Ra_link=150.0,
                  dend_L=200.0, dend_diam=2.0, e_pas=-74.0):
         self.soma = h.Section(name="soma", cell=self)
@@ -292,8 +300,8 @@ class TCCell2C:
         self.dend.L, self.dend.diam = dend_L, dend_diam
         self.dend.Ra, self.dend.cm = Ra_link, 1     # Ra_link sets the coupling
         self.dend.nseg = 5
-        self.dend.insert("itd")                     # I_T lives HERE, not in soma
-        self.dend.pcabar_itd = pcabar
+        self.dend.insert("it")                      # I_T lives HERE, not in soma
+        self.dend.gcabar_it = gcabar
         self.dend.insert("pas")
         self.dend.g_pas, self.dend.e_pas = 5e-5, e_pas
         h.ion_style("ca_ion", 1, 2, 0, 0, 0, sec=self.dend)
@@ -319,7 +327,7 @@ class TCCell2C:
         self.vsoma = h.Vector().record(self.soma(0.5)._ref_v)
         self.vdend = h.Vector().record(self.dend(0.5)._ref_v)
         self.ica = h.Vector().record(self.dend(0.5)._ref_ica)
-        self.hT = h.Vector().record(self.dend(0.5)._ref_h_itd)
+        self.hT = h.Vector().record(self.dend(0.5)._ref_h_it)
         nc = h.NetCon(self.soma(0.5)._ref_v, None, sec=self.soma)
         nc.threshold = -10
         self.spikes = h.Vector()
