@@ -250,3 +250,78 @@ if __name__ == "__main__":
     print("g=0: cell B stays silent. g>0: the gap junction depolarises B and")
     print("recruits it, spike-coincident with A -- electrical synchronisation of")
     print("TRN cells (Fernandez & Luthi V.C.1), which NEST's ht_neuron cannot do.")
+
+
+class TCCell2C:
+    """TWO-COMPARTMENT relay cell with SPATIAL SEPARATION of currents.
+
+    Motivation (Fernandez & Luthi 2020 sect. V; and the single-compartment
+    grid result in neuron/README.md): in a single compartment the conductances
+    that keep I_T de-inactivated and those that set spindle-frequency cycling
+    are mutually exclusive -- 16 gh_tc x GABA_B configurations gave no corner
+    with both h >= 0.3 and 10-16 Hz. I_T and the spike generator share one
+    membrane potential, so every somatic spike also re-primes/inactivates the
+    T-current. Real relay cells put Ca_v3.1 in the DENDRITE, electrotonically
+    separated from the somatic Na+/K+ spike generator.
+
+    Layout:
+        soma  -- hh2 (fast Na+/K+). NO I_T. Spikes are generated here.
+        dend  -- itd (Ca_v3.1) + cad + optional sk2 / ihca. The low-threshold
+                 Ca2+ spike is generated here and drives the soma.
+
+    The earlier naive 2-compartment attempt gave a ~250 ms plateau because
+    somatic spikes back-propagated and re-primed I_T. The fix is electrotonic
+    SEPARATION: `Ra_link` (and the dendrite geometry) set the coupling. Weak
+    enough that somatic spikes do not re-prime the dendritic T-current; strong
+    enough that the dendritic LTS still drives somatic spiking. That window is
+    what `coupling_demo()` below measures.
+    """
+
+    def __init__(self, pcabar=1.7e-4, gk=0.011, gna=0.1, gsk=0.0, gh=0.0,
+                 depth=10.0, cac=3e-4, Ra_link=150.0,
+                 dend_L=200.0, dend_diam=2.0, e_pas=-74.0):
+        self.soma = h.Section(name="soma", cell=self)
+        self.soma.L = self.soma.diam = 25          # small: spike generator only
+        self.soma.Ra, self.soma.cm = 100, 1
+        self.soma.insert("hh2")
+        self.soma.gnabar_hh2, self.soma.gkbar_hh2 = gna, gk
+        self.soma.insert("pas")
+        self.soma.g_pas, self.soma.e_pas = 5e-5, e_pas
+
+        self.dend = h.Section(name="dend", cell=self)
+        self.dend.L, self.dend.diam = dend_L, dend_diam
+        self.dend.Ra, self.dend.cm = Ra_link, 1     # Ra_link sets the coupling
+        self.dend.nseg = 5
+        self.dend.insert("itd")                     # I_T lives HERE, not in soma
+        self.dend.pcabar_itd = pcabar
+        self.dend.insert("pas")
+        self.dend.g_pas, self.dend.e_pas = 5e-5, e_pas
+        h.ion_style("ca_ion", 1, 2, 0, 0, 0, sec=self.dend)
+        self.dend.cai, self.dend.cao = 2.4e-4, 2.0
+        if gsk > 0 or gh > 0:
+            self.dend.insert("cad")
+            self.dend.depth_cad = depth
+        if gsk > 0:
+            self.dend.insert("sk2")
+            self.dend.gkbar_sk2 = gsk
+        if gh > 0:
+            self.dend.insert("ihca")
+            self.dend.ghbar_ihca = gh
+            self.dend.cac_ihca = cac
+        self.dend.connect(self.soma(1))
+        # Synapses target the DENDRITE: reticular GABA_A must hyperpolarise the
+        # compartment that carries I_T, or the separation buys nothing.
+        self.synsec = self.dend
+        self._gaps = []
+
+    def record(self):
+        self.t = h.Vector().record(h._ref_t)
+        self.vsoma = h.Vector().record(self.soma(0.5)._ref_v)
+        self.vdend = h.Vector().record(self.dend(0.5)._ref_v)
+        self.ica = h.Vector().record(self.dend(0.5)._ref_ica)
+        self.hT = h.Vector().record(self.dend(0.5)._ref_h_itd)
+        nc = h.NetCon(self.soma(0.5)._ref_v, None, sec=self.soma)
+        nc.threshold = -10
+        self.spikes = h.Vector()
+        nc.record(self.spikes)
+        self._nc = nc

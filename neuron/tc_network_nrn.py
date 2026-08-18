@@ -93,7 +93,8 @@ class ThalamicNet:
         self._ic.append(ic)
 
     def _syn_connect(self, pre, post, e, tau1, tau2, w, delay):
-        syn = h.Exp2Syn(post.soma(0.5)); syn.e = e; syn.tau1 = tau1; syn.tau2 = tau2
+        _tgt = getattr(post, 'synsec', post.soma)   # dendrite for 2-cmpt cells
+        syn = h.Exp2Syn(_tgt(0.5)); syn.e = e; syn.tau1 = tau1; syn.tau2 = tau2
         nc = h.NetCon(pre.soma(0.5)._ref_v, syn, sec=pre.soma)
         nc.threshold = -10; nc.weight[0] = w; nc.delay = delay
         self._syn.append(syn); self._nc.append(nc)
