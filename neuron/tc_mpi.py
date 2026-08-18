@@ -62,7 +62,7 @@ class ParallelThalamicNet:
                  g_re_tc=0.015, g_tc_re=0.004, g_re_re=0.002, g_gap=0.03,
                  g_cort=0.01, g_cort_tc=0.035, so_freq=1.0,
                  tc_e_pas=-80.0, re_e_pas=-82.0,
-                 gsk_re=5e-5, gh_tc=4e-4, conv=150,
+                 gsk_re=5e-5, gh_tc=2e-5, conv=150,
                  gap_deg=6, gap_short=2):
         self.pc = h.ParallelContext()
         self.rank = int(self.pc.id())
@@ -346,7 +346,7 @@ def main():
     ap.add_argument("--n-tc", type=int, default=10)
     ap.add_argument("--n-re", type=int, default=10)
     ap.add_argument("--tstop", type=float, default=12000.0)
-    ap.add_argument("--gh-tc", type=float, default=4e-4)
+    ap.add_argument("--gh-tc", type=float, default=2e-5)
     ap.add_argument("--gsk-re", type=float, default=5e-5)
     ap.add_argument("--out", default="")
     ap.add_argument("--bench", action="store_true",

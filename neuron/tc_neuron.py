@@ -123,14 +123,20 @@ class RECell:
     """
 
     def __init__(self, pcabar=2.5e-4, gk=0.012, gna=0.1, gsk=5e-5,
-                 kd=0.0005, depth=10.0):
+                 kd=0.0005, depth=10.0, cav33=False):
         self.soma = h.Section(name="re", cell=self)
         self.soma.L = self.soma.diam = 70
         self.soma.Ra, self.soma.cm = 100, 1
         self.soma.insert("hh2")
         self.soma.gnabar_hh2, self.soma.gkbar_hh2 = gna, gk
-        self.soma.insert("itd")
-        self.soma.pcabar_itd = pcabar
+        # Ca_v3.3 (its) is the RETICULAR T-type isoform; itd is the relay's
+        # Ca_v3.1. Using itd for both -- as this model did -- is biologically
+        # wrong and forces both populations onto the same cycle period. TRN is
+        # the spindle pacemaker (Fernandez & Luthi V), so its kinetics set the
+        # loop rhythm. cav33=False restores the old shared-mechanism behaviour.
+        self.tname = "its" if cav33 else "itd"
+        self.soma.insert(self.tname)
+        setattr(self.soma, "pcabar_" + self.tname, pcabar)
         self.soma.insert("pas")
         self.soma.g_pas, self.soma.e_pas = 5e-5, -75
         # Ca handling: itd reads cai/cao; cad accumulates the private `sk` pool
