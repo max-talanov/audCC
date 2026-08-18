@@ -67,7 +67,7 @@ class TCCell:
     """
 
     def __init__(self, pcabar=1.7e-4, gk=0.011, gna=0.1, gsk=0.0,
-                 gh=2e-5, depth=10.0, cac=0.002):
+                 gh=2e-5, depth=10.0, cac=3e-4):
         self.soma = h.Section(name="soma", cell=self)
         self.soma.L = self.soma.diam = 80
         self.soma.Ra, self.soma.cm = 100, 1
