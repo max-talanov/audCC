@@ -127,8 +127,16 @@ class RECell:
     (TRN lacks it). Reticular bursts are 2 to >10 spikes.
     """
 
-    def __init__(self, gcabar=0.003, gk=0.012, gna=0.1, gsk=5e-5,
+    def __init__(self, gcabar=0.001, gk=0.012, gna=0.1, gsk=1e-3,
                  kd=0.0005, depth=10.0):
+        # REFITTED against the published it2 (Aug 2026). The old defaults
+        # (gcabar=0.003 via pcabar=2.5e-4, gsk=5e-5) were fitted against the
+        # local its/itd ports and do not transfer: the published current is
+        # ohmic, not GHK, so the Ca2+ influx feeding SK2 differs and gsk needed
+        # ~20x. gk/gna alone could not reach the target -- across 16 (gk, gna)
+        # combinations the burst was either <100 Hz or 13-27 spikes. SK2 is
+        # what terminates it: at gsk=1e-3 the cell fires 8 spikes @ 363 Hz over
+        # 19 ms (review: TRN bursts 2 to >10 spikes at >100 Hz).
         self.soma = h.Section(name="re", cell=self)
         self.soma.L = self.soma.diam = 70
         self.soma.Ra, self.soma.cm = 100, 1
