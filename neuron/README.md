@@ -32,6 +32,7 @@ scale both are fast enough.
 | `mod/ihca.mod` | **Ca²⁺-dependent I_h** (Destexhe et al. 1996) — the spindle terminator / refractory mechanism |
 | `mod/gap.mod` | electrical (gap-junction) coupling between TRN cells (connexin-36) |
 | `mod/ical.mod` | HVA Ca²⁺ current (Reuveni et al. 1993 kinetics) — cortical pyramidal spike-triggered Ca²⁺ influx, the SK2 Ca²⁺ source in cortex |
+| `mod/inap.mod` | Persistent Na⁺ current — L5 intrinsic bursting (`PYCellIB`), the column's own slow-oscillation pacemaker |
 | `tc_neuron.py` | `TCCell` (relay), `RECell` (reticular), `gap_junction()` + demos |
 | `tc_network_nrn.py` | `ThalamicNet` — the TC↔RE loop network; emits the `tc_validate` contract |
 | `cortex_neuron.py` | `PYCell` (pyramidal, hh2 + ical + cad + sk2 adaptation), `FSCell` (PV⁺ fast-spiking), `CorticalColumn` (L4/L2·3/L5/L6) |
@@ -371,48 +372,92 @@ Mushtaq et al. 2024 Table 3):
 A naively-strong recurrent column (`gkbar_sk2` too low, e.g. 0 – 5e-4) locks
 into a permanent self-sustaining oscillation once perturbed — a bang-bang
 network with no stable quiescent state over the tested (g_ff, g_rec) range.
-At **`gkbar_sk2 = 8e-4`** (vs. 5e-5 in the thalamic RE cell — cortical
-pyramidal bursts are longer, so more adaptation is needed to break the loop)
-the column is silent at rest and a single phasic L4 volley (a 6-pulse burst,
-mimicking a thalamocortical/auditory kick) produces a genuine propagating
-UP-state — L4 → L2/3 → L5 → L6 with realistic ~2–8 ms interlaminar lag — that
-**self-terminates within ~20 ms** and stays silent until the next volley:
+At **`gkbar_sk2 = 8e-4`** the column is silent at rest, and a phasic volley
+produces a genuine propagating UP-state that self-terminates, instead of
+runaway gamma.
+
+## L5 intrinsic bursting: the column's OWN slow-oscillation pacemaker (Aug 2026 v2)
+
+The first cortical-column pass (above) needed an **externally injected**
+volley to L4 once per SO cycle — the column had no oscillator of its own,
+which is not how the slow oscillation actually originates (it is a cortical
+network phenomenon, review sect. VI / Steriade). This is now fixed:
+
+- **`PYCellIB`** (`cortex_neuron.py`) — L5's intrinsically-bursting pyramidal
+  cell ("TuftIB", `tc_architecture.py`): `PYCell` + **`mod/inap.mod`**
+  (persistent Na⁺, Compte et al. 2003 / Bazhenov-Timofeev cortical SO
+  models) + a **slowed** `cad`/`sk2` recovery (`taur` 80 ms → 500 ms). I_NaP
+  turns a single spike into a self-sustaining depolarising plateau burst;
+  slowing the SK2/Ca²⁺ pool's clearance is what turns that from
+  within-burst adaptation into a genuine **~1.4 Hz relaxation oscillator**
+  (measured: 12 UP states over 8 s, inter-event interval 694 ms). Half of
+  L5's E population is `PYCellIB`, the rest stay regular-spiking `PYCell`
+  (`CorticalColumn(ib_frac={"L5": 0.5})`).
+- **L5 → L6 is now `g_ff × 6`**, not `g_ff × 1`: L5's IB cells fire a brief,
+  sparse burst (a handful of cells, a few ms) once per cycle, not the
+  sustained volley the other feedforward links carry, so the ordinary g_ff
+  left L6 below threshold most cycles. At ×6 every L5 burst reliably
+  reaches L6 — the propagation the corticothalamic "L6 kick" depends on.
+- **L5 → L2/3 feedback** (apical-tuft projection) was added so the
+  superficial layers can entrain to the L5 SO; L6 ↔ L5 recurrent excitation
+  was found to **desynchronise** the IB cells into irregular double-bursting
+  and is now off by default (`g_rec = 0`).
 
 ```
 ../.venv-neuron/bin/python cortex_neuron.py
-  L4 E: 2.0 Hz/cell mean -- UP state confined to a brief window per 1 Hz SO cycle
-  L6 E: 1.3 Hz/cell mean -- ...
+  L5 E: 1.5 Hz/cell mean, 12 UP states, inter-UP-state interval ~694 ms
+  L6 E: 2.1 Hz/cell mean, 12 UP states, inter-UP-state interval ~694 ms
+  (L4/L2/3 need thalamic/sensory drive to fire -- see ctx_thalamus_network.py)
 ```
 
-**`CorticoThalamicNet` (`ctx_thalamus_network.py`) closes the loop**: TC → L4
-(core, first-order thalamocortical), L6 → TC and L6 → RE (corticothalamic
-feedback — the review's "L6 kick" that triggers spindles, sect. V.B.2), on
-top of the existing RE↔TC/RE↔RE/gap-junction wiring from `ThalamicNet`. A
-periodic (~1 Hz) volley to L4 stands in for auditory input / spontaneous
-UP-state onset; the column's own SK2 adaptation makes each UP-state
-self-terminating, so this is a phasic kick once per SO cycle, not a tonic
-drive.
+### Bug found and fixed: `mod/ical.mod`'s `vtrap` was inverted
 
-### ⚠️ Open issue: `gh_tc = 4e-4` (the thalamus-only "13.4 Hz" point above) is
-### pathological once cortex is real, not a NetStim clock
+The HVA Ca²⁺ current's alpha-rate helper used `x/(1-exp(-x/y))` instead of
+the standard `x/(exp(x/y)-1)` (the form `mod/hh2.mod`'s own `vtrap` uses).
+For the Reuveni et al. 1993 alpha formula's operating range (`x/y ≈ 11` at
+rest) that is a **~5×10⁴× error**, which pinned the Ca²⁺ channel at ~78%
+open at -68 mV instead of near-zero — a lone `PYCell` fired **spontaneously
+at ~300 Hz with zero external input**, independent of any bursting
+mechanism. Confirmed fixed: a lone `PYCell` (RS, no `gnap`) is now silent at
+rest with no input, as it should be.
 
-The thalamus-only network's spindle-band result used `gh_tc = 4e-4`, already
-flagged above as "~20× Destexhe's published ghbar" and needing justification.
-Isolating a single `TCCell(gh=4e-4)` with **zero synaptic input** confirms
-why: it fires **spontaneously at ~103 Hz** — a pathological intrinsic
-pacemaker, not a rebound burst. In the thalamus-only model this was tamed by
-a single hand-tuned synchronous `NetStim` clock driving both RE and TC every
-cycle with exact timing; a real spiking cortex, with propagation delay and
-trial-to-trial jitter, does not reproduce that fragile balance, and TC
-free-runs. **`ctx_thalamus_network.py` therefore defaults to `gh_tc = 5e-5`**
-(≤5e-5 keeps a lone `TCCell` silent with no synaptic input at all — see
-`cortex_neuron`-style single-cell checks), which gives a stable, non-pathological
-network (TC ≈ 9 Hz, RE bursting ≈ 20–30 Hz per cycle, cortex confined to
-brief periodic UP states) but **not** yet the 10–15 Hz spindle band with
-correctly-timed waxing/waning — that tuning question, and the interaction
-between the cortical UP-state period and the thalamic loop period, is now
-open for the combined model, the same way spindle-band tuning was an open
-question for the thalamus-only model above.
+### The corticothalamic loop: reliable, non-pathological, but not yet a sustained 10–15 Hz train
+
+Two more findings, in order of how the tuning converged:
+
+1. **`gh_tc = 4e-4`** (the thalamus-only "13.4 Hz" result, `ThalamicNet`
+   above) makes an **isolated** `TCCell` fire spontaneously at ~103 Hz with
+   zero synaptic input — a pathological intrinsic pacemaker, not a rebound
+   burst. It only worked in `ThalamicNet` because of one hand-tuned
+   synchronous `NetStim` clock driving RE and TC together every cycle; a
+   real spiking cortex (propagation delay, jitter) does not reproduce that
+   fragile balance, and TC free-ran continuously (~40–100 Hz/cell) once
+   coupled to the column. **`ctx_thalamus_network.py` now defaults to
+   `gh_tc = 0`** (Destexhe et al.'s Ca²⁺-dependent I_h off), which keeps a
+   lone `TCCell` silent with zero input under any condition tested.
+2. With `gh_tc = 0`, sweeping the reciprocal RE↔TC gains against the real
+   L5-paced L6 kick (not a synchronous clock) found a working point at
+   **`g_re_tc = 0.015`, `g_tc_re = 0.011`**: each SO cycle's L6 kick drives a
+   clean RE burst (T-current rebound, ~20 spikes over ~60 ms) and 1–5
+   TC↔RE volleys at ~140 ms spacing (~7 Hz) before falling silent until the
+   next L6 kick 694 ms later — a genuine, non-pathological, SO-locked
+   thalamic burst event, and the first multi-cycle (as opposed to
+   single-shot) oscillatory train this model has produced.
+
+**What's still short of a real spindle:** the review's definition is a
+**sustained 10–15 Hz oscillation for 0.5–3 s** with a waxing/waning envelope.
+What's measured here is faster within a burst (individual RE spikes reach
+150–500 Hz intra-burst) but the RE↔TC **volley-to-volley** rate is ~7 Hz, not
+10–15 Hz, and the number of volleys per event is **inconsistent across
+cycles** (4–5 cycles on the first event, tapering to 1–2 on later ones) —
+the loop is not yet a clean, reliably-sustained resonator. The population
+spectrum (thalamic spike-rate FFT) accordingly peaks at the **SO event rate
+(~1.4 Hz)**, not 10–15 Hz; that number describes *how often* an event
+occurs, not the oscillation frequency *within* an event. Next levers, not
+yet tried: GABA_B (`g_re_tc_b`, implemented, off by default) for slower
+waxing/waning pacing; per-cell heterogeneity in the RE↔TC delay/weight to
+desynchronise the "loop resets exactly at the SO period" behaviour that
+currently caps most events at 1–2 cycles.
 
 ### Known limitations of this cortical column
 
@@ -431,3 +476,8 @@ question for the thalamus-only model above.
   were hand-tuned to a stable, non-pathological operating point, not swept
   systematically — treat them as a starting point for further calibration,
   not a validated result.
+- The RE↔TC loop produces a variable number of oscillatory cycles per SO
+  event (4–5 on the first event, 1–2 on later ones) at ~7 Hz, not a
+  consistent 10–15 Hz train lasting 0.5–3 s — see "not yet a sustained
+  10–15 Hz train" above. This is the main open item before calling the
+  model's output a spindle in the review's strict sense.

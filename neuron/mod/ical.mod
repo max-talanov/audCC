@@ -54,6 +54,11 @@ PROCEDURE evaluate(v(mV)) {
     minf  = alpha * taum
 }
 FUNCTION vtrap(x, y) {
-    if (fabs(x/y) < 1e-6) { vtrap = y * (1 + x/y/2) }
-    else { vtrap = x / (1 - exp(-x/y)) }
+    : x / (exp(x/y) - 1), the standard alpha-rate form (matches hh2.mod's
+    : vtrap). NOTE: an earlier version used x/(1-exp(-x/y)) = this * exp(x/y)
+    : -- for x/y ~ 11 that is a ~5x10^4 error, which pinned m_inf near 1 at
+    : rest (~-68 mV) instead of near 0 and caused spontaneous runaway firing
+    : with gcabar as low as 1.2e-4, independent of any bursting mechanism.
+    if (fabs(x/y) < 1e-6) { vtrap = y * (1 - x/y/2) }
+    else { vtrap = x / (exp(x/y) - 1) }
 }

@@ -5,16 +5,18 @@ sleep-spindle loop with a REAL spiking cortex instead of the sinusoidal SO
 proxy `tc_network_nrn.ThalamicNet._wire_cortex` used.
 
 Wiring (Fernandez & Luthi 2020, sect. V-VI; Mushtaq et al. 2024 Table 3):
-  TC  -> L4 E     thalamocortical core input (focal, first-order auditory)
-  L4 -> L2/3 -> L5 -> L6, L6 <-> L5   intracortical flow (cortex_neuron.py)
+  L5 IB cells (PYCellIB) -> L6         cortex's OWN ~1.4 Hz slow-oscillation
+                                        pacemaker (cortex_neuron.py) -- no
+                                        externally injected volley
   L6 E -> TC, L6 E -> RE              corticothalamic feedback: this is the
                                        "L6 kick" that triggers spindles
-                                       (review sect. V.B.2) -- now genuine L6
+                                       (review sect. V.B.2) -- genuine L6
                                        pyramidal spikes, not an injected
                                        NetStim clock.
   RE -> TC   GABA_A (+ optional GABA_B)
   TC -> RE   AMPA
   RE -> RE   GABA_A lateral inhibition + gap junctions
+  TC -> L4 E  (optional, off by default) sensory/auditory drive
 
 SK2 + Ca2+-dependent channels appear in BOTH structures, as in the article:
   thalamic RE  -- SK2 burst terminator (mod/sk2.mod + mod/cad.mod)
@@ -42,10 +44,10 @@ except ImportError:
 
 class CorticoThalamicNet:
     def __init__(self, n_tc=10, n_re=10, seed=1,
-                 g_re_tc=0.015, g_re_tc_b=0.0, g_tc_re=0.004,
+                 g_re_tc=0.015, g_re_tc_b=0.0, g_tc_re=0.011,
                  g_re_re=0.002, g_gap=0.03,
                  tc_bias=0.0, re_bias=0.0, tc_e_pas=-80.0, re_e_pas=-82.0,
-                 gsk_re=5e-5, gh_tc=5e-5,
+                 gsk_re=5e-5, gh_tc=0.0,
                  so_freq=1.0, g_l4_drive=0.03,
                  g_tc_l4=0.0005, g_l6_tc=0.03, g_l6_re=0.03,
                  column_kwargs=None):
@@ -149,14 +151,14 @@ class CorticoThalamicNet:
         for c in self.tc + self.re + self.column.all_cells():
             c.record()
 
-    def run(self, tstop=8000.0, drive_L4=True):
+    def run(self, tstop=8000.0, drive_L4=False):
         self.record()
         if drive_L4:
-            # A jittered volley to L4 once per SO cycle (~1 Hz) -- the
-            # column's own UP-state trigger (auditory input / spontaneous
-            # UP-state onset). CorticalColumn's SK2 adaptation makes each
-            # UP-state SELF-TERMINATING (see cortex_neuron._column_demo), so
-            # this is a periodic phasic kick, not a tonic drive.
+            # OPTIONAL sensory-like volley to L4 (auditory input), on top of
+            # the column's own SO. Not needed for the SO/spindle loop itself:
+            # L5's PYCellIB population (cortex_neuron.py) paces the column
+            # intrinsically at ~1.4 Hz and drives L6 -> TC/RE every cycle
+            # without any external trigger.
             period = 1000.0 / self.so_freq
             for t0 in np.arange(300.0, tstop, period):
                 ns = h.NetStim(); ns.interval = 4; ns.number = 6; ns.start = t0
@@ -208,11 +210,28 @@ class CorticoThalamicNet:
 
 
 if __name__ == "__main__":
-    print("NEURON corticothalamic network: cortical column (L4/L2/3/L5/L6) +")
-    print("thalamic TC<->RE loop, closed via TC->L4 and L6->TC/RE.\n")
+    print("NEURON corticothalamic network: cortical column (L4/L2/3/L5/L6,")
+    print("L5 self-paced) + thalamic TC<->RE loop, closed via L6->TC/RE.\n")
     net = CorticoThalamicNet()
-    spikes, traces, meta = net.run(tstop=4000.0)
+    spikes, traces, meta = net.run(tstop=8000.0)
     for lab, key in [("MGB (TC)", "MGB"), ("nRT (RE)", "nRT"),
                       ("L4", "L4"), ("L2/3", "L23"), ("L5", "L5"), ("L6", "L6")]:
         n = len(spikes[key]["times"])
         print(f"  {lab:<10}: {n} spikes ({n/(meta['tstop']/1000.0):.1f} Hz total)")
+
+    def _events(times, senders, cell=None, gap=50.0):
+        t = np.sort(times[senders == cell]) if cell is not None else np.sort(times)
+        if len(t) < 2:
+            return t, 0.0
+        starts = t[np.diff(t, prepend=-1e9) > gap]
+        period = np.mean(np.diff(starts)) if len(starts) > 1 else 0.0
+        return starts, period
+
+    re_starts, re_period = _events(spikes["nRT"]["times"], spikes["nRT"]["senders"],
+                                    cell=net.n_tc)
+    print(f"\n  RE burst events (cell 0): {len(re_starts)}, "
+          f"inter-event interval ~{re_period:.0f} ms "
+          f"({1000.0/re_period if re_period else 0:.2f} Hz event rate)")
+    print("  Each RE burst is a single fast rebound (T-current) volley locked")
+    print("  to the L6 corticothalamic kick -- NOT yet a sustained 10-15 Hz")
+    print("  multi-cycle spindle train. See neuron/README.md.")
