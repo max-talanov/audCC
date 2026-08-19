@@ -78,7 +78,13 @@ mkdir -p out
 echo "== NEURON MPI (corticothalamic): ${SLURM_NTASKS:-1} ranks, scale=${SCALE} =="
 
 if [ "${BENCH:-0}" = "1" ]; then
-    srun --mpi=pmix "$PY" neuron/ctx_thalamus_mpi.py --bench --conv "$CONV"
+    # BENCH_SCALES (optional): comma-separated --scale values, e.g. "0.02,0.05"
+    # for a fast small-rank correctness check. Unset -> ctx_thalamus_mpi.py's
+    # own default (0.1,0.5,1.0,1.65).
+    BENCH_ARGS=()
+    [ -n "${BENCH_SCALES:-}" ] && BENCH_ARGS+=(--bench-scales "$BENCH_SCALES")
+    [ -n "${BENCH_MS:-}" ] && BENCH_ARGS+=(--bench-ms "$BENCH_MS")
+    srun --mpi=pmix "$PY" neuron/ctx_thalamus_mpi.py --bench --conv "$CONV" "${BENCH_ARGS[@]}"
 else
     srun --mpi=pmix "$PY" neuron/ctx_thalamus_mpi.py \
         --scale "$SCALE" --tstop "$TSTOP" --conv "$CONV" \
