@@ -453,11 +453,60 @@ cycles** (4–5 cycles on the first event, tapering to 1–2 on later ones) —
 the loop is not yet a clean, reliably-sustained resonator. The population
 spectrum (thalamic spike-rate FFT) accordingly peaks at the **SO event rate
 (~1.4 Hz)**, not 10–15 Hz; that number describes *how often* an event
-occurs, not the oscillation frequency *within* an event. Next levers, not
-yet tried: GABA_B (`g_re_tc_b`, implemented, off by default) for slower
-waxing/waning pacing; per-cell heterogeneity in the RE↔TC delay/weight to
-desynchronise the "loop resets exactly at the SO period" behaviour that
-currently caps most events at 1–2 cycles.
+occurs, not the oscillation frequency *within* an event.
+
+## Heterogeneity (Aug 2026): a real lever, with a working point and a failure mode
+
+Every TC/RE/cortical cell above is parametrically identical — the only
+variability came from which random subset of synaptic partners each cell
+drew. That is a plausible reason the RE↔TC loop kept mode-locking to exactly
+the SO period (1–2 cycles/event) instead of ringing for several: with only
+10 TC + 10 RE cells, a handful of wiring motifs are all there is. Tested
+this directly rather than guessing: `ctx_thalamus_network.CorticoThalamicNet`
+now takes `het` (uniform ± `het` relative jitter on `e_pas` and `gcabar_it`/
+`gcabar_it2` for TC/RE, and on `e_pas`/`gnap` for cortical `PYCellIB`) and
+`delay_jitter` (± ms jitter on every synaptic delay), both propagated into
+`cortex_neuron.CorticalColumn` too.
+
+**Swept `het` ∈ {0, 0.05, 0.1, 0.2, 0.3} × `delay_jitter` ∈ {0, 1, 2 ms} × 5
+seeds, 15 s each (75 runs, ~29 min wall, within the 1 h budget):**
+
+| `het` | events with >3 cycles (of 5 seeds) | mean cycles/event | mean within-event Hz |
+|---|---|---|---|
+| 0.00 | 5/5 | 2.5 | 7.9 |
+| **0.05** | **5/5** | **7.5** | 6.3 |
+| 0.10 | 5/5 | 3.0 | 5.9 |
+| 0.20 | 2–3/5 | 7.5–8.5 | 5.5–7.6 |
+| 0.30 | 0–1/5 | ~1 or degenerate | mostly 0 (collapsed) |
+
+`delay_jitter` made little difference on its own at any `het`. **`het = 0.05`
+triples the mean cycle count (2.5 → 7.5) while staying stable across all 5
+seeds** — genuine multi-cycle burst trains instead of the near-uniform
+1–2-cycle events the homogeneous network produced (`out/` scratch figures:
+one seed gave 12 discrete events over 15 s with 4–20 cycles each, vs. the
+homogeneous network's near-constant 1–2). **`het ≥ 0.2` starts
+destabilising the network**: some seeds still work, but others either
+degenerate to a single ~15 s non-SO-locked run (the loop stops resetting
+between SO cycles) or nearly full silence — a different, worse failure
+mode than the homogeneous network's rigid-but-stable 1–2 cycles. `het =
+0.05` is now the default; higher values are available but not recommended
+without re-checking each seed individually.
+
+**What this does and does not answer.** Heterogeneity is confirmed as a
+real, working lever for event *duration* (cycle count) — not a hypothesis,
+a measured 3× effect. It does **not** move the within-event frequency
+into the 10–15 Hz band (5.5–7.9 Hz throughout the sweep, no trend toward
+15 Hz as `het` rises) — frequency looks set by something else (loop
+conduction delay + synaptic time constants, or coarse quantization from
+`n_re=10` giving very few effective phase-lag choices) that this cheap,
+same-N experiment cannot rule out. That is the argument for actually trying
+the bio-plausible cell count next: 5k cells gives a near-continuous
+distribution of both intrinsic parameters and RE↔TC delays "for free" from
+sampling, at a `het` too fine-grained to reach any other way, which is one
+of the two things this local sweep could not test (the other being genuine
+population-level progressive recruitment during waxing/waning). See
+`ctx_thalamus_mpi.py` / `MN5_NEURON.md` for the scale-out path this
+motivates.
 
 ### Known limitations of this cortical column
 

@@ -50,21 +50,31 @@ class CorticoThalamicNet:
                  gsk_re=5e-5, gh_tc=0.0,
                  so_freq=1.0, g_l4_drive=0.03,
                  g_tc_l4=0.0005, g_l6_tc=0.03, g_l6_re=0.03,
+                 het=0.05, delay_jitter=0.0,
                  column_kwargs=None):
         self.rng = np.random.default_rng(seed)
         self.n_tc, self.n_re = n_tc, n_re
         self.so_freq, self.g_l4_drive = so_freq, g_l4_drive
+        # het: per-cell relative jitter (uniform +/- het) on the intrinsic
+        # conductance densities that set burst threshold/timing (gcabar_it(2),
+        # e_pas). delay_jitter: +/- ms uniform jitter on every synaptic delay.
+        # Both are OFF by default (het=0) so nothing here changes prior
+        # behaviour; see neuron/README.md "Heterogeneity" for what this tests.
+        self.het, self.delay_jitter = het, delay_jitter
 
         # -- thalamus: same cells/calibration as tc_network_nrn.ThalamicNet --
         self.tc = [T.TCCell(gsk=0.0, gh=gh_tc) for _ in range(n_tc)]
         for c in self.tc:
-            c.soma.e_pas = tc_e_pas
+            c.soma.e_pas = tc_e_pas * self._jitter(1.0)
+            c.soma.gcabar_it *= self._jitter(1.0)
         self.re = [T.RECell(gsk=gsk_re) for _ in range(n_re)]
         for c in self.re:
-            c.soma.e_pas = re_e_pas
+            c.soma.e_pas = re_e_pas * self._jitter(1.0)
+            c.soma.gcabar_it2 *= self._jitter(1.0)
 
         # -- cortex: the real column, replacing the sinusoidal SO proxy --
-        self.column = C.CorticalColumn(seed=seed + 1, **(column_kwargs or {}))
+        self.column = C.CorticalColumn(seed=seed + 1, het=het,
+                                        **(column_kwargs or {}))
 
         self._syn, self._nc, self._stim, self._gaps, self._ic = [], [], [], [], []
 
@@ -81,6 +91,11 @@ class CorticoThalamicNet:
         self._wire_corticothalamic(g_l6_tc, g_l6_re)  # L6 -> TC, L6 -> RE
 
     # -- helpers --------------------------------------------------------
+    def _jitter(self, base):
+        if self.het == 0:
+            return base
+        return base * (1.0 + self.rng.uniform(-self.het, self.het))
+
     def _bias(self, cell, amp):
         if amp == 0:
             return
@@ -91,7 +106,11 @@ class CorticoThalamicNet:
         tgt = getattr(post, "synsec", post.soma)
         syn = h.Exp2Syn(tgt(0.5)); syn.e = e; syn.tau1 = tau1; syn.tau2 = tau2
         nc = h.NetCon(pre.soma(0.5)._ref_v, syn, sec=pre.soma)
-        nc.threshold = -10; nc.weight[0] = w; nc.delay = delay
+        nc.threshold = -10; nc.weight[0] = w
+        if self.delay_jitter > 0:
+            delay = max(0.1, delay + self.rng.uniform(-self.delay_jitter,
+                                                        self.delay_jitter))
+        nc.delay = delay
         self._syn.append(syn); self._nc.append(nc)
 
     def _project(self, pre_pop, post_pop, g, e, tau1, tau2, frac=0.5, delay=1.0):

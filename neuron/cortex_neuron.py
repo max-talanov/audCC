@@ -186,8 +186,9 @@ class CorticalColumn:
 
     def __init__(self, sizes=None, seed=2, g_ff=0.0015, g_rec=0.0,
                  g_e_i=0.02, g_i_e=0.08, gsk=8e-4, e_pas=-70.0,
-                 ib_frac=None):
+                 ib_frac=None, het=0.0):
         self.rng = np.random.default_rng(seed)
+        self.het = het
         sizes = sizes or LAYER_SIZES
         # Fraction of each layer's E population that is intrinsically
         # bursting (PYCellIB) rather than regular-spiking (PYCell).
@@ -200,15 +201,21 @@ class CorticalColumn:
         for name, n in sizes.items():
             frac = ib_frac.get(name, 0.0)
             n_ib = int(round(n["E"] * frac))
-            E = ([PYCellIB(e_pas=e_pas) for _ in range(n_ib)] +
-                 [PYCell(e_pas=e_pas, gsk=gsk) for _ in range(n["E"] - n_ib)])
-            I = [FSCell(e_pas=e_pas + 2) for _ in range(n["I"])]
+            E = ([PYCellIB(e_pas=self._j(e_pas), gnap=self._j(2e-4)) for _ in range(n_ib)] +
+                 [PYCell(e_pas=self._j(e_pas), gsk=gsk) for _ in range(n["E"] - n_ib)])
+            I = [FSCell(e_pas=self._j(e_pas + 2)) for _ in range(n["I"])]
             self.layers[name] = {"E": E, "I": I}
         self._syn, self._nc = [], []
 
         self._wire_intracortical(g_ff, g_rec)
         for name in self.layers:
             self._wire_layer_inh(name, g_e_i, g_i_e)
+
+    def _j(self, base):
+        """Per-cell heterogeneity: uniform +/- self.het relative jitter."""
+        if self.het == 0:
+            return base
+        return base * (1.0 + self.rng.uniform(-self.het, self.het))
 
     # -- helpers ------------------------------------------------------------
     def _connect(self, pre, post, e, tau1, tau2, w, delay=1.0, k=None):
