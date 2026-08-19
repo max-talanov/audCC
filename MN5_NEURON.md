@@ -8,14 +8,15 @@ results.
 
 ## Files to upload
 
-Only 10 files — `tc_mpi.py` imports `tc_neuron` and nothing else from the repo.
+Only 11 files — `tc_mpi.py` imports `tc_neuron` and nothing else from the repo.
 
 | path | why |
 |------|-----|
 | `run_nrn.sh` | SLURM script (100 tasks) |
 | `neuron/tc_mpi.py` | the MPI network + benchmark |
 | `neuron/tc_neuron.py` | `TCCell` / `RECell` — the cell definitions |
-| `neuron/mod/itd.mod` | Destexhe T-current (the burst generator) |
+| `neuron/mod/IT.mod` | published Destexhe T-current, relay isoform Ca_v3.1 (the TC burst generator) |
+| `neuron/mod/IT2.mod` | published Destexhe T-current, reticular isoform Ca_v3.3 (the RE burst generator) |
 | `neuron/mod/hh2.mod` | Traub–Miles Na⁺/K⁺ spikes |
 | `neuron/mod/cad.mod` | submembrane Ca²⁺ pool |
 | `neuron/mod/sk2.mod` | SK2 Ca²⁺-activated K⁺ |
@@ -127,7 +128,7 @@ size, not the 10+10 (thalamus) + ~40-cell (cortex) laptop demo. That is what
 convergence pattern as `tc_mpi.py`, extended with the full L4/L2-3/L5/L6
 column.
 
-### Files to upload (adds 4 to the thalamus-only list)
+### Files to upload (adds 5 to the thalamus-only list, 16 total)
 
 | path | why |
 |------|-----|
