@@ -346,21 +346,35 @@ def main():
         if rank == 0:
             print("=== NEURON MPI corticothalamic scaling benchmark (%d ranks) ==="
                   % nhost)
-            print("%-9s %-9s %-11s %-13s" % ("cells", "wall (s)", "x realtime",
-                                             "s per 1k cells"))
-            print("-" * 46)
+            # spikes/gid breakdown is printed alongside timing SPECIFICALLY so
+            # this doubles as the rank-count correctness check: run the same
+            # --bench-scales at --ntasks 2 and --ntasks 4 and diff the spike
+            # counts, not just the timing (timing alone says nothing about
+            # whether cross-rank gid_connect / gap junctions are wired right).
+            print("%-9s %-9s %-11s %-13s %-9s %-6s %-6s %-6s"
+                  % ("cells", "wall (s)", "x realtime", "s per 1k cells",
+                     "spikes", "TC", "RE", "L6E"))
+            print("-" * 76)
         for s in [float(x) for x in a.bench_scales.split(",")]:
             sizes = {k: max(1, int(round(v * s))) for k, v in DEFAULT_SIZES.items()}
             net = ParallelCorticoThalamicNet(sizes=sizes, conv=a.conv)
             wall = net.run(tstop=a.bench_ms)
+            t, g = net.gather()
             if rank == 0:
-                print("%-9d %-9.1f %-11.2f %-13.2f"
+                tc_lo, tc_hi = net.ranges["tc"]
+                re_lo, re_hi = net.ranges["re"]
+                l6_lo, l6_hi = net.ranges["l6e"]
+                n = len(t) if t is not None else 0
+                n_tc = int(((g >= tc_lo) & (g < tc_hi)).sum()) if n else 0
+                n_re = int(((g >= re_lo) & (g < re_hi)).sum()) if n else 0
+                n_l6 = int(((g >= l6_lo) & (g < l6_hi)).sum()) if n else 0
+                print("%-9d %-9.1f %-11.2f %-13.2f %-9d %-6d %-6d %-6d"
                       % (net.n_total, wall, wall / (a.bench_ms / 1000.0),
-                         wall / (net.n_total / 1000.0)))
+                         wall / (net.n_total / 1000.0), n, n_tc, n_re, n_l6))
             net.teardown()
             del net
         if rank == 0:
-            print("-" * 46)
+            print("-" * 76)
         pc.barrier()
         pc.done()
         h.quit()
