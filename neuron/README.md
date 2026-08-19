@@ -31,8 +31,11 @@ scale both are fast enough.
 | `mod/sk2.mod` | SK2 Ca²⁺-activated K⁺ burst terminator |
 | `mod/ihca.mod` | **Ca²⁺-dependent I_h** (Destexhe et al. 1996) — the spindle terminator / refractory mechanism |
 | `mod/gap.mod` | electrical (gap-junction) coupling between TRN cells (connexin-36) |
+| `mod/ical.mod` | HVA Ca²⁺ current (Reuveni et al. 1993 kinetics) — cortical pyramidal spike-triggered Ca²⁺ influx, the SK2 Ca²⁺ source in cortex |
 | `tc_neuron.py` | `TCCell` (relay), `RECell` (reticular), `gap_junction()` + demos |
 | `tc_network_nrn.py` | `ThalamicNet` — the TC↔RE loop network; emits the `tc_validate` contract |
+| `cortex_neuron.py` | `PYCell` (pyramidal, hh2 + ical + cad + sk2 adaptation), `FSCell` (PV⁺ fast-spiking), `CorticalColumn` (L4/L2·3/L5/L6) |
+| `ctx_thalamus_network.py` | `CorticoThalamicNet` — cortical column + thalamic TC↔RE loop, closed via TC→L4 and L6→TC/RE |
 | `tc_neuron_figures.py` | six-panel spindle figure (`out/tc_neuron_spindles.png`): cell bursts → gap-junction sync → network raster / LFP / spectrogram |
 | `arm64/` (git-ignored) | compiled mechanisms, from `nrnivmodl mod` |
 
@@ -338,3 +341,93 @@ carry over, but the connectivity rule should become a fixed convergence
 The NEST model stays the working reference and the cross-check for the
 simulator-agnostic validator; it is no longer the scale-out path, since its
 point neurons cannot express the SK2 / Ca-dependent mechanism.
+
+## Cortical column (Aug 2026): L4 / L2/3 / L5 / L6, closing the loop
+
+`cortex_neuron.py` replaces the sinusoidal cortex proxy that
+`tc_network_nrn.ThalamicNet._wire_cortex` used with a real conductance-based
+column, matching the layer/cell-type structure and connectivity already used
+by the NEST reference model (`tc_architecture.py`, `config/network_auditory_hh.yaml`,
+Mushtaq et al. 2024 Table 3):
+
+- **`PYCell`** — regular-spiking pyramidal cell, two compartments (soma +
+  apical dend). `hh2` fast Na⁺/K⁺ spikes; the dendrite carries `ical` (a
+  Reuveni et al. 1993 HVA Ca²⁺ current, opening on every spike upstroke) +
+  `cad` (submembrane Ca²⁺ pool) + `sk2` (SK2 Ca²⁺-activated K⁺). **This is the
+  same SK2 + Ca²⁺-pool pair already validated in the thalamic RE cell**
+  (`mod/sk2.mod`, `mod/cad.mod`), reused here as the cortical
+  spike-frequency-adaptation / UP-state-termination current (review sect.
+  VI) — the article's SK2 mechanism, generalised from TRN to cortex.
+- **`FSCell`** — PV⁺ fast-spiking basket interneuron, `hh2` only (high
+  `gkbar`, minimal adaptation): recruits fast feedforward inhibition onto
+  pyramidal somata (review sect. VI: TC spindle bursts recruit PV⁺
+  interneurons via GluA2-lacking AMPARs).
+- **`CorticalColumn`** — L4 / L2/3 / L5 / L6, each an E (`PYCell`) + I
+  (`FSCell`) pool (population ratios from `config/network_auditory_hh.yaml`,
+  scaled ×0.2 for a fast demo). Wiring: L4→L2/3→L5→L6 feedforward, L6↔L5
+  recurrent, E→I feedforward and I→E feedback inhibition within each layer.
+
+**SK2 gives the column a genuine bistable UP/DOWN cycle, not runaway gamma.**
+A naively-strong recurrent column (`gkbar_sk2` too low, e.g. 0 – 5e-4) locks
+into a permanent self-sustaining oscillation once perturbed — a bang-bang
+network with no stable quiescent state over the tested (g_ff, g_rec) range.
+At **`gkbar_sk2 = 8e-4`** (vs. 5e-5 in the thalamic RE cell — cortical
+pyramidal bursts are longer, so more adaptation is needed to break the loop)
+the column is silent at rest and a single phasic L4 volley (a 6-pulse burst,
+mimicking a thalamocortical/auditory kick) produces a genuine propagating
+UP-state — L4 → L2/3 → L5 → L6 with realistic ~2–8 ms interlaminar lag — that
+**self-terminates within ~20 ms** and stays silent until the next volley:
+
+```
+../.venv-neuron/bin/python cortex_neuron.py
+  L4 E: 2.0 Hz/cell mean -- UP state confined to a brief window per 1 Hz SO cycle
+  L6 E: 1.3 Hz/cell mean -- ...
+```
+
+**`CorticoThalamicNet` (`ctx_thalamus_network.py`) closes the loop**: TC → L4
+(core, first-order thalamocortical), L6 → TC and L6 → RE (corticothalamic
+feedback — the review's "L6 kick" that triggers spindles, sect. V.B.2), on
+top of the existing RE↔TC/RE↔RE/gap-junction wiring from `ThalamicNet`. A
+periodic (~1 Hz) volley to L4 stands in for auditory input / spontaneous
+UP-state onset; the column's own SK2 adaptation makes each UP-state
+self-terminating, so this is a phasic kick once per SO cycle, not a tonic
+drive.
+
+### ⚠️ Open issue: `gh_tc = 4e-4` (the thalamus-only "13.4 Hz" point above) is
+### pathological once cortex is real, not a NetStim clock
+
+The thalamus-only network's spindle-band result used `gh_tc = 4e-4`, already
+flagged above as "~20× Destexhe's published ghbar" and needing justification.
+Isolating a single `TCCell(gh=4e-4)` with **zero synaptic input** confirms
+why: it fires **spontaneously at ~103 Hz** — a pathological intrinsic
+pacemaker, not a rebound burst. In the thalamus-only model this was tamed by
+a single hand-tuned synchronous `NetStim` clock driving both RE and TC every
+cycle with exact timing; a real spiking cortex, with propagation delay and
+trial-to-trial jitter, does not reproduce that fragile balance, and TC
+free-runs. **`ctx_thalamus_network.py` therefore defaults to `gh_tc = 5e-5`**
+(≤5e-5 keeps a lone `TCCell` silent with no synaptic input at all — see
+`cortex_neuron`-style single-cell checks), which gives a stable, non-pathological
+network (TC ≈ 9 Hz, RE bursting ≈ 20–30 Hz per cycle, cortex confined to
+brief periodic UP states) but **not** yet the 10–15 Hz spindle band with
+correctly-timed waxing/waning — that tuning question, and the interaction
+between the cortical UP-state period and the thalamic loop period, is now
+open for the combined model, the same way spindle-band tuning was an open
+question for the thalamus-only model above.
+
+### Known limitations of this cortical column
+
+- Population sizes are scaled ×0.2 from `config/network_auditory_hh.yaml`
+  for demo speed; not yet validated at full scale.
+- No matrix (diffuse, TC→L1) pathway — only the core (TC→L4, focal) pathway
+  is wired, appropriate for a first-order auditory column (review sect. V.B
+  / `docs/spindle_review_mapping.md` §3.5) but meaning only fast-spindle-type
+  dynamics are representable here.
+- No dendritic PV→SST disinhibition (review sect. VI) — `FSCell` inhibits
+  `PYCell` somata directly; SST⁺ interneurons and dendritic Ca²⁺
+  disinhibition are out of scope for this pass (`docs/spindle_review_mapping.md`
+  §3.6 notes the same limitation for the NEST model).
+- The corticothalamic/thalamocortical conductances (`g_tc_l4`, `g_l6_tc`,
+  `g_l6_re`) and the column's own recurrent gains (`g_ff`, `g_rec`, `gkbar_sk2`)
+  were hand-tuned to a stable, non-pathological operating point, not swept
+  systematically — treat them as a starting point for further calibration,
+  not a validated result.

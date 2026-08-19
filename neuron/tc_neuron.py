@@ -31,7 +31,7 @@ from neuron import h
 h.load_file("stdrun.hoc")
 # load the compiled T-current (arm64/x86_64 dir next to this file)
 _here = os.path.dirname(os.path.abspath(__file__))
-if not hasattr(h, "cav3"):
+if not hasattr(h, "it"):
     # .so on Linux (MN5), .dylib on macOS -- checking only .dylib silently left
     # every mechanism unloaded on the cluster, surfacing much later as
     # "ValueError: argument not a density mechanism name" on insert("hh2").
