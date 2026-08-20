@@ -508,6 +508,54 @@ population-level progressive recruitment during waxing/waning). See
 `ctx_thalamus_mpi.py` / `MN5_NEURON.md` for the scale-out path this
 motivates.
 
+## MN5 5k-scale result (Aug 2026): heterogeneity on the L5 pacemaker breaks the loop entirely
+
+The first bio-plausible production run (100 ranks, 5031 cells, `SCALE=1.65`,
+`TSTOP=200000`, job 44844450 -- see git history for the full exchange) came
+back structurally broken, not just "not yet spindle-band": **RE and
+L4/L2-3 never fired even once in 200 s**, L6E fired 26 times total (all in
+the first 52 ms -- the init transient, never again), and L5's inhibitory
+population (`l5i`) sat at a flat **12 Hz for the entire 200 s** from the
+first 5 s bin onward -- not a transient runaway, a stable wrong attractor.
+
+**Root cause, confirmed by a direct A/B test** (`ctx_thalamus_mpi.py`,
+scale=0.3, 159 L5E cells, 8 s): with `het` jittering `PYCellIB`'s burst-timing
+parameters (`e_pas`, `gnap`), L6E and RE both stay at **0 active cells**;
+turning that jitter off (`het=0.0` everywhere) restores **126/126 L6E and
+16/16 RE active**. The Aug 2026 heterogeneity study above only tested this at
+n≈10 thalamic cells and a ~5-cell L5 IB subpopulation -- too small to expose
+the failure mode. At bio-plausible scale (400+ independent IB pacemakers),
+jittering each cell's burst phase/threshold is exactly a weakly-coupled-
+oscillator desynchronisation problem: without shared timing, the population
+drifts out of phase and never produces a coincident burst again after the
+initial (artificial, initialisation-driven) transient. No coincident L5
+burst means L5→L6 never crosses threshold, which cascades: no L6 output →
+no corticothalamic drive → RE never triggered → TC never rebounds → L4/L2-3
+(which have no intrinsic driver of their own) never wake up. Meanwhile L5's
+interneurons, receiving a smeared-out, now-continuous-rather-than-phasic
+barrage from 100 (`conv`) independently-timed sources, settle into tonic
+firing instead of a burst terminator.
+
+**Fix, verified by the same A/B test with the fix applied:** keep
+heterogeneity everywhere it was shown to help (TC, RE, cortical RS/FS cells)
+but make `PYCellIB`'s `e_pas`/`gnap` homogeneous again -- the SO-generating
+pacemaker population needs to stay in phase; nothing downstream of it needs
+it to be individually jittered. With the fix, the same 159-L5E-cell network
+at `het=0.05` reaches **100% active L6E (126/126), RE (16/16), and TC
+(63/63)** -- matching or beating the `het=0` control. Both
+`cortex_neuron.CorticalColumn` and `ctx_thalamus_mpi.ParallelCorticoThalamicNet`
+are fixed; the fix has NOT yet been re-run at the full 5031-cell / 200 s MN5
+production scale (that is the next thing to do once this is on `main`).
+
+**Lesson for future scale-out work in this model:** "does bio-plausible N
+fix an open dynamical question" is not a safe default hope -- a mechanism
+that depends on population-level synchrony (here, the SO pacemaker) can
+break, not improve, when naively scaled with per-cell heterogeneity, even
+though heterogeneity was independently validated as beneficial for a
+*different* part of the same network (the RE↔TC loop). Test each population
+separately before assuming a global heterogeneity/scale knob helps
+uniformly.
+
 ### Known limitations of this cortical column
 
 - Population sizes are scaled ×0.2 from `config/network_auditory_hh.yaml`

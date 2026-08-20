@@ -176,8 +176,16 @@ class ParallelCorticoThalamicNet:
         n = phi - plo
         n_ib = int(round(n * self.ib_frac)) if pop == "l5e" else 0
         if gid - plo < n_ib:
-            return C.PYCellIB(e_pas=self._jitter(-70.0, gid, 1),
-                               gnap=self._jitter(2e-4, gid, 3))
+            # NO jitter on e_pas/gnap here -- confirmed by direct A/B test
+            # (scale=0.3, 159 L5E cells): with het on gnap/e_pas, 437 (full
+            # scale) independently-phased IB pacemakers never coincide again
+            # after the initial transient (L6E/RE stayed at ~0 spikes for the
+            # full 200 s MN5 production run, job 44844450); with those two
+            # parameters homogeneous, the SAME network's L6/RE come alive
+            # (100% of both populations active). Heterogeneity elsewhere
+            # (TC/RE/RS/FS below) is unaffected and still applied -- this is
+            # what actually helped in the original 10-cell sweep.
+            return C.PYCellIB(e_pas=-70.0, gnap=2e-4)
         return C.PYCell(e_pas=self._jitter(-70.0, gid, 1), gsk=8e-4)
 
     # ------------------------------------------------------------------ utils

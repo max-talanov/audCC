@@ -201,7 +201,19 @@ class CorticalColumn:
         for name, n in sizes.items():
             frac = ib_frac.get(name, 0.0)
             n_ib = int(round(n["E"] * frac))
-            E = ([PYCellIB(e_pas=self._j(e_pas), gnap=self._j(2e-4)) for _ in range(n_ib)] +
+            # NO jitter on PYCellIB's e_pas/gnap: an MPI scale-out test
+            # (ctx_thalamus_mpi.py, 159-874 L5E cells) found that jittering
+            # these two burst-TIMING parameters desynchronises the IB
+            # population once it's large enough that independent phase drift
+            # dominates over shared network coupling -- the population never
+            # produces a coincident burst again after the initial transient,
+            # and L6/RE go to ~0 spikes for the rest of the run (confirmed on
+            # MN5, job 44844450, and reproduced locally: het=0.05 -> L6E/RE
+            # =0 spikes over 8s; removing IB jitter alone restores 100%
+            # active L6E/RE). Heterogeneity elsewhere (TC/RE/RS/FS) is kept --
+            # that's what helped in the original 10-cell sweep -- only the
+            # SO-generating pacemaker population needs to stay in phase.
+            E = ([PYCellIB(e_pas=e_pas, gnap=2e-4) for _ in range(n_ib)] +
                  [PYCell(e_pas=self._j(e_pas), gsk=gsk) for _ in range(n["E"] - n_ib)])
             I = [FSCell(e_pas=self._j(e_pas + 2)) for _ in range(n["I"])]
             self.layers[name] = {"E": E, "I": I}
