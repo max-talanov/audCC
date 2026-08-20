@@ -77,7 +77,8 @@ class ParallelCorticoThalamicNet:
                  g_ff=0.0015, g_l5_l6=0.009, g_l5_l23=0.0015,
                  g_e_i=0.02, g_i_e=0.08, gsk_cx=8e-4, ib_frac=0.5,
                  g_tc_l4=0.0005, g_l6_tc=0.03, g_l6_re=0.03,
-                 conv=100, gap_deg=6, gap_short=2):
+                 conv=100, gap_deg=6, gap_short=2,
+                 het=0.05, delay_jitter=0.0):
         self.pc = h.ParallelContext()
         self.rank = int(self.pc.id())
         self.nhost = int(self.pc.nhost())
@@ -88,6 +89,19 @@ class ParallelCorticoThalamicNet:
         self.cells, self.syns = {}, {}
         self.ncs, self.stims, self.gaps = [], [], []
         self.ib_frac = ib_frac
+        # het/delay_jitter: SAME per-cell heterogeneity as the serial model
+        # (ctx_thalamus_network.CorticoThalamicNet), which measured a 3x gain
+        # in RE<->TC oscillatory cycles per SO event at het=0.05 (see
+        # neuron/README.md "Heterogeneity"). Ported here so a production run
+        # at bio-plausible scale reflects that finding rather than silently
+        # regressing to the homogeneous (2.5 cycles/event) behaviour.
+        # CRITICAL: jitter must be a DETERMINISTIC function of gid (its own
+        # RNG stream, not self.rng), or the result depends on which rank
+        # happens to build a given cell/connection -- exactly the rank-count
+        # dependence the fixed-convergence design (see _draw's docstring
+        # note) exists to avoid, and the property just verified on MN5
+        # (identical spike counts at 2/4/100 ranks).
+        self.het, self.delay_jitter = het, delay_jitter
 
         # -- gid ranges (contiguous blocks) ----------------------------------
         self.ranges = {}
@@ -131,17 +145,30 @@ class ParallelCorticoThalamicNet:
         self.pc.spike_record(-1, self.tspk, self.gspk)
 
     # ------------------------------------------------------------- cell build
+    JITTER_OFFSET = 10_000_000  # keeps _jitter's per-gid RNG stream disjoint
+                                 # from _draw's per-gid connectivity streams
+
+    def _jitter(self, base, gid, salt=0):
+        """Deterministic function of (gid, salt) -- NOT self.rng -- so the
+        result is independent of which rank built this cell/connection."""
+        if self.het == 0:
+            return base
+        r = np.random.default_rng(self.JITTER_OFFSET + gid * 97 + salt)
+        return base * (1.0 + r.uniform(-self.het, self.het))
+
     def _make_cell(self, pop, gid):
         if pop == "tc":
             c = T.TCCell(gsk=0.0, gh=0.0)
-            c.soma.e_pas = -80.0
+            c.soma.e_pas = self._jitter(-80.0, gid, 1)
+            c.soma.gcabar_it *= self._jitter(1.0, gid, 2)
             return c
         if pop == "re":
             c = T.RECell(gsk=5e-5)
-            c.soma.e_pas = -82.0
+            c.soma.e_pas = self._jitter(-82.0, gid, 1)
+            c.soma.gcabar_it2 *= self._jitter(1.0, gid, 2)
             return c
         if pop.endswith("i"):
-            return C.FSCell(e_pas=-68.0)
+            return C.FSCell(e_pas=self._jitter(-68.0, gid, 1))
         # excitatory cortical: L5 gets a deterministic IB fraction (first
         # ib_frac of each layer's local gid range) so it is reproducible
         # across rank counts, matching the fixed-convergence philosophy.
@@ -149,8 +176,9 @@ class ParallelCorticoThalamicNet:
         n = phi - plo
         n_ib = int(round(n * self.ib_frac)) if pop == "l5e" else 0
         if gid - plo < n_ib:
-            return C.PYCellIB(e_pas=-70.0)
-        return C.PYCell(e_pas=-70.0, gsk=8e-4)
+            return C.PYCellIB(e_pas=self._jitter(-70.0, gid, 1),
+                               gnap=self._jitter(2e-4, gid, 3))
+        return C.PYCell(e_pas=self._jitter(-70.0, gid, 1), gsk=8e-4)
 
     # ------------------------------------------------------------------ utils
     def _register(self, gid, cell):
@@ -171,7 +199,12 @@ class ParallelCorticoThalamicNet:
         k = min(k, n)
         return (lo + r.choice(n, size=k, replace=False)) if n and k else []
 
-    def _connect(self, src_gid, syn, weight, delay):
+    def _connect(self, src_gid, syn, weight, delay, dst_gid=None):
+        if self.delay_jitter > 0 and dst_gid is not None:
+            r = np.random.default_rng(self.JITTER_OFFSET * 2
+                                       + int(src_gid) * 97 + int(dst_gid))
+            delay = max(0.1, delay + r.uniform(-self.delay_jitter,
+                                                self.delay_jitter))
         nc = self.pc.gid_connect(int(src_gid), syn)
         nc.weight[0], nc.delay = weight, delay
         self.ncs.append(nc)
@@ -190,7 +223,7 @@ class ParallelCorticoThalamicNet:
             syn.e, syn.tau1, syn.tau2 = e, tau1, tau2
             self.syns[(key, gid)] = syn
             for src in self._draw(gid + seed_offset, plo, phi, k):
-                self._connect(src, syn, g / k, delay)
+                self._connect(src, syn, g / k, delay, dst_gid=gid)
 
     # -- intrathalamic wiring (params matched to ctx_thalamus_network.py) --
     def _wire_re_tc(self, g):
@@ -213,7 +246,7 @@ class ParallelCorticoThalamicNet:
             i = gid - rlo
             for j in range(max(0, i - 2), min(n_re, i + 3)):
                 if j != i:
-                    self._connect(rlo + j, syn, g, 1.0)
+                    self._connect(rlo + j, syn, g, 1.0, dst_gid=gid)
 
     def _wire_gap(self, g, gap_deg, gap_short):
         """Cross-rank gap junctions between RE cells (pc.setup_transfer),
@@ -338,6 +371,14 @@ def main():
                     help="comma-separated --scale values for --bench "
                          "(1.65x default ~= 5010, the NEST model's actual size)")
     ap.add_argument("--bench-ms", type=float, default=1000.0)
+    ap.add_argument("--het", type=float, default=0.05,
+                    help="per-cell heterogeneity, uniform +/- fraction on "
+                         "e_pas/gcabar_it(2)/gnap (default matches the "
+                         "serial model's validated 0.05; see neuron/README.md "
+                         "'Heterogeneity'). Deterministic per-gid, so results "
+                         "stay rank-count independent.")
+    ap.add_argument("--delay-jitter", type=float, default=0.0,
+                    help="+/- ms uniform jitter on every synaptic delay")
     a = ap.parse_args()
 
     if a.bench:
@@ -357,7 +398,9 @@ def main():
             print("-" * 76)
         for s in [float(x) for x in a.bench_scales.split(",")]:
             sizes = {k: max(1, int(round(v * s))) for k, v in DEFAULT_SIZES.items()}
-            net = ParallelCorticoThalamicNet(sizes=sizes, conv=a.conv)
+            net = ParallelCorticoThalamicNet(sizes=sizes, conv=a.conv,
+                                              het=a.het,
+                                              delay_jitter=a.delay_jitter)
             wall = net.run(tstop=a.bench_ms)
             t, g = net.gather()
             if rank == 0:
@@ -381,7 +424,8 @@ def main():
         return
 
     sizes = {k: max(1, int(round(v * a.scale))) for k, v in DEFAULT_SIZES.items()}
-    net = ParallelCorticoThalamicNet(sizes=sizes, conv=a.conv)
+    net = ParallelCorticoThalamicNet(sizes=sizes, conv=a.conv, het=a.het,
+                                      delay_jitter=a.delay_jitter)
     wall = net.run(tstop=a.tstop)
     t, g = net.gather()
     if net.rank == 0:
