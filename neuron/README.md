@@ -536,25 +536,55 @@ interneurons, receiving a smeared-out, now-continuous-rather-than-phasic
 barrage from 100 (`conv`) independently-timed sources, settle into tonic
 firing instead of a burst terminator.
 
-**Fix, verified by the same A/B test with the fix applied:** keep
-heterogeneity everywhere it was shown to help (TC, RE, cortical RS/FS cells)
-but make `PYCellIB`'s `e_pas`/`gnap` homogeneous again -- the SO-generating
-pacemaker population needs to stay in phase; nothing downstream of it needs
-it to be individually jittered. With the fix, the same 159-L5E-cell network
-at `het=0.05` reaches **100% active L6E (126/126), RE (16/16), and TC
-(63/63)** -- matching or beating the `het=0` control. Both
-`cortex_neuron.CorticalColumn` and `ctx_thalamus_mpi.ParallelCorticoThalamicNet`
-are fixed; the fix has NOT yet been re-run at the full 5031-cell / 200 s MN5
-production scale (that is the next thing to do once this is on `main`).
+**First fix attempted (superseded, see below):** make `PYCellIB`'s `e_pas`/
+`gnap` homogeneous, keeping heterogeneity everywhere else. This DID restore
+the loop at the 159-L5E-cell scale tested (100% active L6E/RE/TC) -- but
+re-running the actual MN5 production job (5031 cells, 100 ranks, job
+44881087) showed the fix only partially transfers: L6E's activity stopped
+being confined to the initial transient (26 → 1484 spikes over 200 s), but
+**RE still fired its entire output in the first 5 s bin and then exactly
+zero for the remaining 195 s**, and L5I was still locked at a flat,
+sustained **~17 Hz for the full 200 s**. A follow-up local scale sweep
+(0.3/0.5/0.8/1.0, same fix, same `het`) found the loop works cleanly at
+159 and 265 L5E cells, **collapses hard between 265 and 424**, and only
+partially recovers at 530 -- a genuine bifurcation in network size, not a
+smooth degradation, and not the same failure the homogenisation fix
+targeted. Homogenising the IB cells' parameters removed one source of
+desynchronisation (independent phase/threshold drift) but not a second,
+independent one: with a fixed `conv` sampling an ever-larger source pool,
+different downstream targets share less and less overlapping input, which
+weakens the common-input correlation that population synchrony also
+depends on.
+
+**Real fix: give L5's IB cells an explicit synchronising mechanism instead
+of removing their heterogeneity.** Homogenising `e_pas`/`gnap` was the wrong
+kind of fix on reflection -- individual cell-to-cell variability is the
+biologically correct default (no two real neurons are copies of one ideal
+cell), and it is also not what the follow-up sweep says is failing. TRN
+cells in this same model already combine per-cell heterogeneity **and**
+`RE<->RE` gap junctions (`mod/gap.mod` / `mod/gapmpi.mod`) for exactly this
+reason: heterogeneity for realism, electrical coupling for the population-
+level synchrony the mechanism actually needs. `PYCellIB`'s `e_pas`/`gnap`
+jitter is now **restored**, and L5's IB cells get the same small-world gap-
+junction topology as RE (`CorticalColumn._wire_l5_gap_junctions` /
+`ParallelCorticoThalamicNet._wire_l5_gap`, default `g_l5_gap=0.02`). Verified
+at the 159-L5E-cell scale (where the network already worked without gaps,
+so this is a no-regression check): 100% active L6E/RE/TC, matching the
+pre-gap-junction result. **Not yet re-verified at the 424+-cell scale where
+the bifurcation actually occurs** -- local single-process wall-clock time at
+that size is impractically slow on this machine (the same network the MN5
+100-rank benchmark ran in ~400 s took >300 s just for an 8 s local
+smoke-test at a third of the scale), so the real check belongs on MN5,
+where the equivalent production run is fast.
 
 **Lesson for future scale-out work in this model:** "does bio-plausible N
 fix an open dynamical question" is not a safe default hope -- a mechanism
 that depends on population-level synchrony (here, the SO pacemaker) can
 break, not improve, when naively scaled with per-cell heterogeneity, even
 though heterogeneity was independently validated as beneficial for a
-*different* part of the same network (the RE↔TC loop). Test each population
-separately before assuming a global heterogeneity/scale knob helps
-uniformly.
+*different* part of the same network (the RE↔TC loop), AND the standard fix
+is to add an explicit coupling mechanism (gap junctions), not to remove the
+heterogeneity that made the population realistic in the first place.
 
 ### Known limitations of this cortical column
 

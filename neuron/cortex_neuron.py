@@ -47,6 +47,11 @@ import os
 import numpy as np
 from neuron import h
 
+try:
+    from . import tc_neuron as _T
+except ImportError:
+    import tc_neuron as _T
+
 h.load_file("stdrun.hoc")
 _here = os.path.dirname(os.path.abspath(__file__))
 if not hasattr(h, "ical"):
@@ -186,9 +191,13 @@ class CorticalColumn:
 
     def __init__(self, sizes=None, seed=2, g_ff=0.0015, g_rec=0.0,
                  g_e_i=0.02, g_i_e=0.08, gsk=8e-4, e_pas=-70.0,
-                 ib_frac=None, het=0.0):
+                 ib_frac=None, het=0.0, g_l5_gap=0.02, l5_gap_deg=6,
+                 l5_gap_short=2):
         self.rng = np.random.default_rng(seed)
         self.het = het
+        self.g_l5_gap, self.l5_gap_deg, self.l5_gap_short = (
+            g_l5_gap, l5_gap_deg, l5_gap_short)
+        self._l5_ib = []
         sizes = sizes or LAYER_SIZES
         # Fraction of each layer's E population that is intrinsically
         # bursting (PYCellIB) rather than regular-spiking (PYCell).
@@ -201,27 +210,32 @@ class CorticalColumn:
         for name, n in sizes.items():
             frac = ib_frac.get(name, 0.0)
             n_ib = int(round(n["E"] * frac))
-            # NO jitter on PYCellIB's e_pas/gnap: an MPI scale-out test
-            # (ctx_thalamus_mpi.py, 159-874 L5E cells) found that jittering
-            # these two burst-TIMING parameters desynchronises the IB
-            # population once it's large enough that independent phase drift
-            # dominates over shared network coupling -- the population never
-            # produces a coincident burst again after the initial transient,
-            # and L6/RE go to ~0 spikes for the rest of the run (confirmed on
-            # MN5, job 44844450, and reproduced locally: het=0.05 -> L6E/RE
-            # =0 spikes over 8s; removing IB jitter alone restores 100%
-            # active L6E/RE). Heterogeneity elsewhere (TC/RE/RS/FS) is kept --
-            # that's what helped in the original 10-cell sweep -- only the
-            # SO-generating pacemaker population needs to stay in phase.
-            E = ([PYCellIB(e_pas=e_pas, gnap=2e-4) for _ in range(n_ib)] +
-                 [PYCell(e_pas=self._j(e_pas), gsk=gsk) for _ in range(n["E"] - n_ib)])
+            # PYCellIB DOES get the same per-cell jitter as every other cell
+            # type -- individual variability is the biologically correct
+            # default (real neurons are not copies of one ideal cell), not
+            # something to suppress. An MPI scale-out test found that
+            # jittering e_pas/gnap desynchronises the IB population once it's
+            # large enough (~300-400+ cells) that independent phase drift
+            # beats emergent common-input coherence -- but the fix for that
+            # is to give the population an explicit synchronising mechanism
+            # (gap junctions between IB cells, added below via
+            # _wire_l5_gap_junctions), the same way TRN heterogeneity +
+            # RE<->RE gap junctions coexist in tc_neuron.py, not to make the
+            # cells identical.
+            ib_cells = [PYCellIB(e_pas=self._j(e_pas), gnap=self._j(2e-4))
+                        for _ in range(n_ib)]
+            E = ib_cells + [PYCell(e_pas=self._j(e_pas), gsk=gsk)
+                             for _ in range(n["E"] - n_ib)]
             I = [FSCell(e_pas=self._j(e_pas + 2)) for _ in range(n["I"])]
             self.layers[name] = {"E": E, "I": I}
+            if name == "L5":
+                self._l5_ib = ib_cells
         self._syn, self._nc = [], []
 
         self._wire_intracortical(g_ff, g_rec)
         for name in self.layers:
             self._wire_layer_inh(name, g_e_i, g_i_e)
+        self._wire_l5_gap_junctions()
 
     def _j(self, base):
         """Per-cell heterogeneity: uniform +/- self.het relative jitter."""
@@ -273,6 +287,33 @@ class CorticalColumn:
         E, I = self.layers[name]["E"], self.layers[name]["I"]
         self._project(E, I, g_e_i, e=0, tau1=0.5, tau2=2.0, frac=0.7)
         self._project(I, E, g_i_e, e=-75, tau1=1.0, tau2=8.0, frac=0.7)
+
+    def _wire_l5_gap_junctions(self):
+        """Electrical coupling between L5's intrinsically-bursting cells --
+        the explicit synchronising mechanism that lets the IB population stay
+        phase-locked despite per-cell heterogeneity in its own burst-timing
+        parameters (e_pas, gnap). Same small-world topology (ring + a few
+        long-range shortcuts) as the RE<->RE gap junctions in tc_neuron.py /
+        tc_network_nrn.py, which keep synchrony rank/size-independent there;
+        without this, an MPI scale-out test found the IB population
+        desynchronises once it's a few hundred cells and the loop to L6/RE
+        goes dead (neuron/README.md 'MN5 5k-scale result')."""
+        n = len(self._l5_ib)
+        if self.g_l5_gap <= 0 or n <= 1:
+            return
+        half = max(1, self.l5_gap_deg // 2)
+        for i, cell in enumerate(self._l5_ib):
+            nbrs = set()
+            for d in range(1, half + 1):
+                nbrs.add((i + d) % n)
+                nbrs.add((i - d) % n)
+            if self.l5_gap_short > 0 and n > 2 * half + 1:
+                for _ in range(self.l5_gap_short):
+                    nbrs.add(int(self.rng.integers(0, n)))
+            nbrs.discard(i)
+            for j in nbrs:
+                if j > i:  # each pair wired once
+                    _T.gap_junction(cell, self._l5_ib[j], g=self.g_l5_gap)
 
     # -- introspection ----------------------------------------------------
     def all_cells(self):

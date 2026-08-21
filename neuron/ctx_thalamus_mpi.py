@@ -77,7 +77,7 @@ class ParallelCorticoThalamicNet:
                  g_ff=0.0015, g_l5_l6=0.009, g_l5_l23=0.0015,
                  g_e_i=0.02, g_i_e=0.08, gsk_cx=8e-4, ib_frac=0.5,
                  g_tc_l4=0.0005, g_l6_tc=0.03, g_l6_re=0.03,
-                 conv=100, gap_deg=6, gap_short=2,
+                 conv=100, gap_deg=6, gap_short=2, g_l5_gap=0.02,
                  het=0.05, delay_jitter=0.0):
         self.pc = h.ParallelContext()
         self.rank = int(self.pc.id())
@@ -130,10 +130,16 @@ class ParallelCorticoThalamicNet:
 
         # -- synapses + fixed-convergence wiring -----------------------------
         self.conv = conv
+        self._gap_wired = False
         self._wire_re_tc(g_re_tc)
         self._wire_tc_re(g_tc_re)
         self._wire_re_re_local(g_re_re)
         self._wire_gap(g_gap, gap_deg, gap_short)
+        self._wire_l5_gap(g_l5_gap, gap_deg, gap_short)
+        if self._gap_wired:
+            # ONE setup_transfer() call after ALL source_var/target_var
+            # registrations (RE and L5 gaps both), not one per group.
+            self.pc.setup_transfer()
         self._wire_intracortical(g_ff, g_l5_l6, g_l5_l23)
         for pop_e, pop_i in [("l4e", "l4i"), ("l23e", "l23i"),
                               ("l5e", "l5i"), ("l6e", "l6i")]:
@@ -176,16 +182,19 @@ class ParallelCorticoThalamicNet:
         n = phi - plo
         n_ib = int(round(n * self.ib_frac)) if pop == "l5e" else 0
         if gid - plo < n_ib:
-            # NO jitter on e_pas/gnap here -- confirmed by direct A/B test
-            # (scale=0.3, 159 L5E cells): with het on gnap/e_pas, 437 (full
-            # scale) independently-phased IB pacemakers never coincide again
-            # after the initial transient (L6E/RE stayed at ~0 spikes for the
-            # full 200 s MN5 production run, job 44844450); with those two
-            # parameters homogeneous, the SAME network's L6/RE come alive
-            # (100% of both populations active). Heterogeneity elsewhere
-            # (TC/RE/RS/FS below) is unaffected and still applied -- this is
-            # what actually helped in the original 10-cell sweep.
-            return C.PYCellIB(e_pas=-70.0, gnap=2e-4)
+            # PYCellIB gets the same jitter as every other cell type --
+            # individual variability is the biologically correct default
+            # (real neurons are not copies of one ideal cell). An A/B test
+            # (scale=0.3, 159 L5E cells) found that het on e_pas/gnap alone
+            # desynchronises the IB population once it's a few hundred
+            # cells (L6E/RE went to ~0 spikes on the full 5031-cell MN5 run,
+            # job 44844450) -- but the fix for that is an explicit
+            # synchronising mechanism (gap junctions between IB cells, see
+            # _wire_l5_gap below), the same way TRN heterogeneity + RE<->RE
+            # gap junctions coexist in tc_neuron.py, not making the cells
+            # identical.
+            return C.PYCellIB(e_pas=self._jitter(-70.0, gid, 1),
+                               gnap=self._jitter(2e-4, gid, 3))
         return C.PYCell(e_pas=self._jitter(-70.0, gid, 1), gsk=8e-4)
 
     # ------------------------------------------------------------------ utils
@@ -260,35 +269,51 @@ class ParallelCorticoThalamicNet:
         """Cross-rank gap junctions between RE cells (pc.setup_transfer),
         small-world topology -- see tc_mpi.py for the full rationale."""
         rlo, rhi = self.ranges["re"]
-        n_re = rhi - rlo
-        if g <= 0 or n_re <= 1:
+        self._wire_gap_range(rlo, rhi, g, gap_deg, gap_short,
+                              sgid_base=self.n_total + 10000, seed_base=2000003)
+
+    def _wire_l5_gap(self, g, gap_deg, gap_short):
+        """Cross-rank gap junctions between L5's intrinsically-bursting
+        cells -- the explicit synchronising mechanism that lets the IB
+        population stay phase-locked despite per-cell heterogeneity in its
+        own burst-timing parameters (e_pas, gnap). Same small-world topology
+        as _wire_gap; without this, the IB population desynchronises once
+        it's a few hundred cells and the L5->L6->TC/RE loop goes dead (see
+        neuron/README.md 'MN5 5k-scale result')."""
+        lo, hi = self.ranges["l5e"]
+        n_ib = int(round((hi - lo) * self.ib_frac))
+        self._wire_gap_range(lo, lo + n_ib, g, gap_deg, gap_short,
+                              sgid_base=self.n_total + 20000, seed_base=3000007)
+
+    def _wire_gap_range(self, lo, hi, g, gap_deg, gap_short, sgid_base, seed_base):
+        n = hi - lo
+        if g <= 0 or n <= 1:
             return
-        SGID = self.n_total + 10000
-        for gid in range(rlo, rhi):
+        for gid in range(lo, hi):
             if int(self.pc.gid_exists(gid)) == 0:
                 continue
             sec = self.cells[gid].soma
-            self.pc.source_var(sec(0.5)._ref_v, SGID + (gid - rlo), sec=sec)
+            self.pc.source_var(sec(0.5)._ref_v, sgid_base + (gid - lo), sec=sec)
         half = max(1, gap_deg // 2)
-        for gid in range(rlo, rhi):
+        for gid in range(lo, hi):
             if int(self.pc.gid_exists(gid)) == 0:
                 continue
-            i = gid - rlo
+            i = gid - lo
             nbrs = set()
             for d in range(1, half + 1):
-                nbrs.add((i + d) % n_re)
-                nbrs.add((i - d) % n_re)
-            if gap_short > 0 and n_re > 2 * half + 1:
-                r = np.random.default_rng(2000003 + i)
+                nbrs.add((i + d) % n)
+                nbrs.add((i - d) % n)
+            if gap_short > 0 and n > 2 * half + 1:
+                r = np.random.default_rng(seed_base + i)
                 for _ in range(gap_short):
-                    nbrs.add(int(r.integers(0, n_re)))
+                    nbrs.add(int(r.integers(0, n)))
             nbrs.discard(i)
             for nb in nbrs:
                 gap = h.GapMPI(self.cells[gid].soma(0.5))
                 gap.g = g
-                self.pc.target_var(gap, gap._ref_vgap, SGID + nb)
+                self.pc.target_var(gap, gap._ref_vgap, sgid_base + nb)
                 self.gaps.append(gap)
-        self.pc.setup_transfer()
+        self._gap_wired = True
 
     # -- intracortical wiring (params matched to cortex_neuron.CorticalColumn) --
     def _wire_intracortical(self, g_ff, g_l5_l6, g_l5_l23):
