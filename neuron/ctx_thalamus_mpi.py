@@ -73,10 +73,10 @@ class ParallelCorticoThalamicNet:
 
     def __init__(self, sizes=None, seed=1,
                  g_re_tc=0.015, g_tc_re=0.011, g_re_re=0.002, g_gap=0.03,
-                 gh_tc=0.0, gsk_re=5e-5,
+                 gh_tc=0.0, gsk_re=1e-3,
                  g_ff=0.0015, g_l5_l6=0.009, g_l5_l23=0.0015,
                  g_e_i=0.02, g_i_e=0.08, gsk_cx=8e-4, ib_frac=0.5,
-                 g_tc_l4=0.0005, g_l6_tc=0.03, g_l6_re=0.03,
+                 g_tc_l4=0.02, g_l6_tc=0.03, g_l6_re=0.03,
                  conv=100, gap_deg=6, gap_short=2, g_l5_gap=0.02,
                  het=0.05, delay_jitter=0.0):
         self.pc = h.ParallelContext()
@@ -89,6 +89,13 @@ class ParallelCorticoThalamicNet:
         self.cells, self.syns = {}, {}
         self.ncs, self.stims, self.gaps = [], [], []
         self.ib_frac = ib_frac
+        # gsk_re was DECLARED but never used -- _make_cell hardcoded 5e-5, a
+        # value fitted against the old GHK itd port. On the published (ohmic)
+        # it2 that gives 20-spike bursts @ 317 Hz, and with L6 feedback driving
+        # them the reticular population ran away to 230 Hz/cell for the whole
+        # 200 s of job 44895771 (78% of all spikes from 91 cells). Refitted
+        # value is 1e-3 -> 8 spikes @ 363 Hz.
+        self.gsk_re = gsk_re
         # het/delay_jitter: SAME per-cell heterogeneity as the serial model
         # (ctx_thalamus_network.CorticoThalamicNet), which measured a 3x gain
         # in RE<->TC oscillatory cycles per SO event at het=0.05 (see
@@ -169,7 +176,7 @@ class ParallelCorticoThalamicNet:
             c.soma.gcabar_it *= self._jitter(1.0, gid, 2)
             return c
         if pop == "re":
-            c = T.RECell(gsk=5e-5)
+            c = T.RECell(gsk=self.gsk_re)
             c.soma.e_pas = self._jitter(-82.0, gid, 1)
             c.soma.gcabar_it2 *= self._jitter(1.0, gid, 2)
             return c
@@ -329,6 +336,17 @@ class ParallelCorticoThalamicNet:
 
     # -- thalamocortical / corticothalamic loop --------------------------
     def _wire_thalamocortical(self, g):
+        """TC -> L4E, the ASCENDING arm of the corticothalamic loop.
+
+        g was 0.0005 -- the smallest conductance in the model, 60x below
+        g_l6_tc and 3x below g_ff, then divided by conv. Since tc_l4 is L4E's
+        ONLY excitatory input (L4E is a source in l4_l23/l4_l5 but never a
+        target elsewhere), L4 and L2/3 were completely SILENT on job 44895771:
+        2640 of 5031 cells produced zero spikes. The cortex ran purely off
+        L5's intrinsically-bursting cells via l5_l6, so the loop that executed
+        was L5(IB) -> L6 -> thalamus, with the thalamocortical arm dead -- a
+        descending oscillator, not a closed loop. Measured at scale 0.12:
+        L4E 0.00 Hz at 0.0005, 4.77 Hz at 0.02."""
         self._project("tc_l4", "tc", "l4e", 0.0, 0.5, 2.0, g, seed_offset=30)
 
     def _wire_corticothalamic(self, g_tc, g_re):
