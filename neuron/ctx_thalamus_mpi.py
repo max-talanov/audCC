@@ -72,7 +72,7 @@ class ParallelCorticoThalamicNet:
     POPS = ["tc", "re", "l4e", "l4i", "l23e", "l23i", "l5e", "l5i", "l6e", "l6i"]
 
     def __init__(self, sizes=None, seed=1,
-                 g_re_tc=0.015, g_tc_re=0.011, g_re_re=0.002, g_gap=0.03,
+                 g_re_tc=0.015, g_tc_re=0.011, g_re_re=0.1, g_gap=0.03,
                  gh_tc=0.0, gsk_re=1e-3,
                  g_ff=0.0015, g_l5_l6=0.009, g_l5_l23=0.0015,
                  g_e_i=0.02, g_i_e=0.08, gsk_cx=8e-4, ib_frac=0.5,

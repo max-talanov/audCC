@@ -577,6 +577,44 @@ that size is impractically slow on this machine (the same network the MN5
 smoke-test at a third of the scale), so the real check belongs on MN5,
 where the equivalent production run is fast.
 
+## MN5 5k-scale result, round 2 (Aug 2026): the gap-junction fix worked -- and uncovered a distinct RE runaway
+
+Re-ran the actual production job (5031 cells, 100 ranks, `SCALE=1.65`,
+`TSTOP=200000`, job 44895771) with the gap-junction fix above. **Five of the
+six previously-broken populations came back genuinely healthy for the full
+200 s**: TC 1.8 Hz (346/346 active), L5E 1.4 Hz (437/437 IB cells active,
+up from 251/437), L5I 6.6 Hz (down from a flat ~17 Hz runaway), L6E 2.0 Hz
+(693/693 active, sustained throughout rather than dying after the initial
+transient), L6I 7.0 Hz. Checking individual spike trains confirmed this
+isn't just a rate coincidence: L5E/L6E/TC all fire in a **clean, periodic,
+SO-locked pattern** at L5's own ~700 ms intrinsic period -- the gap junctions
+genuinely restored population-level burst coherence at this scale.
+
+**RE was the one exception, and in the opposite direction from before**: not
+dead, but firing **continuously at ~229 Hz** (ISI median 4.4 ms) for the
+full 200 s once triggered, instead of bursting and resetting like everything
+else. Root cause, isolated by a targeted A/B sweep (`ctx_thalamus_mpi.py`,
+scale=0.3, cheap enough to run several rounds locally): **removing TC→RE
+excitation entirely (`g_tc_re=0`) barely changed RE's output**, ruling out
+TC→RE, L6→RE, RE→TC, and RE↔RE gap junctions in turn as the driver (each
+tested, each near-zero effect) -- RE was self-retriggering almost
+independent of what excited it. Only RE↔RE **lateral GABA_A inhibition**
+(`g_re_re`) mattered: raising it from the previous default `0.002` to `0.1`
+dropped RE from 1296 → 192 spikes over 8 s and flipped the ISI pattern from
+tonic (median 2.7 ms) to genuine discrete ~700 ms-period bursts, matching
+the rest of the network. This lines up with the review's own account of RE↔RE
+lateral inhibition as the TRN's antisynchronising, self-limiting mechanism --
+at bio-plausible N, with a now-reliable periodic trigger from cortex, RE's
+own reciprocal excitability needed that brake far more than it did at the
+10-cell scale it was originally tuned at. Verified the fix doesn't regress
+the other five populations (still 100% active, 1.5-7.5 Hz across the board)
+before applying `g_re_re=0.1` as `ctx_thalamus_mpi.py`'s new default. **Left
+the serial model's (`ctx_thalamus_network.py`) `g_re_re=0.002` untouched** --
+this runaway never manifested at N=10, so changing it there risks
+regressing already-validated small-scale behaviour for no local benefit;
+revisit if the serial model is ever pushed to a larger N. Not yet re-run at
+the full 5031-cell scale -- that's the next MN5 job.
+
 **Lesson for future scale-out work in this model:** "does bio-plausible N
 fix an open dynamical question" is not a safe default hope -- a mechanism
 that depends on population-level synchrony (here, the SO pacemaker) can
@@ -584,7 +622,11 @@ break, not improve, when naively scaled with per-cell heterogeneity, even
 though heterogeneity was independently validated as beneficial for a
 *different* part of the same network (the RE↔TC loop), AND the standard fix
 is to add an explicit coupling mechanism (gap junctions), not to remove the
-heterogeneity that made the population realistic in the first place.
+heterogeneity that made the population realistic in the first place. And
+fixing one population's failure mode at scale can expose a second,
+unrelated one immediately downstream (L5's fix exposed RE's) -- when
+scaling a multi-population network, expect to iterate population by
+population rather than finding one global fix.
 
 ### Known limitations of this cortical column
 
