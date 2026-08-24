@@ -628,6 +628,34 @@ unrelated one immediately downstream (L5's fix exposed RE's) -- when
 scaling a multi-population network, expect to iterate population by
 population rather than finding one global fix.
 
+## MN5 5k-scale result, round 3 (Aug 2026): a healthy, synchronised network at full scale -- not yet a spindle
+
+Re-ran production with `g_re_re=0.1` (5031 cells, 100 ranks, job 44990472).
+**Every population now sustains healthy activity for the full 200 s**: TC
+4.1 Hz, RE 1.4 Hz, L5E 1.4 Hz (437/437 IB cells), L5I 6.6 Hz, L6E 2.0 Hz,
+L6I 7.0 Hz -- all at 100% of cells active. **L4/L2-3 came alive too** (100%
+L4E, 100% L4I, 52% L23E), a knock-on effect of TC finally driving them
+reliably -- not something this fix directly targeted.
+
+Checked actual spike timing, not just rates, and it holds up: **all 91 RE
+cells fire within a 50 microsecond window** -- genuine population-wide
+synchrony, not a rate coincidence -- repeating every 711.8 ms (std 7.5 ms,
+~1% jitter) for the full run, cascading into a proper TC rebound burst
+spread over ~60 ms each cycle. That is real, precise, bio-plausible-scale
+synchrony, sustained for 200 s without drift or failure.
+
+**Still short of a true spindle**: RE fires **exactly once** per SO cycle
+(281 volleys over 200 s, one per ~712 ms), not a sustained multi-cycle
+10-15 Hz train -- the same limitation found at the 10-cell scale many
+iterations ago (see "corticothalamic loop" section above), now confirmed
+to persist at bio-plausible N rather than being a small-N artifact. This is
+closer to a clean, reliable "K-complex + spindle-onset trigger" repeating
+on the SO period than the review's 0.5-3 s waxing/waning oscillation.
+Getting genuine multi-cycle ringing within each event -- likely needs
+GABA_B (`g_re_tc_b`, implemented, unused so far) or heterogeneity in the
+RE<->TC delay/weight specifically, now testable on a healthy rather than
+broken foundation -- is the next real target.
+
 ### Known limitations of this cortical column
 
 - Population sizes are scaled ×0.2 from `config/network_auditory_hh.yaml`
