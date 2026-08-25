@@ -408,6 +408,46 @@ def _report(net, t, g, wall, tstop):
     print("spikes %d total (TC %d, RE %d, L6E %d)" % (len(t), n_tc_sp, n_re_sp, n_l6_sp))
 
 
+def _re_burst_stats(t, g, re_lo, re_hi, burst_gap=30.0, event_gap=300.0):
+    """RE burst-SHAPE diagnostics -- the article's SK2 mechanism terminates a
+    multi-spike burst; a network that fires one isolated spike per cycle
+    never exercises it at all. Reports the fraction of spikes that are part
+    of a burst (ISI < burst_gap to the previous spike from the SAME cell),
+    the mean burst size among cells that ever burst, and the population
+    event structure (SO-cycle volleys)."""
+    m = (g >= re_lo) & (g < re_hi)
+    tp, gp = t[m], g[m]
+    if len(tp) < 2:
+        return dict(n_spikes=len(tp), frac_burst=0.0, mean_burst_size=0.0,
+                    n_events=0, event_hz=0.0)
+    order = np.argsort(gp, kind="stable")
+    tp, gp = tp[order], gp[order]
+    same_cell = np.diff(gp) == 0
+    isi = np.diff(tp)
+    in_burst = same_cell & (isi < burst_gap)
+    frac_burst = float(in_burst.sum()) / len(tp)
+    # mean burst size: count runs of consecutive in_burst=True per cell,
+    # +1 for the spike that starts each run
+    burst_sizes = []
+    run = 1
+    for i in range(len(in_burst)):
+        if in_burst[i]:
+            run += 1
+        else:
+            if run > 1:
+                burst_sizes.append(run)
+            run = 1
+    if run > 1:
+        burst_sizes.append(run)
+    mean_burst = float(np.mean(burst_sizes)) if burst_sizes else 0.0
+    tsort = np.sort(t[m])
+    starts = tsort[np.diff(tsort, prepend=-1e9) > event_gap]
+    event_hz = 1000.0 / np.mean(np.diff(starts)) if len(starts) > 1 else 0.0
+    return dict(n_spikes=len(tp), frac_burst=round(frac_burst, 3),
+                mean_burst_size=round(mean_burst, 2), n_events=len(starts),
+                event_hz=round(event_hz, 3))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--tstop", type=float, default=12000.0)
@@ -430,7 +470,49 @@ def main():
                          "stay rank-count independent.")
     ap.add_argument("--delay-jitter", type=float, default=0.0,
                     help="+/- ms uniform jitter on every synaptic delay")
+    ap.add_argument("--sweep-g-re-re", default="",
+                    help="comma-separated g_re_re values to sweep, AT FULL "
+                         "PRODUCTION SCALE (--scale), one run each, reporting "
+                         "RE burst-shape stats (frac_burst, mean_burst_size, "
+                         "event_hz) -- not just total spike count. Use a short "
+                         "--sweep-tstop, not the full 200 s production length.")
+    ap.add_argument("--sweep-tstop", type=float, default=20000.0,
+                    help="tstop per sweep point (default 20 s -- enough SO "
+                         "cycles for burst statistics without full-length cost)")
     a = ap.parse_args()
+
+    if a.sweep_g_re_re:
+        pc = h.ParallelContext()
+        rank, nhost = int(pc.id()), int(pc.nhost())
+        sizes = {k: max(1, int(round(v * a.scale))) for k, v in DEFAULT_SIZES.items()}
+        if rank == 0:
+            print("=== g_re_re sweep (%d ranks, scale=%.2f, tstop=%.0f ms) ==="
+                  % (nhost, a.scale, a.sweep_tstop))
+            print("%-10s %-9s %-10s %-12s %-10s %-10s"
+                  % ("g_re_re", "RE spikes", "frac_burst", "mean_burst",
+                     "n_events", "event_Hz"))
+            print("-" * 62)
+        for g_re_re in [float(x) for x in a.sweep_g_re_re.split(",")]:
+            net = ParallelCorticoThalamicNet(sizes=sizes, conv=a.conv,
+                                              het=a.het,
+                                              delay_jitter=a.delay_jitter,
+                                              g_re_re=g_re_re)
+            net.run(tstop=a.sweep_tstop)
+            t, g = net.gather()
+            if rank == 0:
+                re_lo, re_hi = net.ranges["re"]
+                s = _re_burst_stats(t, g, re_lo, re_hi)
+                print("%-10.4f %-9d %-10.3f %-12.2f %-10d %-10.3f"
+                      % (g_re_re, s["n_spikes"], s["frac_burst"],
+                         s["mean_burst_size"], s["n_events"], s["event_hz"]))
+            net.teardown()
+            del net
+        if rank == 0:
+            print("-" * 62)
+        pc.barrier()
+        pc.done()
+        h.quit()
+        return
 
     if a.bench:
         pc = h.ParallelContext()
