@@ -77,7 +77,18 @@ mkdir -p out
 
 echo "== NEURON MPI (corticothalamic): ${SLURM_NTASKS:-1} ranks, scale=${SCALE} =="
 
-if [ "${BENCH:-0}" = "1" ]; then
+if [ -n "${SWEEP_G_RE_RE:-}" ]; then
+    # SWEEP_G_RE_RE: comma-separated g_re_re values, e.g. "0.005,0.01,0.02,0.05,0.1"
+    # -- runs each at full production --scale (SCALE, default 1.0) in one job,
+    # reporting RE burst SHAPE (frac_burst, mean_burst_size, event_hz), not
+    # just spike counts. SWEEP_TSTOP (optional, default 20000 ms) keeps each
+    # point cheap; this is NOT the 200s production run.
+    SWEEP_ARGS=()
+    [ -n "${SWEEP_TSTOP:-}" ] && SWEEP_ARGS+=(--sweep-tstop "$SWEEP_TSTOP")
+    srun --mpi=pmix "$PY" neuron/ctx_thalamus_mpi.py \
+        --sweep-g-re-re "$SWEEP_G_RE_RE" --scale "$SCALE" --conv "$CONV" \
+        "${SWEEP_ARGS[@]}"
+elif [ "${BENCH:-0}" = "1" ]; then
     # BENCH_SCALES (optional): comma-separated --scale values, e.g. "0.02,0.05"
     # for a fast small-rank correctness check. Unset -> ctx_thalamus_mpi.py's
     # own default (0.1,0.5,1.0,1.65).
