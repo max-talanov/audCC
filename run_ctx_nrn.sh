@@ -97,9 +97,15 @@ elif [ "${BENCH:-0}" = "1" ]; then
     [ -n "${BENCH_MS:-}" ] && BENCH_ARGS+=(--bench-ms "$BENCH_MS")
     srun --mpi=pmix "$PY" neuron/ctx_thalamus_mpi.py --bench --conv "$CONV" "${BENCH_ARGS[@]}"
 else
+    # G_RE_RE/G_RE_RE_SD (optional): mean/SD of the distributed RE<->RE
+    # lateral-inhibition weight. Unset -> ctx_thalamus_mpi.py's own defaults
+    # (0.006/0.002, from the sweep in job 45081779).
+    PROD_ARGS=()
+    [ -n "${G_RE_RE:-}" ] && PROD_ARGS+=(--g-re-re "$G_RE_RE")
+    [ -n "${G_RE_RE_SD:-}" ] && PROD_ARGS+=(--g-re-re-sd "$G_RE_RE_SD")
     srun --mpi=pmix "$PY" neuron/ctx_thalamus_mpi.py \
         --scale "$SCALE" --tstop "$TSTOP" --conv "$CONV" \
-        --out "out/${TAG}.npz"
+        --out "out/${TAG}.npz" "${PROD_ARGS[@]}"
 fi
 
 echo "== done; results in out/ =="
