@@ -72,7 +72,8 @@ class ParallelCorticoThalamicNet:
     POPS = ["tc", "re", "l4e", "l4i", "l23e", "l23i", "l5e", "l5i", "l6e", "l6i"]
 
     def __init__(self, sizes=None, seed=1,
-                 g_re_tc=0.015, g_tc_re=0.011, g_re_re=0.1, g_gap=0.03,
+                 g_re_tc=0.015, g_tc_re=0.011, g_re_re=0.006, g_re_re_sd=0.002,
+                 g_gap=0.03,
                  gh_tc=0.0, gsk_re=1e-3,
                  g_ff=0.0015, g_l5_l6=0.009, g_l5_l23=0.0015,
                  g_e_i=0.02, g_i_e=0.08, gsk_cx=8e-4, ib_frac=0.5,
@@ -140,7 +141,7 @@ class ParallelCorticoThalamicNet:
         self._gap_wired = False
         self._wire_re_tc(g_re_tc)
         self._wire_tc_re(g_tc_re)
-        self._wire_re_re_local(g_re_re)
+        self._wire_re_re_local(g_re_re, g_re_re_sd)
         self._wire_gap(g_gap, gap_deg, gap_short)
         self._wire_l5_gap(g_l5_gap, gap_deg, gap_short)
         if self._gap_wired:
@@ -160,6 +161,9 @@ class ParallelCorticoThalamicNet:
     # ------------------------------------------------------------- cell build
     JITTER_OFFSET = 10_000_000  # keeps _jitter's per-gid RNG stream disjoint
                                  # from _draw's per-gid connectivity streams
+    WEIGHT_JITTER_OFFSET = 30_000_000  # per-connection synaptic weight jitter
+                                         # (distinct from JITTER_OFFSET*2, the
+                                         # delay-jitter stream in _connect)
 
     def _jitter(self, base, gid, salt=0):
         """Deterministic function of (gid, salt) -- NOT self.rng -- so the
@@ -256,9 +260,21 @@ class ParallelCorticoThalamicNet:
     def _wire_tc_re(self, g):
         self._project("ampa", "tc", "re", 0.0, 0.5, 2.0, g, seed_offset=1)
 
-    def _wire_re_re_local(self, g):
+    def _wire_re_re_local(self, g, g_sd=0.0):
         """Nearest-neighbour lateral inhibition (|i-j|<=2), fixed degree --
-        NOT convergence-scaled, matching tc_network_nrn._wire_re_re."""
+        NOT convergence-scaled, matching tc_network_nrn._wire_re_re.
+
+        g_sd > 0: each individual RE->RE synapse's weight is drawn from
+        N(g, g_sd) instead of every connection sharing the identical value g.
+        Real synapses are not identical -- and unlike jittering an intrinsic
+        cell parameter (the L5 IB pacemaker lesson), this is a MEAN-preserving
+        per-connection distribution: each RE cell still sums inhibition from
+        ~4 neighbours, so the aggregate a cell receives stays close to the
+        mean even though individual connections vary. Deterministic per
+        (src, dst) pair via its own RNG stream (WEIGHT_JITTER_OFFSET), so the
+        result is independent of which rank builds the connection -- same
+        requirement as _jitter/_connect's delay jitter. Truncated at a small
+        positive floor so no connection goes to zero or negative."""
         rlo, rhi = self.ranges["re"]
         n_re = rhi - rlo
         for gid in range(rlo, rhi):
@@ -270,7 +286,13 @@ class ParallelCorticoThalamicNet:
             i = gid - rlo
             for j in range(max(0, i - 2), min(n_re, i + 3)):
                 if j != i:
-                    self._connect(rlo + j, syn, g, 1.0, dst_gid=gid)
+                    src = rlo + j
+                    w = g
+                    if g_sd > 0:
+                        r = np.random.default_rng(self.WEIGHT_JITTER_OFFSET
+                                                   + int(src) * 97 + int(gid))
+                        w = max(g * 0.05, r.normal(g, g_sd))
+                    self._connect(src, syn, w, 1.0, dst_gid=gid)
 
     def _wire_gap(self, g, gap_deg, gap_short):
         """Cross-rank gap junctions between RE cells (pc.setup_transfer),
@@ -479,6 +501,20 @@ def main():
     ap.add_argument("--sweep-tstop", type=float, default=20000.0,
                     help="tstop per sweep point (default 20 s -- enough SO "
                          "cycles for burst statistics without full-length cost)")
+    ap.add_argument("--g-re-re", type=float, default=0.006,
+                    help="mean RE<->RE lateral GABA_A weight. Sweep found "
+                         "0.005-0.03 gives real 3-7 spike RE bursts (article's "
+                         "'2 to >10'); 0.002 causes runaway tonic firing (229 "
+                         "Hz), 0.1 over-suppresses to single spikes (0 bursts). "
+                         "Default 0.006 sits between the two best-tested points "
+                         "(0.005, 0.01: 6.86/6.20 spikes/burst).")
+    ap.add_argument("--g-re-re-sd", type=float, default=0.002,
+                    help="per-connection normal-distribution SD around "
+                         "--g-re-re (0 = every RE<->RE synapse identical). "
+                         "Default +/-0.002 makes 0.002-0.01 approx +/-2 SD -- "
+                         "real synapses are not identical, and only individual "
+                         "connections reach the low tail while each RE cell "
+                         "still sums input from ~4 neighbours.")
     a = ap.parse_args()
 
     if a.sweep_g_re_re:
@@ -558,11 +594,29 @@ def main():
 
     sizes = {k: max(1, int(round(v * a.scale))) for k, v in DEFAULT_SIZES.items()}
     net = ParallelCorticoThalamicNet(sizes=sizes, conv=a.conv, het=a.het,
-                                      delay_jitter=a.delay_jitter)
+                                      delay_jitter=a.delay_jitter,
+                                      g_re_re=a.g_re_re, g_re_re_sd=a.g_re_re_sd)
     wall = net.run(tstop=a.tstop)
     t, g = net.gather()
     if net.rank == 0:
         _report(net, t, g, wall, a.tstop)
+        re_lo, re_hi = net.ranges["re"]
+        s = _re_burst_stats(t, g, re_lo, re_hi)
+        print("RE burst shape (full run): frac_burst=%.3f mean_burst_size=%.2f "
+              "n_events=%d event_Hz=%.3f (g_re_re=%.4f +/- %.4f)"
+              % (s["frac_burst"], s["mean_burst_size"], s["n_events"],
+                 s["event_hz"], a.g_re_re, a.g_re_re_sd))
+        if a.tstop > 40000:
+            # temporal stability check: does burst shape hold up over the
+            # full run, or drift toward runaway/silence in the second half?
+            mid = a.tstop / 2.0
+            m1, m2 = t < mid, t >= mid
+            s1 = _re_burst_stats(t[m1], g[m1], re_lo, re_hi)
+            s2 = _re_burst_stats(t[m2], g[m2], re_lo, re_hi)
+            print("  first half:  frac_burst=%.3f mean_burst_size=%.2f event_Hz=%.3f"
+                  % (s1["frac_burst"], s1["mean_burst_size"], s1["event_hz"]))
+            print("  second half: frac_burst=%.3f mean_burst_size=%.2f event_Hz=%.3f"
+                  % (s2["frac_burst"], s2["mean_burst_size"], s2["event_hz"]))
         if a.out:
             os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
             np.savez_compressed(a.out.replace(".h5", ".npz"),
