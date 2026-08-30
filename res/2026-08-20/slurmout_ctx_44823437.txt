@@ -1,0 +1,10 @@
+python : /gpfs/apps/MN5/GPP/MINIFORGE/24.3.0-0/envs/neuron/bin/python3
+== NEURON MPI (corticothalamic): 2 ranks, scale=1.0 ==
+numprocs=2
+=== NEURON MPI corticothalamic scaling benchmark (2 ranks) ===
+cells     wall (s)  x realtime  s per 1k cells spikes    TC     RE     L6E   
+----------------------------------------------------------------------------
+61        0.9       0.88        14.51         177       44     31     32    
+151       2.0       2.02        13.38         437       120    81     84    
+----------------------------------------------------------------------------
+== done; results in out/ ==

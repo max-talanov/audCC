@@ -1,6 +1,7 @@
 # macOS / generated simulation output
 .DS_Store
 out/
+res/**/*.npz
 
 # Reference papers / dragged clippings kept locally, never committed
 *.pdf
