@@ -239,6 +239,100 @@ def make_spindle_figure(npz, out_png, window=(20000, 30000)):
     return s
 
 
+def _synaptic_lfp(times, tstop, fs=1000.0, tau_rise=1.0, tau_decay=10.0, kernel_ms=60.0):
+    """Convolve a population spike train with an alpha-like PSP kernel to get
+    a smooth current-like proxy (closer to a real LFP than raw binned rate --
+    a real LFP is dominated by synaptic currents, which are much slower and
+    smoother than the spikes that trigger them)."""
+    bin_ms = 1000.0 / fs
+    bins = np.arange(0, tstop + bin_ms, bin_ms)
+    counts = np.histogram(times, bins=bins)[0].astype(float)
+    tk = np.arange(0, kernel_ms, bin_ms)
+    kernel = (np.exp(-tk / tau_decay) - np.exp(-tk / tau_rise))
+    kernel /= kernel.max() if kernel.max() > 0 else 1.0
+    lfp = np.convolve(counts, kernel, mode="full")[:len(counts)]
+    return lfp, bins[:-1]
+
+
+def make_lfp_figure(npz, out_png, window=(20000, 30000), epoch_ms=2000.0):
+    """LFP-style figure for direct comparison to spindle-review figures
+    (e.g. Fernandez & Luthi 2020): stacked laminar traces, a single-epoch
+    zoom, and a composite-LFP raw/spindle-band/spectrogram panel."""
+    t, g, ranges, tstop = npz["times"], npz["gids"], npz["ranges"].item(), float(npz["tstop"])
+    fs = 1000.0
+
+    # Laminar order, superficial to deep, cortex only (thalamus shown separately)
+    lam_layers = ["l23e", "l4e", "l5e", "l6e"]
+    lam_labels = ["L2/3", "L4", "L5", "L6"]
+    lam_colors = ["#1b4965", "#2471a3", "#5fa8d3", "#7f8c8d"]
+
+    lfps = {}
+    for name in lam_layers + ["tc", "re"]:
+        lo, hi = ranges[name]
+        m = (g >= lo) & (g < hi)
+        lfp, bins = _synaptic_lfp(t[m], tstop, fs=fs)
+        # sign convention: excitatory synaptic current -> deflection; deep
+        # layers flipped to mimic the classic surface-negative/deep-positive
+        # dipole seen in real laminar LFP during synchronized volleys
+        sign = -1.0 if name in ("l5e", "l6e", "re") else 1.0
+        lfps[name] = sign * (lfp - lfp.mean()) / (lfp.std() + 1e-9)
+
+    composite = np.mean([lfps[k] for k in lam_layers], axis=0)
+    thal = np.mean([lfps["tc"], lfps["re"]], axis=0)
+
+    fig = plt.figure(figsize=(13, 12))
+    gs = fig.add_gridspec(3, 1, height_ratios=[1.3, 1, 1.2], hspace=0.5)
+
+    # ---- (a) stacked laminar + thalamic traces, literature-style ----
+    ax = fig.add_subplot(gs[0])
+    w = (bins >= window[0]) & (bins < window[1])
+    tsec = bins[w] / 1000.0
+    offset = 0.0
+    step = 5.0
+    for name, label, color in zip(["re", "tc"] + lam_layers,
+                                   ["RE (thalamic)", "TC (thalamic)"] + lam_labels,
+                                   ["#c0392b", "#2f8f6f"] + lam_colors):
+        ax.plot(tsec, lfps[name][w] + offset, color=color, lw=0.7)
+        ax.text(tsec[0] - 0.15, offset, label, ha="right", va="center", fontsize=8)
+        offset -= step
+    ax.set_yticks([])
+    ax.set_xlabel("time (s)")
+    ax.set_title(f"(a) Laminar LFP proxy, {window[0]/1000:.0f}-{window[1]/1000:.0f} s "
+                 "(synaptic-current-weighted population signal, superficial to deep)",
+                 fontsize=10, loc="left")
+
+    # ---- (b) single-epoch zoom: one oscillation event at fine resolution ----
+    ax = fig.add_subplot(gs[1])
+    mid = (window[0] + window[1]) / 2.0
+    ew = (bins >= mid - epoch_ms / 2) & (bins < mid + epoch_ms / 2)
+    ax.plot(bins[ew], composite[ew], color="0.35", lw=1.0, label="composite cortical LFP")
+    ax.plot(bins[ew], thal[ew], color=BLUE, lw=1.0, alpha=0.8, label="thalamic (TC+RE) LFP")
+    ax.set_title(f"(b) Single-epoch zoom ({epoch_ms/1000:.1f} s window) -- "
+                 "compare waveform shape to a literature spindle epoch",
+                 fontsize=10, loc="left")
+    ax.set_xlabel("time (ms)"); ax.set_ylabel("a.u.")
+    ax.legend(fontsize=8, loc="upper right", framealpha=0.9)
+
+    # ---- (c) composite LFP: raw + spindle band + spectrogram-style summary ----
+    ax = fig.add_subplot(gs[2])
+    spin = _bandpass(composite, fs, 8.0, 15.0)
+    env = np.abs(hilbert(spin))
+    ax.plot(tsec, composite[w], color="0.5", lw=0.6, label="composite LFP (raw)")
+    ax.plot(tsec, spin[w] - 8, color=GREEN, lw=0.9, label="8-15 Hz spindle band")
+    ax.plot(tsec, env[w] - 8, color="k", lw=0.8, alpha=0.6, label="envelope")
+    ax.plot(tsec, -env[w] - 8, color="k", lw=0.8, alpha=0.6)
+    ax.set_title("(c) Composite cortical LFP: raw vs. spindle-band-filtered + envelope",
+                 fontsize=10, loc="left")
+    ax.set_xlabel("time (s)"); ax.set_ylabel("a.u.")
+    ax.legend(fontsize=8, loc="upper right", framealpha=0.9)
+
+    fig.suptitle("LFP proxy -- for direct comparison against published spindle/SO figures",
+                 fontsize=13, y=0.995)
+    fig.savefig(out_png, dpi=140, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved LFP figure to {out_png}")
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -259,6 +353,7 @@ def main(argv=None):
 
     make_meanfield_figure(npz, outdir / f"{tag}_meanfield.png", window=window)
     s = make_spindle_figure(npz, outdir / f"{tag}_spindles.png", window=window)
+    make_lfp_figure(npz, outdir / f"{tag}_lfp.png", window=window)
 
     print(f"RE burst shape: frac_burst={s['frac_burst']:.3f} "
           f"mean_burst_size={s['mean_burst_size']:.2f} n_events={s['n_events']} "
