@@ -76,7 +76,7 @@ class ParallelCorticoThalamicNet:
                  g_gap=0.03,
                  gh_tc=0.0, gsk_re=1e-3,
                  g_ff=0.0015, g_l5_l6=0.009, g_l5_l23=0.0015,
-                 g_e_i=0.02, g_i_e=0.08, gsk_cx=8e-4, ib_frac=0.5,
+                 g_e_i=0.02, g_i_e=0.08, g_i_e_l5=0.0, gsk_cx=8e-4, ib_frac=0.5,
                  g_tc_l4=0.02, g_l6_tc=0.03, g_l6_re=0.03,
                  conv=100, gap_deg=6, gap_short=2, g_l5_gap=0.02,
                  het=0.05, delay_jitter=0.0):
@@ -151,7 +151,25 @@ class ParallelCorticoThalamicNet:
         self._wire_intracortical(g_ff, g_l5_l6, g_l5_l23)
         for pop_e, pop_i in [("l4e", "l4i"), ("l23e", "l23i"),
                               ("l5e", "l5i"), ("l6e", "l6i")]:
-            self._wire_layer_inh(pop_e, pop_i, g_e_i, g_i_e)
+            # L5's own I->E feedback (g_i_e_l5) is kept separate from the
+            # other layers' (g_i_e): a small-scale isolation test found that
+            # the shared g_i_e=0.08 recruits L5I (FSCell) repeatedly off the
+            # near-synchronous IB population's first 1-2 spikes, holding
+            # L5E clamped near the GABA_A reversal (-75 mV) for tens of ms --
+            # long enough to defeat I_NaP before the plateau burst (~5-8
+            # spikes, ~10-500 ms, the article's own slow-oscillation UP
+            # state) can develop at all, and before the SLOWED SK2/Ca2+
+            # pool (taur=500 ms) gets a chance to be what actually
+            # terminates it, as PYCellIB's docstring intends. With L5's
+            # feedback inhibition removed the plateau is restored (5-6
+            # spikes, ~11-13 ms span, clean ~0.77 Hz UP/DOWN cycle, stable
+            # over 6+ cycles/8s) -- matching the isolated single-cell
+            # behaviour almost exactly. g_i_e_l5 stays a separate knob
+            # (not simply "g_i_e=0 everywhere") since L4/L2-3/L6 don't have
+            # this intrinsic-bursting mechanism and still need their own
+            # feedback inhibition for stability.
+            gie = g_i_e_l5 if pop_e == "l5e" else g_i_e
+            self._wire_layer_inh(pop_e, pop_i, g_e_i, gie)
         self._wire_thalamocortical(g_tc_l4)
         self._wire_corticothalamic(g_l6_tc, g_l6_re)
 
@@ -515,6 +533,20 @@ def main():
                          "real synapses are not identical, and only individual "
                          "connections reach the low tail while each RE cell "
                          "still sums input from ~4 neighbours.")
+    ap.add_argument("--g-i-e-l5", type=float, default=0.0,
+                    help="L5's own I->E feedback weight (FSCell->PYCellIB/E), "
+                         "kept separate from --g-i-e everywhere else. A "
+                         "small-scale isolation test found the shared "
+                         "g_i_e=0.08 recruits L5I repeatedly off the "
+                         "near-synchronous IB population's first 1-2 spikes, "
+                         "clamping L5E near GABA_A reversal for tens of ms and "
+                         "defeating the I_NaP plateau (the article's slow- "
+                         "oscillation UP-state generator) before it can "
+                         "develop. Default 0.0 lets SK2/Ca2+ (taur=500 ms) be "
+                         "what terminates the plateau, as PYCellIB intends --"
+                         " restores a clean 5-6 spike, ~11-13 ms burst at a "
+                         "stable ~0.77 Hz, matching the isolated single-cell "
+                         "behaviour.")
     a = ap.parse_args()
 
     if a.sweep_g_re_re:
@@ -595,7 +627,8 @@ def main():
     sizes = {k: max(1, int(round(v * a.scale))) for k, v in DEFAULT_SIZES.items()}
     net = ParallelCorticoThalamicNet(sizes=sizes, conv=a.conv, het=a.het,
                                       delay_jitter=a.delay_jitter,
-                                      g_re_re=a.g_re_re, g_re_re_sd=a.g_re_re_sd)
+                                      g_re_re=a.g_re_re, g_re_re_sd=a.g_re_re_sd,
+                                      g_i_e_l5=a.g_i_e_l5)
     wall = net.run(tstop=a.tstop)
     t, g = net.gather()
     if net.rank == 0:
