@@ -1,0 +1,21 @@
+python : /gpfs/apps/MN5/GPP/MINIFORGE/24.3.0-0/envs/neuron/bin/python3
+== NEURON MPI (corticothalamic): 100 ranks, scale=1.65 ==
+numprocs=100
+
+=== NEURON MPI corticothalamic network ===
+ranks 100 | total cells 5031 | tstop 200000 ms | wall 538.3 s (2.69 x realtime)
+  tc     gid [0,346)  n=346
+  re     gid [346,437)  n=91
+  l4e    gid [437,1493)  n=1056
+  l4i    gid [1493,1757)  n=264
+  l23e   gid [1757,2813)  n=1056
+  l23i   gid [2813,3077)  n=264
+  l5e    gid [3077,3951)  n=874
+  l5i    gid [3951,4165)  n=214
+  l6e    gid [4165,4858)  n=693
+  l6i    gid [4858,5031)  n=173
+spikes 3551451 total (TC 349340, RE 169283, L6E 274664)
+RE burst shape (full run): frac_burst=0.850 mean_burst_size=6.68 n_events=281 event_Hz=1.405 (g_re_re=0.0060 +/- 0.0020)
+  first half:  frac_burst=0.850 mean_burst_size=6.66 event_Hz=1.406
+  second half: frac_burst=0.851 mean_burst_size=6.69 event_Hz=1.404
+== done; results in out/ ==
