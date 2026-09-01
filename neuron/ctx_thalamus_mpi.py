@@ -97,6 +97,11 @@ class ParallelCorticoThalamicNet:
         # 200 s of job 44895771 (78% of all spikes from 91 cells). Refitted
         # value is 1e-3 -> 8 spikes @ 363 Hz.
         self.gsk_re = gsk_re
+        # gh_tc was ALSO declared but never used (same bug as gsk_re above):
+        # _make_cell hardcoded gh=0.0, so TC's Ca2+-dependent I_h (ihca.mod)
+        # has never actually been enabled in the MPI/production model despite
+        # the CLI/constructor accepting a value for it.
+        self.gh_tc = gh_tc
         # het/delay_jitter: SAME per-cell heterogeneity as the serial model
         # (ctx_thalamus_network.CorticoThalamicNet), which measured a 3x gain
         # in RE<->TC oscillatory cycles per SO event at het=0.05 (see
@@ -193,7 +198,7 @@ class ParallelCorticoThalamicNet:
 
     def _make_cell(self, pop, gid):
         if pop == "tc":
-            c = T.TCCell(gsk=0.0, gh=0.0)
+            c = T.TCCell(gsk=0.0, gh=self.gh_tc)
             c.soma.e_pas = self._jitter(-80.0, gid, 1)
             c.soma.gcabar_it *= self._jitter(1.0, gid, 2)
             return c
@@ -547,6 +552,15 @@ def main():
                          " restores a clean 5-6 spike, ~11-13 ms burst at a "
                          "stable ~0.77 Hz, matching the isolated single-cell "
                          "behaviour.")
+    ap.add_argument("--gh-tc", type=float, default=0.0,
+                    help="TC's Ca2+-dependent I_h (ihca.mod) conductance. "
+                         "Declared but never actually wired to TCCell until "
+                         "now (silently ignored as gh=0.0). Candidate lever "
+                         "for RE/TC multi-cycle waxing/waning: article "
+                         "mechanism is Ca2+ from successive rebound bursts "
+                         "locking I_h open, eventually terminating the "
+                         "spindle and setting the ~2.5 s refractory period. "
+                         "Default 0.0 keeps it off (untested territory).")
     a = ap.parse_args()
 
     if a.sweep_g_re_re:
@@ -628,7 +642,7 @@ def main():
     net = ParallelCorticoThalamicNet(sizes=sizes, conv=a.conv, het=a.het,
                                       delay_jitter=a.delay_jitter,
                                       g_re_re=a.g_re_re, g_re_re_sd=a.g_re_re_sd,
-                                      g_i_e_l5=a.g_i_e_l5)
+                                      g_i_e_l5=a.g_i_e_l5, gh_tc=a.gh_tc)
     wall = net.run(tstop=a.tstop)
     t, g = net.gather()
     if net.rank == 0:
