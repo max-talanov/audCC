@@ -77,7 +77,7 @@ class ParallelCorticoThalamicNet:
                  gh_tc=0.0, gsk_re=1e-3,
                  g_ff=0.0015, g_l5_l6=0.009, g_l5_l23=0.0015,
                  g_l5_rec=0.0, tau2_l5_rec=120.0, l5_rec_mech="exp2syn",
-                 mg_l5_rec=1.0, tau1_l5_rec_nmda=5.0,
+                 mg_l5_rec=1.0, tau1_l5_rec_nmda=5.0, taur_l5e_rs=80.0,
                  g_e_i=0.02, g_i_e=0.08, g_i_e_l5=0.0, gsk_cx=8e-4, ib_frac=0.5,
                  g_tc_l4=0.02, g_l6_tc=0.03, g_l6_re=0.03,
                  conv=100, gap_deg=6, gap_short=2, g_l5_gap=0.02,
@@ -104,6 +104,7 @@ class ParallelCorticoThalamicNet:
         # has never actually been enabled in the MPI/production model despite
         # the CLI/constructor accepting a value for it.
         self.gh_tc = gh_tc
+        self.taur_l5e_rs = taur_l5e_rs
         # het/delay_jitter: SAME per-cell heterogeneity as the serial model
         # (ctx_thalamus_network.CorticoThalamicNet), which measured a 3x gain
         # in RE<->TC oscillatory cycles per SO event at het=0.05 (see
@@ -233,7 +234,19 @@ class ParallelCorticoThalamicNet:
             # identical.
             return C.PYCellIB(e_pas=self._jitter(-70.0, gid, 1),
                                gnap=self._jitter(2e-4, gid, 3))
-        return C.PYCell(e_pas=self._jitter(-70.0, gid, 1), gsk=8e-4)
+        # L5's regular-spiking cells get a slower Ca2+-pool clearance
+        # (taur_l5e_rs, default 80ms = unchanged from every other layer)
+        # ONLY when opted in: these are the cells the L5 recurrent-excitation
+        # reverberation recruits (_wire_l5_recurrent), and their SK2
+        # adaptation can't accumulate across a multi-hundred-ms reverberation
+        # with the fast 80ms clearance every other cortical cell uses -- the
+        # same reasoning PYCellIB already uses (taur=500ms) to turn its I_NaP
+        # plateau into a genuine relaxation oscillator instead of one-shot
+        # adaptation. Candidate fix for the tau2_l5_rec tuning finding: longer
+        # reverberation duration needs its OWN termination mechanism, not
+        # just a slower NMDA decay (see g_l5_rec/tau2_l5_rec commit history).
+        taur = self.taur_l5e_rs if pop == "l5e" else 80.0
+        return C.PYCell(e_pas=self._jitter(-70.0, gid, 1), gsk=8e-4, taur=taur)
 
     # ------------------------------------------------------------------ utils
     def _register(self, gid, cell):
@@ -658,6 +671,17 @@ def main():
     ap.add_argument("--mg-l5-rec", type=float, default=1.0,
                     help="extracellular Mg2+ (mM) for --l5-rec-mech=nmda "
                          "(1 mM is physiological; higher = stronger block).")
+    ap.add_argument("--taur-l5e-rs", type=float, default=80.0,
+                    help="L5E regular-spiking cells' Ca2+-pool clearance (ms) "
+                         "-- default 80ms matches every other cortical layer. "
+                         "Raising this (e.g. toward PYCellIB's 500ms) lets "
+                         "SK2 adaptation accumulate across a multi-hundred-ms "
+                         "L5 recurrent-excitation reverberation instead of "
+                         "recovering within each ~3ms doublet, giving the "
+                         "reverberation its OWN termination mechanism instead "
+                         "of relying only on NMDA decay (tau2_l5_rec) to stop "
+                         "it -- candidate fix for the tau2_l5_rec tuning "
+                         "finding (longer tau2 alone loses clean silence).")
     ap.add_argument("--sweep-tau2-re-tc", default="",
                     help="comma-separated RE->TC GABA_A decay (tau2, ms) "
                          "values to sweep (full network, --scale), reporting "
@@ -732,7 +756,8 @@ def main():
                                               g_l5_rec=g_l5_rec,
                                               tau2_l5_rec=a.tau2_l5_rec,
                                               l5_rec_mech=a.l5_rec_mech,
-                                              mg_l5_rec=a.mg_l5_rec)
+                                              mg_l5_rec=a.mg_l5_rec,
+                                              taur_l5e_rs=a.taur_l5e_rs)
             wall = net.run(tstop=a.sweep_tstop)
             t, g = net.gather()
             if rank == 0:
@@ -878,7 +903,8 @@ def main():
                                       g_i_e_l5=a.g_i_e_l5, gh_tc=a.gh_tc,
                                       tau2_re_tc=a.tau2_re_tc,
                                       g_l5_rec=a.g_l5_rec, tau2_l5_rec=a.tau2_l5_rec,
-                                      l5_rec_mech=a.l5_rec_mech, mg_l5_rec=a.mg_l5_rec)
+                                      l5_rec_mech=a.l5_rec_mech, mg_l5_rec=a.mg_l5_rec,
+                                      taur_l5e_rs=a.taur_l5e_rs)
     wall = net.run(tstop=a.tstop)
     t, g = net.gather()
     if net.rank == 0:

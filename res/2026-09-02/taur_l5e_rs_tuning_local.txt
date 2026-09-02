@@ -1,0 +1,38 @@
+Attempt to extend L5 reverberation duration toward 0.5-2s via a second
+lever (taur_l5e_rs: L5E regular-spiking cells' Ca2+-pool clearance,
+giving SK2 adaptation time to accumulate across the reverberation and
+terminate it, the same mechanism PYCellIB already uses at taur=500ms).
+
+Baseline (best confirmed point): g_l5_rec=0.013, tau2_l5_rec=100,
+g_i_e_l5=0.02, taur_l5e_rs=80 (default/unchanged) -- clean ~150-200ms
+events, n_events=27, event_Hz=1.310, RE burst_size=7.68.
+
+1) taur_l5e_rs=300, tau2_l5_rec=150: OVER-SUPPRESSED. Single L5E RS
+   cell collapsed back to a bare 2-spike doublet (weaker than even the
+   baseline). n_events=27, event_Hz=1.347 (looks similar in summary
+   stats but total spikes 13174, much lower -- the reverberation was
+   killed almost immediately by the added adaptation).
+
+2) taur_l5e_rs=150, tau2_l5_rec=150: genuine EXTENSION at the single-
+   cell level (3 volleys spanning ~515ms with a ~350ms clean gap after)
+   -- but network-level LFP (out/ctx_nmda_taur150_local_lfp*.png) is
+   BUSIER/less clean than baseline: n_events jumped to 36, event_Hz to
+   1.773 (likely echo volleys being double-counted as separate events),
+   L5 trace loses its flat baseline segments.
+
+3) taur_l5e_rs=200, tau2_l5_rec=100 (isolating the adaptation effect
+   alone, keeping the clean baseline NMDA decay): OVER-SUPPRESSED THE
+   OTHER WAY. L5E RS cell now fires only ONE spike per cycle (not even
+   a doublet) -- weaker than the unmodified baseline. n_events=26,
+   event_Hz=1.303 (close to baseline in summary, but total spikes 11135
+   vs baseline's 16621).
+
+Conclusion: taur_l5e_rs and tau2_l5_rec interact NON-ADDITIVELY and
+NON-MONOTONICALLY -- the same taur value that over-suppresses at
+tau2=100 was part of a too-busy combination at tau2=150, and no single-
+axis or simple joint adjustment tried so far beats the original
+(0.013/100/80) point on both duration AND cleanliness simultaneously.
+Manual one-at-a-time probing of this 2-parameter space is not
+converging efficiently -- a genuine 2D grid sweep (or a proper
+optimisation loop) is the honest next step if this is pursued further,
+not more ad hoc single points.
