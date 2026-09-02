@@ -552,6 +552,19 @@ def main():
                          " restores a clean 5-6 spike, ~11-13 ms burst at a "
                          "stable ~0.77 Hz, matching the isolated single-cell "
                          "behaviour.")
+    ap.add_argument("--sweep-gh-tc", default="",
+                    help="comma-separated gh_tc values to sweep (full network, "
+                         "--scale), reporting BOTH TC and RE burst-shape stats. "
+                         "The values validated on the old thalamus-only "
+                         "ThalamicNet (2e-5, 4e-4) both broke in this network "
+                         "(TC tonic runaway / outright explosion) -- this "
+                         "sweep is for finding a much smaller working point, "
+                         "e.g. \"0,1e-6,3e-6,1e-5\". Use a short --sweep-tstop: "
+                         "gh_tc>0 was measured up to 17x slower to simulate "
+                         "than gh_tc=0 (975s wall for 20s simulated at "
+                         "gh_tc=2e-5, --scale 0.05), likely from the ~3x spike "
+                         "count feeding more NetCon delivery events, not the "
+                         "integrator step itself.")
     ap.add_argument("--gh-tc", type=float, default=0.0,
                     help="TC's Ca2+-dependent I_h (ihca.mod) conductance. "
                          "Declared but never actually wired to TCCell until "
@@ -591,6 +604,43 @@ def main():
             del net
         if rank == 0:
             print("-" * 62)
+        pc.barrier()
+        pc.done()
+        h.quit()
+        return
+
+    if a.sweep_gh_tc:
+        pc = h.ParallelContext()
+        rank, nhost = int(pc.id()), int(pc.nhost())
+        sizes = {k: max(1, int(round(v * a.scale))) for k, v in DEFAULT_SIZES.items()}
+        if rank == 0:
+            print("=== gh_tc sweep (%d ranks, scale=%.2f, tstop=%.0f ms) ==="
+                  % (nhost, a.scale, a.sweep_tstop))
+            print("%-9s %-9s %-8s %-9s %-9s | %-9s %-8s %-9s %-9s"
+                  % ("gh_tc", "TC spks", "TCfrac_b", "TCburst", "TChz",
+                     "RE spks", "REfrac_b", "REburst", "REhz"))
+            print("-" * 90)
+        for gh_tc in [float(x) for x in a.sweep_gh_tc.split(",")]:
+            net = ParallelCorticoThalamicNet(sizes=sizes, conv=a.conv,
+                                              het=a.het,
+                                              delay_jitter=a.delay_jitter,
+                                              g_i_e_l5=a.g_i_e_l5, gh_tc=gh_tc)
+            wall = net.run(tstop=a.sweep_tstop)
+            t, g = net.gather()
+            if rank == 0:
+                tc_lo, tc_hi = net.ranges["tc"]
+                re_lo, re_hi = net.ranges["re"]
+                stc = _re_burst_stats(t, g, tc_lo, tc_hi)
+                sre = _re_burst_stats(t, g, re_lo, re_hi)
+                print("%-9.1e %-9d %-8.3f %-9.2f %-9.3f | %-9d %-8.3f %-9.2f %-9.3f  (wall %.0fs)"
+                      % (gh_tc, stc["n_spikes"], stc["frac_burst"],
+                         stc["mean_burst_size"], stc["event_hz"],
+                         sre["n_spikes"], sre["frac_burst"],
+                         sre["mean_burst_size"], sre["event_hz"], wall))
+            net.teardown()
+            del net
+        if rank == 0:
+            print("-" * 90)
         pc.barrier()
         pc.done()
         h.quit()
