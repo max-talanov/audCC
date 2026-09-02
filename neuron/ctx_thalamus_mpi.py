@@ -76,7 +76,8 @@ class ParallelCorticoThalamicNet:
                  g_gap=0.03,
                  gh_tc=0.0, gsk_re=1e-3,
                  g_ff=0.0015, g_l5_l6=0.009, g_l5_l23=0.0015,
-                 g_l5_rec=0.0, tau2_l5_rec=120.0,
+                 g_l5_rec=0.0, tau2_l5_rec=120.0, l5_rec_mech="exp2syn",
+                 mg_l5_rec=1.0, tau1_l5_rec_nmda=5.0,
                  g_e_i=0.02, g_i_e=0.08, g_i_e_l5=0.0, gsk_cx=8e-4, ib_frac=0.5,
                  g_tc_l4=0.02, g_l6_tc=0.03, g_l6_re=0.03,
                  conv=100, gap_deg=6, gap_short=2, g_l5_gap=0.02,
@@ -155,7 +156,8 @@ class ParallelCorticoThalamicNet:
             # registrations (RE and L5 gaps both), not one per group.
             self.pc.setup_transfer()
         self._wire_intracortical(g_ff, g_l5_l6, g_l5_l23)
-        self._wire_l5_recurrent(g_l5_rec, tau2_l5_rec)
+        self._wire_l5_recurrent(g_l5_rec, tau2_l5_rec, mech=l5_rec_mech,
+                                 mg=mg_l5_rec, tau1_nmda=tau1_l5_rec_nmda)
         for pop_e, pop_i in [("l4e", "l4i"), ("l23e", "l23i"),
                               ("l5e", "l5i"), ("l6e", "l6i")]:
             # L5's own I->E feedback (g_i_e_l5) is kept separate from the
@@ -385,24 +387,33 @@ class ParallelCorticoThalamicNet:
     REC_OFFSET = 40_000_000  # per-gid RNG stream for recurrent wiring,
                               # disjoint from JITTER_OFFSET/WEIGHT_JITTER_OFFSET
 
-    def _wire_l5_recurrent(self, g, tau2=120.0, conv=None):
-        """Recurrent L5E->L5E excitation -- Option B test of the "missing
-        slow recurrent excitation" hypothesis for a genuine cortical UP
-        state (see architecture review: no layer has ANY within-population
-        E->E synapse, and no synapse anywhere is slower than 8ms -- so
-        nothing can sustain elevated firing once triggered; L5's I_NaP
-        plateau is a lone single-cell/gap-junction pacemaker with no
-        network-level reinforcement, which is why a single fast IPSP was
-        enough to kill it outright before the g_i_e_l5 fix).
+    def _wire_l5_recurrent(self, g, tau2=120.0, conv=None, mech="exp2syn",
+                            mg=1.0, tau1_nmda=5.0):
+        """Recurrent L5E->L5E excitation -- test of the "missing slow
+        recurrent excitation" hypothesis for a genuine cortical UP state
+        (see architecture review: no layer has ANY within-population E->E
+        synapse, and no synapse anywhere is slower than 8ms -- so nothing
+        can sustain elevated firing once triggered; L5's I_NaP plateau is a
+        lone single-cell/gap-junction pacemaker with no network-level
+        reinforcement, which is why a single fast IPSP was enough to kill
+        it outright before the g_i_e_l5 fix).
 
-        Approximates NMDA-like sustaining excitation with the SAME Exp2Syn
-        used everywhere else, just with a much longer tau2 (default 120ms
-        vs. 2-8ms for every other synapse in the model) -- cheap to test
-        without a new NMDA .mod mechanism (no recompile on MN5). If this
-        produces a real sustained UP state, Option A (a proper NMDA
-        mechanism with Mg2+ block) is the planned follow-up for actual
-        bio-plausibility; this is a falsification test of the *hypothesis*,
-        not the final implementation.
+        mech="exp2syn" (Option B): approximates NMDA-like sustaining
+        excitation with the SAME Exp2Syn used everywhere else, just with a
+        much longer tau2 (default 120ms vs. 2-8ms elsewhere) -- cheap,
+        no new mechanism. Result: a real, powerful lever, but with
+        essentially NO stable middle ground -- g_l5_rec<=0.0005 barely
+        changes anything and >=0.001 causes runaway/continuous tonic
+        firing at every g_i_e_l5 tested (0.01-0.08). A plain linear
+        conductance has no self-limiting nonlinearity, so nothing caps the
+        positive feedback except inhibition racing to catch up.
+
+        mech="nmda" (Option A): a real NMDA mechanism (mod/nmda.mod,
+        Jahr & Stevens 1990 Mg2+ block) -- voltage-dependent conductance,
+        weak near rest and unblocking with depolarisation, which is
+        exactly the saturating nonlinearity a STABLE bistable UP state
+        needs and Option B's result argues is functionally necessary, not
+        just a bio-plausibility upgrade.
 
         g=0.0 (the default) leaves this fully disabled -- opt-in only.
         """
@@ -414,8 +425,12 @@ class ParallelCorticoThalamicNet:
         for gid in range(lo, hi):
             if int(self.pc.gid_exists(gid)) == 0:
                 continue
-            syn = h.Exp2Syn(self._target_sec(gid)(0.5))
-            syn.e, syn.tau1, syn.tau2 = 0.0, 0.5, tau2
+            if mech == "nmda":
+                syn = h.NMDA(self._target_sec(gid)(0.5))
+                syn.tau1, syn.tau2, syn.mg = tau1_nmda, tau2, mg
+            else:
+                syn = h.Exp2Syn(self._target_sec(gid)(0.5))
+                syn.e, syn.tau1, syn.tau2 = 0.0, 0.5, tau2
             self.syns[("l5_rec", gid)] = syn
             r = np.random.default_rng(self.REC_OFFSET + gid)
             others = np.array([x for x in range(lo, hi) if x != gid])
@@ -632,6 +647,17 @@ def main():
                          "NMDA-like slow time constant this synapse needs to "
                          "sustain a real UP state (every other synapse in "
                          "the model decays in 2-8ms).")
+    ap.add_argument("--l5-rec-mech", choices=["exp2syn", "nmda"], default="exp2syn",
+                    help="L5E->L5E recurrent synapse mechanism. 'exp2syn' "
+                         "(Option B, default): plain long-tau2 Exp2Syn, found "
+                         "to have essentially no stable middle ground (no "
+                         "effect or runaway). 'nmda' (Option A): real "
+                         "Mg2+-block voltage-dependent NMDA (mod/nmda.mod) "
+                         "-- the saturating nonlinearity a stable bistable "
+                         "UP state needs.")
+    ap.add_argument("--mg-l5-rec", type=float, default=1.0,
+                    help="extracellular Mg2+ (mM) for --l5-rec-mech=nmda "
+                         "(1 mM is physiological; higher = stronger block).")
     ap.add_argument("--sweep-tau2-re-tc", default="",
                     help="comma-separated RE->TC GABA_A decay (tau2, ms) "
                          "values to sweep (full network, --scale), reporting "
@@ -704,7 +730,9 @@ def main():
                                               delay_jitter=a.delay_jitter,
                                               g_i_e_l5=a.g_i_e_l5,
                                               g_l5_rec=g_l5_rec,
-                                              tau2_l5_rec=a.tau2_l5_rec)
+                                              tau2_l5_rec=a.tau2_l5_rec,
+                                              l5_rec_mech=a.l5_rec_mech,
+                                              mg_l5_rec=a.mg_l5_rec)
             wall = net.run(tstop=a.sweep_tstop)
             t, g = net.gather()
             if rank == 0:
@@ -849,7 +877,8 @@ def main():
                                       g_re_re=a.g_re_re, g_re_re_sd=a.g_re_re_sd,
                                       g_i_e_l5=a.g_i_e_l5, gh_tc=a.gh_tc,
                                       tau2_re_tc=a.tau2_re_tc,
-                                      g_l5_rec=a.g_l5_rec, tau2_l5_rec=a.tau2_l5_rec)
+                                      g_l5_rec=a.g_l5_rec, tau2_l5_rec=a.tau2_l5_rec,
+                                      l5_rec_mech=a.l5_rec_mech, mg_l5_rec=a.mg_l5_rec)
     wall = net.run(tstop=a.tstop)
     t, g = net.gather()
     if net.rank == 0:
