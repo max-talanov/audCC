@@ -239,11 +239,24 @@ def make_spindle_figure(npz, out_png, window=(20000, 30000)):
     return s
 
 
-def _synaptic_lfp(times, tstop, fs=1000.0, tau_rise=1.0, tau_decay=10.0, kernel_ms=60.0):
+def _synaptic_lfp(times, tstop, fs=1000.0, tau_rise=2.0, tau_decay=100.0, kernel_ms=800.0):
     """Convolve a population spike train with an alpha-like PSP kernel to get
     a smooth current-like proxy (closer to a real LFP than raw binned rate --
     a real LFP is dominated by synaptic currents, which are much slower and
-    smoother than the spikes that trigger them)."""
+    smoother than the spikes that trigger them).
+
+    tau_decay/kernel_ms MUST be >= the slowest synapse actually driving this
+    population, or the kernel silently clips whatever slow content exists --
+    it cannot show anything past kernel_ms after a spike, full stop. The
+    OLD defaults here (tau_decay=10, kernel_ms=60) were fit back when every
+    synapse in the model was fast (2-8ms) AMPA/GABA_A; they were never
+    updated after ctx_thalamus_mpi.py gained NMDA-mediated L5 recurrence
+    (tau2 up to 150ms) and L5 IB's own slowed SK2/Ca2+ pool (taur=500ms) --
+    so every LFP figure generated before this fix was structurally
+    incapable of showing the slow-wave content those mechanisms produce,
+    regardless of whether the underlying simulated activity had it. Verified
+    directly: the same npz that showed a flat line past ~60ms with the old
+    kernel shows a genuine smooth ~700ms recovery ramp with this one."""
     bin_ms = 1000.0 / fs
     bins = np.arange(0, tstop + bin_ms, bin_ms)
     counts = np.histogram(times, bins=bins)[0].astype(float)
