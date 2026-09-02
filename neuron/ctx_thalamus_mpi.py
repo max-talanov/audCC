@@ -76,6 +76,7 @@ class ParallelCorticoThalamicNet:
                  g_gap=0.03,
                  gh_tc=0.0, gsk_re=1e-3,
                  g_ff=0.0015, g_l5_l6=0.009, g_l5_l23=0.0015,
+                 g_l5_rec=0.0, tau2_l5_rec=120.0,
                  g_e_i=0.02, g_i_e=0.08, g_i_e_l5=0.0, gsk_cx=8e-4, ib_frac=0.5,
                  g_tc_l4=0.02, g_l6_tc=0.03, g_l6_re=0.03,
                  conv=100, gap_deg=6, gap_short=2, g_l5_gap=0.02,
@@ -154,6 +155,7 @@ class ParallelCorticoThalamicNet:
             # registrations (RE and L5 gaps both), not one per group.
             self.pc.setup_transfer()
         self._wire_intracortical(g_ff, g_l5_l6, g_l5_l23)
+        self._wire_l5_recurrent(g_l5_rec, tau2_l5_rec)
         for pop_e, pop_i in [("l4e", "l4i"), ("l23e", "l23i"),
                               ("l5e", "l5i"), ("l6e", "l6i")]:
             # L5's own I->E feedback (g_i_e_l5) is kept separate from the
@@ -380,6 +382,47 @@ class ParallelCorticoThalamicNet:
         self._project("l5_l6", "l5e", "l6e", 0.0, 0.5, 2.0, g_l5_l6, seed_offset=13)
         self._project("l5_l23", "l5e", "l23e", 0.0, 0.5, 2.0, g_l5_l23, seed_offset=14)
 
+    REC_OFFSET = 40_000_000  # per-gid RNG stream for recurrent wiring,
+                              # disjoint from JITTER_OFFSET/WEIGHT_JITTER_OFFSET
+
+    def _wire_l5_recurrent(self, g, tau2=120.0, conv=None):
+        """Recurrent L5E->L5E excitation -- Option B test of the "missing
+        slow recurrent excitation" hypothesis for a genuine cortical UP
+        state (see architecture review: no layer has ANY within-population
+        E->E synapse, and no synapse anywhere is slower than 8ms -- so
+        nothing can sustain elevated firing once triggered; L5's I_NaP
+        plateau is a lone single-cell/gap-junction pacemaker with no
+        network-level reinforcement, which is why a single fast IPSP was
+        enough to kill it outright before the g_i_e_l5 fix).
+
+        Approximates NMDA-like sustaining excitation with the SAME Exp2Syn
+        used everywhere else, just with a much longer tau2 (default 120ms
+        vs. 2-8ms for every other synapse in the model) -- cheap to test
+        without a new NMDA .mod mechanism (no recompile on MN5). If this
+        produces a real sustained UP state, Option A (a proper NMDA
+        mechanism with Mg2+ block) is the planned follow-up for actual
+        bio-plausibility; this is a falsification test of the *hypothesis*,
+        not the final implementation.
+
+        g=0.0 (the default) leaves this fully disabled -- opt-in only.
+        """
+        if g <= 0:
+            return
+        lo, hi = self.ranges["l5e"]
+        n = hi - lo
+        k = max(1, min(conv or self.conv, n - 1))
+        for gid in range(lo, hi):
+            if int(self.pc.gid_exists(gid)) == 0:
+                continue
+            syn = h.Exp2Syn(self._target_sec(gid)(0.5))
+            syn.e, syn.tau1, syn.tau2 = 0.0, 0.5, tau2
+            self.syns[("l5_rec", gid)] = syn
+            r = np.random.default_rng(self.REC_OFFSET + gid)
+            others = np.array([x for x in range(lo, hi) if x != gid])
+            srcs = r.choice(others, size=min(k, len(others)), replace=False)
+            for src in srcs:
+                self._connect(int(src), syn, g / k, 1.0, dst_gid=gid)
+
     def _wire_layer_inh(self, pop_e, pop_i, g_e_i, g_i_e):
         self._project(f"{pop_e}_i", pop_e, pop_i, 0.0, 0.5, 2.0, g_e_i, seed_offset=20)
         self._project(f"{pop_i}_e", pop_i, pop_e, -75.0, 1.0, 8.0, g_i_e, seed_offset=21)
@@ -570,6 +613,25 @@ def main():
                          "gh_tc=2e-5, --scale 0.05), likely from the ~3x spike "
                          "count feeding more NetCon delivery events, not the "
                          "integrator step itself.")
+    ap.add_argument("--sweep-g-l5-rec", default="",
+                    help="comma-separated L5E->L5E recurrent-excitation "
+                         "weights to sweep (full network, --scale), reporting "
+                         "L5E burst-shape stats (does the plateau actually "
+                         "SUSTAIN now?) plus RE/TC for side effects. Option B "
+                         "test of the missing-recurrent-excitation hypothesis "
+                         "(see architecture review) -- approximates NMDA-like "
+                         "sustaining excitation with existing Exp2Syn at a "
+                         "much longer tau2 (--tau2-l5-rec) than any other "
+                         "synapse in the model. 0 = fully disabled (default). "
+                         "Try e.g. \"0,0.0005,0.001,0.002,0.005\".")
+    ap.add_argument("--g-l5-rec", type=float, default=0.0,
+                    help="L5E->L5E recurrent excitation weight. See "
+                         "--sweep-g-l5-rec. 0.0 (default) disables it.")
+    ap.add_argument("--tau2-l5-rec", type=float, default=120.0,
+                    help="L5E->L5E recurrent excitation decay (ms) -- the "
+                         "NMDA-like slow time constant this synapse needs to "
+                         "sustain a real UP state (every other synapse in "
+                         "the model decays in 2-8ms).")
     ap.add_argument("--sweep-tau2-re-tc", default="",
                     help="comma-separated RE->TC GABA_A decay (tau2, ms) "
                          "values to sweep (full network, --scale), reporting "
@@ -620,6 +682,45 @@ def main():
             del net
         if rank == 0:
             print("-" * 62)
+        pc.barrier()
+        pc.done()
+        h.quit()
+        return
+
+    if a.sweep_g_l5_rec:
+        pc = h.ParallelContext()
+        rank, nhost = int(pc.id()), int(pc.nhost())
+        sizes = {k: max(1, int(round(v * a.scale))) for k, v in DEFAULT_SIZES.items()}
+        if rank == 0:
+            print("=== g_l5_rec sweep (%d ranks, scale=%.2f, tstop=%.0f ms, "
+                  "tau2_l5_rec=%.0f) ===" % (nhost, a.scale, a.sweep_tstop, a.tau2_l5_rec))
+            print("%-9s %-9s %-8s %-9s %-9s | %-9s %-8s %-9s %-9s"
+                  % ("g_l5_rec", "L5 spks", "L5frac_b", "L5burst", "L5hz",
+                     "RE spks", "REfrac_b", "REburst", "REhz"))
+            print("-" * 90)
+        for g_l5_rec in [float(x) for x in a.sweep_g_l5_rec.split(",")]:
+            net = ParallelCorticoThalamicNet(sizes=sizes, conv=a.conv,
+                                              het=a.het,
+                                              delay_jitter=a.delay_jitter,
+                                              g_i_e_l5=a.g_i_e_l5,
+                                              g_l5_rec=g_l5_rec,
+                                              tau2_l5_rec=a.tau2_l5_rec)
+            wall = net.run(tstop=a.sweep_tstop)
+            t, g = net.gather()
+            if rank == 0:
+                l5_lo, l5_hi = net.ranges["l5e"]
+                re_lo, re_hi = net.ranges["re"]
+                sl5 = _re_burst_stats(t, g, l5_lo, l5_hi)
+                sre = _re_burst_stats(t, g, re_lo, re_hi)
+                print("%-9.4f %-9d %-8.3f %-9.2f %-9.3f | %-9d %-8.3f %-9.2f %-9.3f  (wall %.0fs)"
+                      % (g_l5_rec, sl5["n_spikes"], sl5["frac_burst"],
+                         sl5["mean_burst_size"], sl5["event_hz"],
+                         sre["n_spikes"], sre["frac_burst"],
+                         sre["mean_burst_size"], sre["event_hz"], wall))
+            net.teardown()
+            del net
+        if rank == 0:
+            print("-" * 90)
         pc.barrier()
         pc.done()
         h.quit()
@@ -747,7 +848,8 @@ def main():
                                       delay_jitter=a.delay_jitter,
                                       g_re_re=a.g_re_re, g_re_re_sd=a.g_re_re_sd,
                                       g_i_e_l5=a.g_i_e_l5, gh_tc=a.gh_tc,
-                                      tau2_re_tc=a.tau2_re_tc)
+                                      tau2_re_tc=a.tau2_re_tc,
+                                      g_l5_rec=a.g_l5_rec, tau2_l5_rec=a.tau2_l5_rec)
     wall = net.run(tstop=a.tstop)
     t, g = net.gather()
     if net.rank == 0:
