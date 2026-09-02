@@ -72,7 +72,7 @@ class ParallelCorticoThalamicNet:
     POPS = ["tc", "re", "l4e", "l4i", "l23e", "l23i", "l5e", "l5i", "l6e", "l6i"]
 
     def __init__(self, sizes=None, seed=1,
-                 g_re_tc=0.015, g_tc_re=0.011, g_re_re=0.006, g_re_re_sd=0.002,
+                 g_re_tc=0.015, tau2_re_tc=8.0, g_tc_re=0.011, g_re_re=0.006, g_re_re_sd=0.002,
                  g_gap=0.03,
                  gh_tc=0.0, gsk_re=1e-3,
                  g_ff=0.0015, g_l5_l6=0.009, g_l5_l23=0.0015,
@@ -144,7 +144,7 @@ class ParallelCorticoThalamicNet:
         # -- synapses + fixed-convergence wiring -----------------------------
         self.conv = conv
         self._gap_wired = False
-        self._wire_re_tc(g_re_tc)
+        self._wire_re_tc(g_re_tc, tau2_re_tc)
         self._wire_tc_re(g_tc_re)
         self._wire_re_re_local(g_re_re, g_re_re_sd)
         self._wire_gap(g_gap, gap_deg, gap_short)
@@ -277,8 +277,13 @@ class ParallelCorticoThalamicNet:
                 self._connect(src, syn, g / k, delay, dst_gid=gid)
 
     # -- intrathalamic wiring (params matched to ctx_thalamus_network.py) --
-    def _wire_re_tc(self, g):
-        self._project("gabaa", "re", "tc", -85.0, 1.0, 8.0, g, seed_offset=0)
+    def _wire_re_tc(self, g, tau2=8.0):
+        # tau2: RE->TC GABA_A decay. The IPSP that hyperpolarises TC long
+        # enough to de-inactivate I_T for a rebound burst -- candidate lever
+        # for RE/TC multi-cycle ringing (a longer IPSP -> a longer, possibly
+        # more effective de-inactivation window before rebound) now that
+        # gh_tc was ruled out as that lever (see --sweep-gh-tc).
+        self._project("gabaa", "re", "tc", -85.0, 1.0, tau2, g, seed_offset=0)
 
     def _wire_tc_re(self, g):
         self._project("ampa", "tc", "re", 0.0, 0.5, 2.0, g, seed_offset=1)
@@ -565,6 +570,17 @@ def main():
                          "gh_tc=2e-5, --scale 0.05), likely from the ~3x spike "
                          "count feeding more NetCon delivery events, not the "
                          "integrator step itself.")
+    ap.add_argument("--sweep-tau2-re-tc", default="",
+                    help="comma-separated RE->TC GABA_A decay (tau2, ms) "
+                         "values to sweep (full network, --scale), reporting "
+                         "TC and RE burst-shape stats. gh_tc (I_h) was ruled "
+                         "out as the multi-cycle-ringing lever (--sweep-gh-tc: "
+                         "monotonically bad, never helps); this tests whether "
+                         "a longer RE->TC IPSP (more time to de-inactivate "
+                         "I_T before rebound) does better. Default 8.0 ms; "
+                         "try e.g. \"8,15,25,40,60,100\".")
+    ap.add_argument("--tau2-re-tc", type=float, default=8.0,
+                    help="RE->TC GABA_A decay (ms). See --sweep-tau2-re-tc.")
     ap.add_argument("--gh-tc", type=float, default=0.0,
                     help="TC's Ca2+-dependent I_h (ihca.mod) conductance. "
                          "Declared but never actually wired to TCCell until "
@@ -604,6 +620,44 @@ def main():
             del net
         if rank == 0:
             print("-" * 62)
+        pc.barrier()
+        pc.done()
+        h.quit()
+        return
+
+    if a.sweep_tau2_re_tc:
+        pc = h.ParallelContext()
+        rank, nhost = int(pc.id()), int(pc.nhost())
+        sizes = {k: max(1, int(round(v * a.scale))) for k, v in DEFAULT_SIZES.items()}
+        if rank == 0:
+            print("=== tau2_re_tc sweep (%d ranks, scale=%.2f, tstop=%.0f ms) ==="
+                  % (nhost, a.scale, a.sweep_tstop))
+            print("%-9s %-9s %-8s %-9s %-9s | %-9s %-8s %-9s %-9s"
+                  % ("tau2", "TC spks", "TCfrac_b", "TCburst", "TChz",
+                     "RE spks", "REfrac_b", "REburst", "REhz"))
+            print("-" * 90)
+        for tau2 in [float(x) for x in a.sweep_tau2_re_tc.split(",")]:
+            net = ParallelCorticoThalamicNet(sizes=sizes, conv=a.conv,
+                                              het=a.het,
+                                              delay_jitter=a.delay_jitter,
+                                              g_i_e_l5=a.g_i_e_l5,
+                                              tau2_re_tc=tau2)
+            wall = net.run(tstop=a.sweep_tstop)
+            t, g = net.gather()
+            if rank == 0:
+                tc_lo, tc_hi = net.ranges["tc"]
+                re_lo, re_hi = net.ranges["re"]
+                stc = _re_burst_stats(t, g, tc_lo, tc_hi)
+                sre = _re_burst_stats(t, g, re_lo, re_hi)
+                print("%-9.1f %-9d %-8.3f %-9.2f %-9.3f | %-9d %-8.3f %-9.2f %-9.3f  (wall %.0fs)"
+                      % (tau2, stc["n_spikes"], stc["frac_burst"],
+                         stc["mean_burst_size"], stc["event_hz"],
+                         sre["n_spikes"], sre["frac_burst"],
+                         sre["mean_burst_size"], sre["event_hz"], wall))
+            net.teardown()
+            del net
+        if rank == 0:
+            print("-" * 90)
         pc.barrier()
         pc.done()
         h.quit()
@@ -692,7 +746,8 @@ def main():
     net = ParallelCorticoThalamicNet(sizes=sizes, conv=a.conv, het=a.het,
                                       delay_jitter=a.delay_jitter,
                                       g_re_re=a.g_re_re, g_re_re_sd=a.g_re_re_sd,
-                                      g_i_e_l5=a.g_i_e_l5, gh_tc=a.gh_tc)
+                                      g_i_e_l5=a.g_i_e_l5, gh_tc=a.gh_tc,
+                                      tau2_re_tc=a.tau2_re_tc)
     wall = net.run(tstop=a.tstop)
     t, g = net.gather()
     if net.rank == 0:
