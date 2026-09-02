@@ -1,0 +1,15 @@
+Robustness check: g_l5_rec=0.013 (NMDA), tau2_l5_rec=100, g_i_e_l5=0.02
+Local, --scale 0.05, 151 cells, tstop=60000 ms (60s, ~79 SO cycles)
+
+ranks 1 | total cells 151 | tstop 60000 ms | wall 170.8 s (2.85 x realtime)
+spikes 53385 total (TC 4228, RE 1824, L6E 3053)
+RE burst shape (full run): frac_burst=0.873 mean_burst_size=7.89 n_events=79 event_Hz=1.305
+  first half:  frac_burst=0.871 mean_burst_size=7.78 event_Hz=1.308
+  second half: frac_burst=0.875 mean_burst_size=8.00 event_Hz=1.303
+
+No drift: first-half vs second-half stats match almost exactly. Direct
+inspection of a recruited regular-spiking L5 cell's spike train at
+5-12s vs 50-57s shows the same qualitative pattern (single spike, then
+a doublet ~140-150ms later, repeating every ~650-700ms) with no
+long-term growth, decay, or change in shape -- confirms this working
+point is stable over 60+ cycles, not a transient.

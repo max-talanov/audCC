@@ -1,0 +1,52 @@
+numprocs=1
+
+=== NEURON MPI corticothalamic network ===
+ranks 1 | total cells 151 | tstop 20000 ms | wall 54.9 s (2.75 x realtime)
+  tc     gid [0,10)  n=10
+  re     gid [10,13)  n=3
+  l4e    gid [13,45)  n=32
+  l4i    gid [45,53)  n=8
+  l23e   gid [53,85)  n=32
+  l23i   gid [85,93)  n=8
+  l5e    gid [93,119)  n=26
+  l5i    gid [119,125)  n=6
+  l6e    gid [125,146)  n=21
+  l6i    gid [146,151)  n=5
+spikes 35155 total (TC 2828, RE 828, L6E 1839)
+RE burst shape (full run): frac_burst=0.766 mean_burst_size=4.27 n_events=24 event_Hz=1.167 (g_re_re=0.0060 +/- 0.0020)
+=== tau2_l5_rec=150 done ===
+numprocs=1
+
+=== NEURON MPI corticothalamic network ===
+ranks 1 | total cells 151 | tstop 20000 ms | wall 55.7 s (2.79 x realtime)
+  tc     gid [0,10)  n=10
+  re     gid [10,13)  n=3
+  l4e    gid [13,45)  n=32
+  l4i    gid [45,53)  n=8
+  l23e   gid [53,85)  n=32
+  l23i   gid [85,93)  n=8
+  l5e    gid [93,119)  n=26
+  l5i    gid [119,125)  n=6
+  l6e    gid [125,146)  n=21
+  l6i    gid [146,151)  n=5
+spikes 40095 total (TC 3271, RE 838, L6E 1978)
+RE burst shape (full run): frac_burst=0.746 mean_burst_size=3.94 n_events=20 event_Hz=0.953 (g_re_re=0.0060 +/- 0.0020)
+=== tau2_l5_rec=200 done ===
+numprocs=1
+
+=== NEURON MPI corticothalamic network ===
+ranks 1 | total cells 151 | tstop 20000 ms | wall 57.7 s (2.89 x realtime)
+  tc     gid [0,10)  n=10
+  re     gid [10,13)  n=3
+  l4e    gid [13,45)  n=32
+  l4i    gid [45,53)  n=8
+  l23e   gid [53,85)  n=32
+  l23i   gid [85,93)  n=8
+  l5e    gid [93,119)  n=26
+  l5i    gid [119,125)  n=6
+  l6e    gid [125,146)  n=21
+  l6i    gid [146,151)  n=5
+spikes 44586 total (TC 3875, RE 861, L6E 2607)
+RE burst shape (full run): frac_burst=0.740 mean_burst_size=3.88 n_events=8 event_Hz=0.370 (g_re_re=0.0060 +/- 0.0020)
+=== tau2_l5_rec=250 done ===
+ALL DONE
