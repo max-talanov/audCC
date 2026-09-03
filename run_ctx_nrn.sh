@@ -25,6 +25,14 @@
 #       -> production at the reference size (SCALE=1.0 -> 3050 cells;
 #          SCALE=1.65 -> ~5010)
 #
+#   sbatch --export=ALL,SCALE=1.65,TSTOP=200000,G_I_E_L5=0.02,G_L5_REC=0.013,TAU2_L5_REC=200,TAUR_L5E_RS=120,L5_REC_MECH=nmda run_ctx_nrn.sh
+#       -> production with L5E->L5E recurrent excitation (the slow-wave
+#          fix) at Option 2, the literature-score-optimized working point
+#          (see out/compare_regularity_vs_literature_score.png and
+#          res/2026-09-02/l5_rec_grid_literature_score.txt). Verified
+#          stable over 60s locally before scaling up -- see
+#          res/2026-09-02/robustness_60s_litbest_option2.txt.
+#
 # RUN THE BENCHMARK FIRST -- same reasoning as run_nrn.sh: this tells you
 # whether the requested scale is affordable in the time/rank budget before a
 # 200 s production run finds out the hard way. Also run run_nrn.sh's own
@@ -60,12 +68,24 @@ echo "python : $PY"
 "$PY" -c "import numpy" 2>/dev/null || { echo "ERROR: numpy unavailable"; exit 1; }
 
 # --- compile the NMODL mechanisms (whole mod/ dir: it, it2, hh2, cad, sk2,
-#     ihca, ical, inap, gap, gapmpi) ------------------------------------
+#     ihca, ical, inap, gap, gapmpi, nmda) -------------------------------
+# Recompile whenever mod/*.mod's file list has changed since the last build
+# (tracked via a manifest, not just "does libnrnmech.so exist") -- a stale
+# compiled library from before nmda.mod was added would otherwise be reused
+# silently, and any run with --l5-rec-mech nmda would fail to find NMDA at
+# all. Don't reintroduce a plain existence check here.
 cd neuron
-if [ ! -f x86_64/libnrnmech.so ]; then
-    echo "== compiling NMODL mechanisms =="
+NEED_RECOMPILE=1
+if [ -f x86_64/libnrnmech.so ] && [ -f x86_64/.mod_manifest ] \
+   && diff -q x86_64/.mod_manifest <(ls mod/*.mod | sort) >/dev/null 2>&1; then
+    NEED_RECOMPILE=0
+fi
+if [ "$NEED_RECOMPILE" = "1" ]; then
+    echo "== compiling NMODL mechanisms (mod/*.mod changed or no prior build) =="
     command -v nrnivmodl >/dev/null || { echo "ERROR: nrnivmodl not on PATH -- is the NEURON module loaded?"; exit 1; }
+    rm -rf x86_64
     nrnivmodl mod
+    ls mod/*.mod | sort > x86_64/.mod_manifest
 fi
 cd "$WORKDIR"
 
@@ -103,6 +123,31 @@ else
     PROD_ARGS=()
     [ -n "${G_RE_RE:-}" ] && PROD_ARGS+=(--g-re-re "$G_RE_RE")
     [ -n "${G_RE_RE_SD:-}" ] && PROD_ARGS+=(--g-re-re-sd "$G_RE_RE_SD")
+    # G_I_E_L5 (optional): L5's own I->E feedback weight, separate from
+    # every other layer's --g-i-e (default 0.08). Unset -> 0.0 (the L5
+    # plateau fix: shared g_i_e recruits L5I repeatedly off the near-
+    # synchronous IB population and kills the I_NaP plateau before it can
+    # develop -- see neuron/ctx_thalamus_mpi.py's _wire_layer_inh note).
+    [ -n "${G_I_E_L5:-}" ] && PROD_ARGS+=(--g-i-e-l5 "$G_I_E_L5")
+    # G_L5_REC/TAU2_L5_REC/TAUR_L5E_RS/L5_REC_MECH/MG_L5_REC (all optional):
+    # L5E->L5E recurrent excitation -- the fix for "no slow-wave content
+    # anywhere" (no layer had within-population E->E synapses at all).
+    # Unset G_L5_REC (default 0.0) leaves this fully OFF, matching prior
+    # production behaviour. The branch's two candidate working points
+    # (both verified stable over 60s locally, see res/2026-09-02/):
+    #   Option 1 (regularity-optimized):        G_L5_REC=0.013 TAU2_L5_REC=115 TAUR_L5E_RS=100
+    #   Option 2 (literature-score-optimized):   G_L5_REC=0.013 TAU2_L5_REC=200 TAUR_L5E_RS=120
+    # Option 2 is the one that actually resembles the published multi-
+    # species spindle traces on direct comparison (irregular, clustered
+    # spindle timing and larger slow-oscillation amplitude) -- see
+    # out/compare_regularity_vs_literature_score.png. L5_REC_MECH must be
+    # "nmda" for either point (the default "exp2syn" has no stable middle
+    # ground between "no effect" and "runaway" -- see commit history).
+    [ -n "${G_L5_REC:-}" ] && PROD_ARGS+=(--g-l5-rec "$G_L5_REC")
+    [ -n "${TAU2_L5_REC:-}" ] && PROD_ARGS+=(--tau2-l5-rec "$TAU2_L5_REC")
+    [ -n "${TAUR_L5E_RS:-}" ] && PROD_ARGS+=(--taur-l5e-rs "$TAUR_L5E_RS")
+    [ -n "${L5_REC_MECH:-}" ] && PROD_ARGS+=(--l5-rec-mech "$L5_REC_MECH")
+    [ -n "${MG_L5_REC:-}" ] && PROD_ARGS+=(--mg-l5-rec "$MG_L5_REC")
     srun --mpi=pmix "$PY" neuron/ctx_thalamus_mpi.py \
         --scale "$SCALE" --tstop "$TSTOP" --conv "$CONV" \
         --out "out/${TAG}.npz" "${PROD_ARGS[@]}"
