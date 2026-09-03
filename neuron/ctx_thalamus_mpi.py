@@ -600,6 +600,74 @@ def _cycle_metrics(t, g, lo, hi, event_gap=200.0):
                 cv_interval=round(cv, 3) if cv == cv else cv, n_spikes=len(ts))
 
 
+def _synaptic_lfp_local(times, tstop, fs=1000.0, tau_rise=2.0, tau_decay=100.0, kernel_ms=800.0):
+    """Same construction as ctx_analyze._synaptic_lfp, duplicated here
+    (numpy-only) so the MPI/NEURON script does not need to import that
+    matplotlib-heavy module. Keep the two in sync if the kernel changes."""
+    bin_ms = 1000.0 / fs
+    bins = np.arange(0, tstop + bin_ms, bin_ms)
+    counts = np.histogram(times, bins=bins)[0].astype(float)
+    tk = np.arange(0, kernel_ms, bin_ms)
+    kernel = (np.exp(-tk / tau_decay) - np.exp(-tk / tau_rise))
+    kernel /= kernel.max() if kernel.max() > 0 else 1.0
+    lfp = np.convolve(counts, kernel, mode="full")[:len(counts)]
+    return lfp, bins[:-1]
+
+
+def _literature_score(t, g, ranges, tstop, fs=1000.0):
+    """Score a run against the qualitative signature found by comparing our
+    LFP reconstruction (SO-band + spindle-band, ctx_analyze.py) to published
+    multi-species spindle traces (Fernandez & Luthi 2020-style figures):
+    what actually looked literature-like was NOT the most regular, cleanly
+    periodic point the earlier _cycle_metrics grid favoured -- it was the
+    "busier" point with (a) larger 0.5-2 Hz slow-oscillation amplitude and
+    (b) IRREGULAR spindle-event timing (real traces are not metronomic).
+    This replaces spike-timing regularity with those two properties as the
+    scoring criterion, still guarding against genuine runaway.
+
+    Needs scipy (butter/sosfiltfilt/hilbert) -- available in the local
+    .venv-neuron env this grid runs in; NOT verified on the MN5 conda env,
+    since this is local-only exploratory tooling, not the production path.
+    """
+    from scipy.signal import butter, sosfiltfilt, hilbert
+
+    def bandpass(x, lo, hi, order=3):
+        x = np.asarray(x, float) - np.mean(x)
+        sos = butter(order, [lo / (fs / 2), hi / (fs / 2)], btype="band", output="sos")
+        return sosfiltfilt(sos, x)
+
+    lam_layers = ["l23e", "l4e", "l5e", "l6e"]
+    lfps = {}
+    for name in lam_layers:
+        lo, hi = ranges[name]
+        m = (g >= lo) & (g < hi)
+        lfp, bins = _synaptic_lfp_local(t[m], tstop, fs=fs)
+        sign = -1.0 if name in ("l5e", "l6e") else 1.0
+        lfps[name] = sign * (lfp - lfp.mean()) / (lfp.std() + 1e-9)
+    composite = np.mean([lfps[k] for k in lam_layers], axis=0)
+
+    so = bandpass(composite, 0.5, 2.0)
+    spin = bandpass(composite, 10.0, 15.0)
+    so_rms = float(np.sqrt(np.mean(so ** 2)))
+
+    env = np.abs(hilbert(spin))
+    thresh = env.mean() + 1.5 * env.std()
+    is_spindle = env > thresh
+    edges = np.diff(is_spindle.astype(int), prepend=0, append=0)
+    starts = np.where(edges == 1)[0]
+    n_spindle_events = len(starts)
+    if n_spindle_events > 2:
+        intervals = np.diff(bins[starts])
+        spindle_cv = (float(np.std(intervals) / np.mean(intervals))
+                      if np.mean(intervals) > 0 else float("nan"))
+    else:
+        spindle_cv = float("nan")
+
+    return dict(so_rms=round(so_rms, 4), n_spindle_events=n_spindle_events,
+                spindle_cv=round(spindle_cv, 3) if spindle_cv == spindle_cv else spindle_cv,
+                n_spikes=len(t))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--tstop", type=float, default=12000.0)
@@ -793,10 +861,10 @@ def main():
         if rank == 0:
             print("=== L5 recurrence grid sweep (%d ranks, scale=%.2f, tstop=%.0f ms, "
                   "%d points) ===" % (nhost, a.scale, a.sweep_tstop, len(grid)))
-            print("%-9s %-9s %-9s | %-9s %-9s %-9s %-8s | %-9s"
+            print("%-9s %-9s %-9s | %-9s %-9s %-9s %-8s | %-9s %-9s %-9s | %-9s"
                   % ("g_l5_rec", "tau2", "taur", "L5 spks", "n_ev", "dur_ms",
-                     "cv_int", "tot_spks"))
-            print("-" * 90)
+                     "cv_int", "so_rms", "n_spin", "spin_cv", "tot_spks"))
+            print("-" * 112)
         for g_l5_rec, tau2, taur in grid:
             net = ParallelCorticoThalamicNet(sizes=sizes, conv=a.conv,
                                               het=a.het,
@@ -812,15 +880,18 @@ def main():
             if rank == 0:
                 l5_lo, l5_hi = net.ranges["l5e"]
                 cm = _cycle_metrics(t, g, l5_lo, l5_hi)
-                print("%-9.4f %-9.0f %-9.0f | %-9d %-9d %-9.1f %-8s | %-9d"
+                ls = _literature_score(t, g, net.ranges, a.sweep_tstop)
+                print("%-9.4f %-9.0f %-9.0f | %-9d %-9d %-9.1f %-8s | %-9.4f %-9d %-9s | %-9d"
                       % (g_l5_rec, tau2, taur, cm["n_spikes"], cm["n_events"],
                          cm["mean_duration"],
                          ("%.3f" % cm["cv_interval"]) if cm["cv_interval"] == cm["cv_interval"] else "nan",
+                         ls["so_rms"], ls["n_spindle_events"],
+                         ("%.3f" % ls["spindle_cv"]) if ls["spindle_cv"] == ls["spindle_cv"] else "nan",
                          len(t)))
             net.teardown()
             del net
         if rank == 0:
-            print("-" * 90)
+            print("-" * 112)
         pc.barrier()
         pc.done()
         h.quit()
