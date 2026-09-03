@@ -326,15 +326,17 @@ def make_lfp_figure(npz, out_png, window=(20000, 30000), epoch_ms=2000.0):
     ax.set_xlabel("time (ms)"); ax.set_ylabel("a.u.")
     ax.legend(fontsize=8, loc="upper right", framealpha=0.9)
 
-    # ---- (c) composite LFP: raw + spindle band + spectrogram-style summary ----
+    # ---- (c) composite LFP: raw + SLOW-OSCILLATION band + spindle band ----
     ax = fig.add_subplot(gs[2])
+    so = _bandpass(composite, fs, 0.5, 2.0)
     spin = _bandpass(composite, fs, 8.0, 15.0)
     env = np.abs(hilbert(spin))
     ax.plot(tsec, composite[w], color="0.5", lw=0.6, label="composite LFP (raw)")
+    ax.plot(tsec, so[w] + 4, color="#8e44ad", lw=1.1, label="0.5-2 Hz slow-oscillation band")
     ax.plot(tsec, spin[w] - 8, color=GREEN, lw=0.9, label="8-15 Hz spindle band")
     ax.plot(tsec, env[w] - 8, color="k", lw=0.8, alpha=0.6, label="envelope")
     ax.plot(tsec, -env[w] - 8, color="k", lw=0.8, alpha=0.6)
-    ax.set_title("(c) Composite cortical LFP: raw vs. spindle-band-filtered + envelope",
+    ax.set_title("(c) Composite cortical LFP: raw vs. SO-band vs. spindle-band-filtered + envelope",
                  fontsize=10, loc="left")
     ax.set_xlabel("time (s)"); ax.set_ylabel("a.u.")
     ax.legend(fontsize=8, loc="upper right", framealpha=0.9)

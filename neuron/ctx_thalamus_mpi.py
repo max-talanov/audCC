@@ -35,6 +35,7 @@ tc_mpi.py: see neuron/README.md.
 """
 
 import argparse
+import itertools
 import os
 import sys
 import time
@@ -569,6 +570,36 @@ def _re_burst_stats(t, g, re_lo, re_hi, burst_gap=30.0, event_gap=300.0):
                 event_hz=round(event_hz, 3))
 
 
+def _cycle_metrics(t, g, lo, hi, event_gap=200.0):
+    """Per-cycle DURATION and REGULARITY, for scoring the L5-recurrence
+    duration-extension grid -- deliberately NOT a "silence between events"
+    metric. Real cortical slow-wave sleep LFP is a near-continuous ~0.5-1.5
+    Hz oscillation, not sparse isolated blips separated by long flat gaps;
+    penalising "busyness" outright was the wrong criterion in earlier manual
+    tuning. What actually distinguishes a genuine (bounded) slow oscillation
+    from runaway/tonic noise is REGULARITY (a consistent inter-event
+    period) and a BOUNDED spike count, not literal silence.
+
+    Returns n_events, mean_duration (first-to-last spike span within an
+    event, ms), cv_interval (coefficient of variation of inter-event
+    intervals -- low = regular rhythm, high = irregular/noisy), n_spikes."""
+    m = (g >= lo) & (g < hi)
+    ts = np.sort(t[m])
+    if len(ts) < 2:
+        return dict(n_events=0, mean_duration=0.0, cv_interval=float("nan"),
+                    n_spikes=len(ts))
+    gaps = np.diff(ts)
+    starts_idx = np.concatenate([[0], np.where(gaps > event_gap)[0] + 1])
+    ends_idx = np.concatenate([np.where(gaps > event_gap)[0], [len(ts) - 1]])
+    starts, ends = ts[starts_idx], ts[ends_idx]
+    durations = ends - starts
+    intervals = np.diff(starts)
+    cv = (float(np.std(intervals) / np.mean(intervals))
+          if len(intervals) > 1 and np.mean(intervals) > 0 else float("nan"))
+    return dict(n_events=len(starts), mean_duration=round(float(np.mean(durations)), 1),
+                cv_interval=round(cv, 3) if cv == cv else cv, n_spikes=len(ts))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--tstop", type=float, default=12000.0)
@@ -641,6 +672,20 @@ def main():
                          "gh_tc=2e-5, --scale 0.05), likely from the ~3x spike "
                          "count feeding more NetCon delivery events, not the "
                          "integrator step itself.")
+    ap.add_argument("--sweep-l5-grid", action="store_true",
+                    help="Cartesian-product grid sweep over --grid-g-l5-rec x "
+                         "--grid-tau2-l5-rec x --grid-taur-l5e-rs (all "
+                         "comma-separated), --l5-rec-mech nmda. Reports "
+                         "_cycle_metrics (duration, regularity, spike count) "
+                         "for L5E, not just burst-shape stats -- built to "
+                         "map the tau2_l5_rec/taur_l5e_rs interaction after "
+                         "manual one-at-a-time tuning found it non-monotonic.")
+    ap.add_argument("--grid-g-l5-rec", default="0.013",
+                    help="comma-separated g_l5_rec values for --sweep-l5-grid")
+    ap.add_argument("--grid-tau2-l5-rec", default="100,150",
+                    help="comma-separated tau2_l5_rec values for --sweep-l5-grid")
+    ap.add_argument("--grid-taur-l5e-rs", default="80,150",
+                    help="comma-separated taur_l5e_rs values for --sweep-l5-grid")
     ap.add_argument("--sweep-g-l5-rec", default="",
                     help="comma-separated L5E->L5E recurrent-excitation "
                          "weights to sweep (full network, --scale), reporting "
@@ -732,6 +777,50 @@ def main():
             del net
         if rank == 0:
             print("-" * 62)
+        pc.barrier()
+        pc.done()
+        h.quit()
+        return
+
+    if a.sweep_l5_grid:
+        pc = h.ParallelContext()
+        rank, nhost = int(pc.id()), int(pc.nhost())
+        sizes = {k: max(1, int(round(v * a.scale))) for k, v in DEFAULT_SIZES.items()}
+        g_vals = [float(x) for x in a.grid_g_l5_rec.split(",")]
+        tau2_vals = [float(x) for x in a.grid_tau2_l5_rec.split(",")]
+        taur_vals = [float(x) for x in a.grid_taur_l5e_rs.split(",")]
+        grid = list(itertools.product(g_vals, tau2_vals, taur_vals))
+        if rank == 0:
+            print("=== L5 recurrence grid sweep (%d ranks, scale=%.2f, tstop=%.0f ms, "
+                  "%d points) ===" % (nhost, a.scale, a.sweep_tstop, len(grid)))
+            print("%-9s %-9s %-9s | %-9s %-9s %-9s %-8s | %-9s"
+                  % ("g_l5_rec", "tau2", "taur", "L5 spks", "n_ev", "dur_ms",
+                     "cv_int", "tot_spks"))
+            print("-" * 90)
+        for g_l5_rec, tau2, taur in grid:
+            net = ParallelCorticoThalamicNet(sizes=sizes, conv=a.conv,
+                                              het=a.het,
+                                              delay_jitter=a.delay_jitter,
+                                              g_i_e_l5=a.g_i_e_l5,
+                                              g_l5_rec=g_l5_rec,
+                                              tau2_l5_rec=tau2,
+                                              l5_rec_mech="nmda",
+                                              mg_l5_rec=a.mg_l5_rec,
+                                              taur_l5e_rs=taur)
+            net.run(tstop=a.sweep_tstop)
+            t, g = net.gather()
+            if rank == 0:
+                l5_lo, l5_hi = net.ranges["l5e"]
+                cm = _cycle_metrics(t, g, l5_lo, l5_hi)
+                print("%-9.4f %-9.0f %-9.0f | %-9d %-9d %-9.1f %-8s | %-9d"
+                      % (g_l5_rec, tau2, taur, cm["n_spikes"], cm["n_events"],
+                         cm["mean_duration"],
+                         ("%.3f" % cm["cv_interval"]) if cm["cv_interval"] == cm["cv_interval"] else "nan",
+                         len(t)))
+            net.teardown()
+            del net
+        if rank == 0:
+            print("-" * 90)
         pc.barrier()
         pc.done()
         h.quit()
