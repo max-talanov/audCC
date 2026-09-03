@@ -128,7 +128,7 @@ size, not the 10+10 (thalamus) + ~40-cell (cortex) laptop demo. That is what
 convergence pattern as `tc_mpi.py`, extended with the full L4/L2-3/L5/L6
 column.
 
-### Files to upload (adds 5 to the thalamus-only list, 16 total)
+### Files to upload (adds 6 to the thalamus-only list, 17 total)
 
 | path | why |
 |------|-----|
@@ -137,6 +137,7 @@ column.
 | `neuron/cortex_neuron.py` | `PYCell` / `PYCellIB` / `FSCell` — cortical cell definitions |
 | `neuron/mod/ical.mod` | HVA Ca²⁺ (cortical SK2 Ca²⁺ source) |
 | `neuron/mod/inap.mod` | persistent Na⁺ (L5 `PYCellIB` intrinsic bursting) |
+| `neuron/mod/nmda.mod` | Mg²⁺-block NMDA (L5E↔L5E recurrent excitation, `--l5-rec-mech nmda`) — the slow-wave-generation fix; see `res/2026-09-02/` and `out/compare_regularity_vs_literature_score.png` |
 
 Everything else (`tc_neuron.py`, `it`/`it2`/`hh2`/`cad`/`sk2`/`ihca`/`gap`/
 `gapmpi` mod files) is already on the thalamus-only list above — `nrnivmodl
