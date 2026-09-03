@@ -1,0 +1,32 @@
+Robustness check: Option 2 (literature-score-optimized)
+g_l5_rec=0.013, tau2_l5_rec=200, taur_l5e_rs=120, l5_rec_mech=nmda, g_i_e_l5=0.02
+Local, --scale 0.05, 151 cells, tstop=60000 ms (60s)
+
+ranks 1 | total cells 151 | tstop 60000 ms | wall 168.4 s (2.81 x realtime)
+spikes 100002 total (TC 7833, RE 2481, L6E 4517)
+RE burst shape (full run): frac_burst=0.777 mean_burst_size=4.50 n_events=75 event_Hz=1.247
+  first half:  frac_burst=0.773 mean_burst_size=4.40 event_Hz=1.211
+  second half: frac_burst=0.781 mean_burst_size=4.62 event_Hz=1.304
+
+_literature_score, first 30s vs second 30s:
+  full 60s:   so_rms=0.2129 n_spindle_events=44 spindle_cv=0.945 n_spikes=103938
+  first 30s:  so_rms=0.2298 n_spindle_events=24 spindle_cv=0.974 n_spikes=52863
+  second 30s: so_rms=0.1888 n_spindle_events=19 spindle_cv=0.969 n_spikes=51075
+
+No runaway: total spikes scale linearly with time (no supralinear
+growth vs. the 20s grid point). RE burst stats stable across halves.
+KEY property (spindle-timing irregularity) essentially unchanged:
+spindle_cv 0.974 vs 0.969 -- the "naturalistic clustering" that made
+this point attractive is not a short-window fluke, it persists over
+60+ cycles. L5E recruited-cell firing texture is qualitatively
+identical at 5-15s vs 50-60s -- no drift or degradation.
+
+Honest caveat: so_rms swings 0.230 -> 0.189 (-18%) and
+n_spindle_events 24 -> 19 between halves -- real segment-to-segment
+amplitude variability, consistent with this point being selected FOR
+irregularity rather than metronomic consistency, but means single 20s
+grid-search snapshots carry more sampling noise for this point than
+for the more regular Option 1 (tau2=115/taur=100).
+
+Conclusion: robust and stable, no red flags, ready for a longer/larger
+validation run (e.g. local --scale up, or MN5).
