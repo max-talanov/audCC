@@ -1,0 +1,40 @@
+python : /apps/GPP/MINIFORGE/24.3.0-0/bin/python3
+== compiling NMODL mechanisms (mod/*.mod changed or no prior build) ==
+/gpfs/projects/uab100/audCC/neuron
+Mod files: "mod/mod/IT.mod" "mod/mod/IT2.mod" "mod/mod/cad.mod" "mod/mod/gap.mod" "mod/mod/gapmpi.mod" "mod/mod/hh2.mod" "mod/mod/ical.mod" "mod/mod/ihca.mod" "mod/mod/inap.mod" "mod/mod/nmda.mod" "mod/mod/sk2.mod"
+
+Creating 'x86_64' directory for .o files.
+
+ -> [32mCompiling[0m mod_func.cpp
+ -> [32mNMODL[0m ../mod/IT.mod
+ -> [32mNMODL[0m ../mod/cad.mod
+ -> [32mNMODL[0m ../mod/IT2.mod
+Warning: Default 36 of PARAMETER celsius will be ignored and set by NEURON.
+Warning: Default 2 of PARAMETER cao will be ignored and set by NEURON.
+Warning: Default 0.00024 of PARAMETER cai will be ignored and set by NEURON.
+Warning: Default 36 of PARAMETER celsius will be ignored and set by NEURON.
+Warning: Default 2 of PARAMETER cao will be ignored and set by NEURON.
+Warning: Default 0.00024 of PARAMETER cai will be ignored and set by NEURON.
+ -> [32mNMODL[0m ../mod/gap.mod
+ -> [32mNMODL[0m ../mod/gapmpi.mod
+ -> [32mNMODL[0m ../mod/hh2.mod
+ -> [32mNMODL[0m ../mod/ical.mod
+ -> [32mNMODL[0m ../mod/ihca.mod
+ -> [32mNMODL[0m ../mod/inap.mod
+ -> [32mNMODL[0m ../mod/nmda.mod
+ -> [32mNMODL[0m ../mod/sk2.mod
+ -> [32mCompiling[0m IT.c
+ -> [32mCompiling[0m IT2.c
+ -> [32mCompiling[0m cad.c
+ -> [32mCompiling[0m gap.c
+ -> [32mCompiling[0m gapmpi.c
+ -> [32mCompiling[0m hh2.c
+ -> [32mCompiling[0m ical.c
+ -> [32mCompiling[0m ihca.c
+ -> [32mCompiling[0m inap.c
+ -> [32mCompiling[0m nmda.c
+ -> [32mCompiling[0m sk2.c
+ => [32mLINKING[0m shared library ./libnrnmech.so
+ => [32mLINKING[0m executable ./special LDFLAGS are:    -pthread
+Successfully created x86_64/special
+== NEURON MPI (corticothalamic): 100 ranks, scale=1.65 ==

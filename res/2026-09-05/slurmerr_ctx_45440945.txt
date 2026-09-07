@@ -1,0 +1,240 @@
+Translating IT.mod into /gpfs/projects/uab100/audCC/neuron/x86_64/IT.c
+Translating cad.mod into /gpfs/projects/uab100/audCC/neuron/x86_64/cad.c
+Translating IT2.mod into /gpfs/projects/uab100/audCC/neuron/x86_64/IT2.c
+Thread Safe
+Thread Safe
+Thread Safe
+icpc: remark #10441: The Intel(R) C++ Compiler Classic (ICC) is deprecated and will be removed from product release in the second half of 2023. The Intel(R) oneAPI DPC++/C++ Compiler (ICX) is the recommended compiler moving forward. Please transition to use this compiler. Use '-diag-disable=10441' to disable this message.
+Translating gap.mod into /gpfs/projects/uab100/audCC/neuron/x86_64/gap.c
+Notice: Use of POINTER is not thread safe.
+Translating gapmpi.mod into /gpfs/projects/uab100/audCC/neuron/x86_64/gapmpi.c
+Translating hh2.mod into /gpfs/projects/uab100/audCC/neuron/x86_64/hh2.c
+Thread Safe
+Thread Safe
+Translating ical.mod into /gpfs/projects/uab100/audCC/neuron/x86_64/ical.c
+Translating ihca.mod into /gpfs/projects/uab100/audCC/neuron/x86_64/ihca.c
+Thread Safe
+Translating inap.mod into /gpfs/projects/uab100/audCC/neuron/x86_64/inap.c
+Thread Safe
+Thread Safe
+Translating nmda.mod into /gpfs/projects/uab100/audCC/neuron/x86_64/nmda.c
+Thread Safe
+Translating sk2.mod into /gpfs/projects/uab100/audCC/neuron/x86_64/sk2.c
+Thread Safe
+icc: remark #10441: The Intel(R) C++ Compiler Classic (ICC) is deprecated and will be removed from product release in the second half of 2023. The Intel(R) oneAPI DPC++/C++ Compiler (ICX) is the recommended compiler moving forward. Please transition to use this compiler. Use '-diag-disable=10441' to disable this message.
+icc: remark #10441: The Intel(R) C++ Compiler Classic (ICC) is deprecated and will be removed from product release in the second half of 2023. The Intel(R) oneAPI DPC++/C++ Compiler (ICX) is the recommended compiler moving forward. Please transition to use this compiler. Use '-diag-disable=10441' to disable this message.
+icc: remark #10441: The Intel(R) C++ Compiler Classic (ICC) is deprecated and will be removed from product release in the second half of 2023. The Intel(R) oneAPI DPC++/C++ Compiler (ICX) is the recommended compiler moving forward. Please transition to use this compiler. Use '-diag-disable=10441' to disable this message.
+icc: remark #10441: The Intel(R) C++ Compiler Classic (ICC) is deprecated and will be removed from product release in the second half of 2023. The Intel(R) oneAPI DPC++/C++ Compiler (ICX) is the recommended compiler moving forward. Please transition to use this compiler. Use '-diag-disable=10441' to disable this message.
+icc: remark #10441: The Intel(R) C++ Compiler Classic (ICC) is deprecated and will be removed from product release in the second half of 2023. The Intel(R) oneAPI DPC++/C++ Compiler (ICX) is the recommended compiler moving forward. Please transition to use this compiler. Use '-diag-disable=10441' to disable this message.
+icc: remark #10441: The Intel(R) C++ Compiler Classic (ICC) is deprecated and will be removed from product release in the second half of 2023. The Intel(R) oneAPI DPC++/C++ Compiler (ICX) is the recommended compiler moving forward. Please transition to use this compiler. Use '-diag-disable=10441' to disable this message.
+icc: remark #10441: The Intel(R) C++ Compiler Classic (ICC) is deprecated and will be removed from product release in the second half of 2023. The Intel(R) oneAPI DPC++/C++ Compiler (ICX) is the recommended compiler moving forward. Please transition to use this compiler. Use '-diag-disable=10441' to disable this message.
+icc: remark #10441: The Intel(R) C++ Compiler Classic (ICC) is deprecated and will be removed from product release in the second half of 2023. The Intel(R) oneAPI DPC++/C++ Compiler (ICX) is the recommended compiler moving forward. Please transition to use this compiler. Use '-diag-disable=10441' to disable this message.
+icc: remark #10441: The Intel(R) C++ Compiler Classic (ICC) is deprecated and will be removed from product release in the second half of 2023. The Intel(R) oneAPI DPC++/C++ Compiler (ICX) is the recommended compiler moving forward. Please transition to use this compiler. Use '-diag-disable=10441' to disable this message.
+icc: remark #10441: The Intel(R) C++ Compiler Classic (ICC) is deprecated and will be removed from product release in the second half of 2023. The Intel(R) oneAPI DPC++/C++ Compiler (ICX) is the recommended compiler moving forward. Please transition to use this compiler. Use '-diag-disable=10441' to disable this message.
+icc: remark #10441: The Intel(R) C++ Compiler Classic (ICC) is deprecated and will be removed from product release in the second half of 2023. The Intel(R) oneAPI DPC++/C++ Compiler (ICX) is the recommended compiler moving forward. Please transition to use this compiler. Use '-diag-disable=10441' to disable this message.
+icpc: remark #10441: The Intel(R) C++ Compiler Classic (ICC) is deprecated and will be removed from product release in the second half of 2023. The Intel(R) oneAPI DPC++/C++ Compiler (ICX) is the recommended compiler moving forward. Please transition to use this compiler. Use '-diag-disable=10441' to disable this message.
+icpc: remark #10441: The Intel(R) C++ Compiler Classic (ICC) is deprecated and will be removed from product release in the second half of 2023. The Intel(R) oneAPI DPC++/C++ Compiler (ICX) is the recommended compiler moving forward. Please transition to use this compiler. Use '-diag-disable=10441' to disable this message.
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+    from neuron import h                                    # noqa: E402
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+ModuleNotFoundError: No module named 'neuron'
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+Traceback (most recent call last):
+  File "/gpfs/projects/uab100/audCC/neuron/ctx_thalamus_mpi.py", line 46, in <module>
+    from neuron import h                                    # noqa: E402
+ModuleNotFoundError: No module named 'neuron'
+srun: error: as05r1b03: tasks 0-49: Exited with exit code 1
+srun: Terminating StepId=45440945.0
+srun: error: as05r1b04: tasks 50-99: Terminated
+srun: Force Terminated StepId=45440945.0
