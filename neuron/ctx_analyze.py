@@ -8,7 +8,8 @@ Two figures:
      cortex), slow-oscillation band (0.5-4 Hz), spindle band (8-15 Hz) with
      Hilbert envelope, and a spectrogram of the thalamic (TC+RE) signal.
 
-  2. <tag>_spindles.png -- RE burst shape (raster, ISI histogram, burst-size
+  2. <tag>_spindles.png -- raster of every population (cortex L2/3 -> L6,
+     then RE, TC), RE burst shape (ISI histogram, burst-size
      histogram) and a spindle-event-triggered PSTH across TC/RE/L4E/L23E/L5E/L6E
      showing whether/how a thalamic spindle volley propagates up the column.
 
@@ -164,20 +165,17 @@ def make_spindle_figure(npz, out_png, window=(20000, 30000)):
 
     s = _re_burst_stats(t, g, re_lo, re_hi)
 
-    fig = plt.figure(figsize=(13, 11))
-    gs = fig.add_gridspec(3, 2, height_ratios=[1, 1, 1.1], hspace=0.48, wspace=0.25)
+    fig = plt.figure(figsize=(13, 15))
+    gs = fig.add_gridspec(3, 2, height_ratios=[2.4, 1, 1.1], hspace=0.3, wspace=0.25)
 
-    w = (t >= window[0]) & (t < window[1])
     ax = fig.add_subplot(gs[0, :])
-    for name, color in [("tc", BLUE), ("re", RED)]:
-        lo, hi = ranges[name]
-        m = w & (g >= lo) & (g < hi)
-        ax.plot(t[m] / 1000.0, g[m], "|", ms=3, color=color, label=name.upper())
-    ax.set_title(f"(a) TC/RE raster, {window[0]/1000:.0f}-{window[1]/1000:.0f} s "
+    _raster_all_pops(ax, npz, window, label_sep="\n")
+    ax.set_xlim(window[0] / 1000.0, window[1] / 1000.0)
+    ax.set_title(f"(a) Raster, all populations (cortex superficial->deep, then thalamus), "
+                 f"{window[0]/1000:.0f}-{window[1]/1000:.0f} s "
                  f"(RE burst frac={s['frac_burst']:.2f}, mean burst size={s['mean_burst_size']:.1f})",
                  fontsize=10, loc="left")
-    ax.set_xlabel("time (s)"); ax.set_ylabel("gid")
-    ax.legend(fontsize=8, loc="upper right", framealpha=0.9)
+    ax.set_xlabel("time (s)"); ax.set_ylabel("population (cells)")
 
     ax = fig.add_subplot(gs[1, 0])
     if len(s["isis"]):
@@ -233,7 +231,7 @@ def make_spindle_figure(npz, out_png, window=(20000, 30000)):
     ax.legend(fontsize=8, ncol=3, loc="upper right", framealpha=0.9)
 
     fig.suptitle("Spindle / RE-burst-shape analysis -- full corticothalamic network",
-                 fontsize=13, y=0.99)
+                 fontsize=13, y=0.915)
     fig.savefig(out_png, dpi=140, bbox_inches="tight")
     plt.close(fig)
     print(f"Saved spindle-analysis figure to {out_png}")
@@ -356,6 +354,41 @@ def make_lfp_figure(npz, out_png, window=(20000, 30000), epoch_ms=2000.0):
     print(f"Saved LFP figure to {out_png}")
 
 
+RASTER_ROWS = [("l23e", "L2/3 E", "#d35400", 1.0), ("l23i", "L2/3 I", "#d35400", 0.4),
+               ("l4e", "L4 E", "#8e44ad", 1.0), ("l4i", "L4 I", "#8e44ad", 0.4),
+               ("l5e", "L5 E", GREEN, 1.0), ("l5i", "L5 I", GREEN, 0.4),
+               ("l6e", "L6 E", GREY, 1.0), ("l6i", "L6 I", GREY, 0.4),
+               ("re", "RE", RED, 1.0), ("tc", "TC", BLUE, 1.0)]
+
+
+def _raster_all_pops(ax, npz, window, min_frac=0.06, gap_frac=0.02, label_sep=" "):
+    """Spike raster of EVERY population, stacked in anatomical order (cortex
+    superficial -> deep, then RE, TC) rather than gid order. E cells use the
+    layer colours of make_spindle_figure's PSTH, I cells a lighter shade.
+    Rows are proportional to cell count, but small populations (RE, the I
+    populations) get at least min_frac of the total height so they stay
+    readable and labelled."""
+    t, g, ranges = npz["times"], npz["gids"], npz["ranges"].item()
+    rows = [r for r in RASTER_ROWS if r[0] in ranges]
+    total = sum(ranges[p][1] - ranges[p][0] for p, *_ in rows)
+    gap, min_h = gap_frac * total, min_frac * total
+    w = (t >= window[0]) & (t < window[1])
+    y0, ticks, labels = 0.0, [], []
+    for pop, label, color, alpha in reversed(rows):
+        lo, hi = ranges[pop]
+        n = hi - lo
+        h = max(n, min_h)
+        m = w & (g >= lo) & (g < hi)
+        ax.scatter(t[m] / 1000.0, y0 + (g[m] - lo) * (h / n), s=0.4, marker="|",
+                   lw=0.4, color=color, alpha=alpha, rasterized=True)
+        ticks.append(y0 + h / 2.0)
+        labels.append(f"{label}{label_sep}({n})")
+        y0 += h + gap
+    ax.set_yticks(ticks)
+    ax.set_yticklabels(labels, fontsize=7)
+    ax.set_ylim(-gap / 2, y0 - gap / 2)
+
+
 def _detect_spindles(spin, bins, k_sd=1.5, skip_ms=1000.0):
     """Spindle events = spindle-band Hilbert-envelope excursions above
     mean + k_sd*sd. Returns (starts, ends) as indices into bins; ends are
@@ -428,14 +461,19 @@ def make_literature_reconstruction_figure(npz, out_png, window=(20000, 40000),
     print(f"Saved literature-style reconstruction to {out_png}")
 
 
-def make_comparison_figure(cases, out_png, window=(2000, 12000), mode="reconstruction"):
+def make_comparison_figure(cases, out_png, window=(2000, 12000), mode="reconstruction",
+                           raster=True):
     """Overlay multiple runs on IDENTICAL y-scales for direct comparison --
     either the literature-style SO+spindle reconstruction (mode=
     "reconstruction", stacked one pair of panels per case, like
     make_literature_reconstruction_figure but multi-case) or the raw/
     SO-band/spindle-band triple used in make_lfp_figure's panel (c)
     (mode="panel_c", all cases overlaid on 3 shared panels instead of
-    stacked). `cases` is a list of (label, npz, color) tuples."""
+    stacked). `cases` is a list of (label, npz, color) tuples.
+
+    raster (reconstruction mode only): add a spike raster of every
+    population under each case's two LFP panels, on the same time axis and
+    with the same spindle shading (see _raster_all_pops)."""
     fs = 1000.0
     computed = {}
     for label, npz, color in cases:
@@ -456,11 +494,21 @@ def make_comparison_figure(cases, out_png, window=(2000, 12000), mode="reconstru
                       for l, _, _ in cases)
         spin_max = max(np.max(np.abs(computed[l]["spin"][_w(computed[l]["bins"])]))
                        for l, _, _ in cases)
-        fig, axes = plt.subplots(len(cases) * 2, 1, figsize=(14, 2.3 * len(cases) * 2), sharex=True)
-        for i, (label, _, color) in enumerate(cases):
+        per = 3 if raster else 2
+        ratios = ([1, 1, 2.6] if raster else [1, 1]) * len(cases)
+        fig, axes = plt.subplots(len(cases) * per, 1, sharex=True,
+                                 figsize=(14, sum(ratios) * 2.3),
+                                 gridspec_kw=dict(height_ratios=ratios))
+        for i, (label, npz, color) in enumerate(cases):
             d = computed[label]
             w = _w(d["bins"]); tsec = d["bins"][w] / 1000.0
-            ax_raw, ax_spin = axes[2 * i], axes[2 * i + 1]
+            ax_raw, ax_spin = axes[per * i], axes[per * i + 1]
+            shaded = [ax_raw, ax_spin]
+            if raster:
+                ax_r = axes[per * i + 2]
+                _raster_all_pops(ax_r, npz, window)
+                ax_r.set_ylabel("spikes", fontsize=8)
+                shaded.append(ax_r)
             ax_raw.plot(tsec, d["reconstructed"][w], color=color, lw=0.8)
             ax_raw.set_ylim(-raw_max * 1.1, raw_max * 1.1)
             ax_raw.set_ylabel("SO + spindle\nbands (sum)", fontsize=8)
@@ -472,13 +520,16 @@ def make_comparison_figure(cases, out_png, window=(2000, 12000), mode="reconstru
                 ts_, te_ = d["bins"][s] / 1000.0, d["bins"][e] / 1000.0
                 if te_ < window[0] / 1000.0 or ts_ > window[1] / 1000.0:
                     continue
-                for ax in (ax_raw, ax_spin):
+                for ax in shaded:
                     ax.axvspan(ts_, te_, color="0.5", alpha=0.18, lw=0)
         axes[-1].set_xlabel("time (s)")
+        axes[-1].set_xlim(window[0] / 1000.0, window[1] / 1000.0)
         fig.suptitle("Reconstructed (SO-band + spindle-band) LFP, literature-style stacked format\n"
-                     "(identical y-scales across cases; shaded = detected spindle events)",
+                     "(identical y-scales across cases; shaded = detected spindle events"
+                     + ("; raster = all populations, cortex L2/3 -> L6 then RE, TC)" if raster else ")"),
                      fontsize=12, y=0.995)
-        fig.tight_layout(rect=[0, 0, 1, 0.94])
+        fig_h = fig.get_size_inches()[1]
+        fig.tight_layout(rect=[0, 0, 1, min(0.97, 1 - 0.9 / fig_h)])
     else:
         def common_ylim(key, pad=1.15):
             vals = [computed[l][key][_w(computed[l]["bins"])] for l, _, _ in cases]
@@ -531,6 +582,9 @@ def main(argv=None):
                           "label=path pairs, e.g. "
                           "\"old=out/a.npz,new=out/b.npz\". Colors are assigned "
                           "automatically. See --compare-mode.")
+    ap.add_argument("--no-raster", action="store_true",
+                     help="--compare reconstruction mode: omit the all-population "
+                          "spike raster under each case")
     ap.add_argument("--compare-mode", choices=["reconstruction", "panel_c"],
                      default="reconstruction",
                      help="--compare output style: \"reconstruction\" (stacked "
@@ -555,7 +609,8 @@ def main(argv=None):
         window = (args.window_start, args.window_start + args.window_len)
         tag = args.tag or "compare"
         make_comparison_figure(cases, outdir / f"{tag}_comparison.png",
-                                window=window, mode=args.compare_mode)
+                                window=window, mode=args.compare_mode,
+                                raster=not args.no_raster)
         return 0
 
     npz = np.load(args.npz, allow_pickle=True)

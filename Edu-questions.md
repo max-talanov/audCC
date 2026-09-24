@@ -274,7 +274,10 @@ smoothed with a 5 ms moving average (`make_meanfield_figure` in
 Both runs are 5031 cells and 200 s on MN5; the plot shows 20–30 s, after the
 start-up period, on identical y-scales. For each run the upper trace is the
 0.5–2 Hz band plus the 10–15 Hz band, the lower trace is the 10–15 Hz band
-alone, and grey boxes are detected spindle events (question 1).
+alone, and grey boxes are detected spindle events (question 1). The third
+panel is a spike raster of every population (cortex L2/3 → L6, then RE, TC)
+with the same shading, so each shaded event can be matched to the spikes
+under it: in both runs each one sits on a single thalamic volley (question 5).
 
 - **Top, job 45171023:** before the L5 tuning. It predates three changes: L5
   recurrence, weaker L5 inhibition (`g_i_e_l5`) and slower L5 adaptation
@@ -525,3 +528,41 @@ The figure and every number above come from `neuron/volley_stats.py`:
 ```bash
 python3 neuron/volley_stats.py "Before L5 tuning (MN5 job 45171023)=res/2026-08-31/ctx_nrn_45171023.npz" "Option 2 (MN5 job 45453403)=res/2026-09-07/ctx_nrn_45453403.npz" --plot out/mn5_population_rates_before_vs_option2.png
 ```
+
+## 6) What do the cortical cells do? (full raster of every population)
+
+The spindle figure's panel (a) used to show only TC and RE. It now shows every
+population, in anatomical order: cortex from L2/3 down to L6 (E, then the
+lighter-shaded I cells of each layer), then RE and TC. Rows are proportional
+to cell count, with a minimum height for small populations so they stay
+readable. MN5 job 45453403 (Option 2, 5031 cells), 20–30 s:
+
+![Spindle figure with the full raster, MN5 job 45453403](out/ctx_45453403_spindles.png)
+
+What the raster shows:
+
+- **Each thalamic volley reaches the whole column.** Every RE volley lines up
+  with one sharp column of spikes in L2/3, L4 and L6. Between volleys, L2/3 is
+  almost silent.
+- **L5 is two populations.** The lower half of the L5 E row is the 437
+  intrinsically bursting (IB) cells: they fire only with the volleys
+  (3.2 Hz per cell). The upper half is the 437 regular-spiking cells recruited
+  by the NMDA recurrence: they fire continuously (8.7 Hz per cell), locked to
+  L5 I at about 19 Hz. This is the ongoing ~19 Hz activity from question 5,
+  and it comes from the regular-spiking half of L5, not the bursting cells.
+- **L4 fires more often than the volleys,** following the scattered TC firing
+  that continues for about 100–200 ms after each volley.
+- **L6 E fires sparsely.** Its synchronised spikes line up with the volleys:
+  this is the output that drives the thalamus.
+
+Panels (b)–(d) are unchanged: RE's within-cell ISI distribution, RE burst
+sizes, and the RE-volley-triggered firing rate of each layer.
+
+Regenerate with:
+
+```bash
+python3 neuron/ctx_analyze.py res/2026-09-07/ctx_nrn_45453403.npz --outdir out --tag ctx_45453403
+```
+
+The same raster is added under each run in the LFP comparison figure
+(`make_comparison_figure`, question 3); `--no-raster` turns it off there.
