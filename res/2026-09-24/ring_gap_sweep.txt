@@ -1,0 +1,114 @@
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+kick  g_gap   seed | evoked  cycles dur_ms   Hz      wax   | RE_SD_ms  TC part per cycle      | trains after kick / pre-kick spikes
+----------------------------------------------------------------------------------------------------------------------
+l6    0.03    0    | yes     1      0        -       no    | 0.03      1.00                   | 1 / 69
+l6    0.03    1    | yes     1      0        -       no    | 0.03      1.00                   | 1 / 68
+l6    0.03    2    | yes     1      0        -       no    | 0.03      1.00                   | 1 / 63
+l6    0.03    3    | yes     1      0        -       no    | 0.04      1.00                   | 1 / 50
+l6    0.03    4    | yes     1      0        -       no    | 0.03      1.00                   | 1 / 64
+l6    0.003   0    | yes     1      0        -       no    | 0.13      1.00                   | 1 / 69
+l6    0.003   1    | yes     1      0        -       no    | 0.13      1.00                   | 1 / 68
+l6    0.003   2    | yes     1      0        -       no    | 0.15      1.00                   | 1 / 63
+l6    0.003   3    | yes     1      0        -       no    | 0.14      1.00                   | 1 / 50
+l6    0.003   4    | yes     1      0        -       no    | 0.13      1.00                   | 1 / 64
+l6    0.001   0    | yes     1      0        -       no    | 0.22      1.00                   | 1 / 69
+l6    0.001   1    | yes     1      0        -       no    | 0.21      1.00                   | 1 / 68
+l6    0.001   2    | yes     1      0        -       no    | 0.23      1.00                   | 1 / 63
+l6    0.001   3    | yes     1      0        -       no    | 0.21      1.00                   | 1 / 50
+l6    0.001   4    | yes     1      0        -       no    | 0.21      1.00                   | 1 / 64
+l6    0.0005  0    | yes     1      0        -       no    | 0.27      1.00                   | 1 / 69
+l6    0.0005  1    | yes     1      0        -       no    | 0.26      1.00                   | 1 / 68
+l6    0.0005  2    | yes     1      0        -       no    | 0.28      1.00                   | 1 / 63
+l6    0.0005  3    | yes     1      0        -       no    | 0.25      1.00                   | 1 / 50
+l6    0.0005  4    | yes     1      0        -       no    | 0.27      1.00                   | 1 / 64
+l6    0       0    | yes     1      0        -       no    | 0.39      1.00                   | 1 / 69
+l6    0       1    | yes     1      0        -       no    | 0.37      1.00                   | 1 / 68
+l6    0       2    | yes     1      0        -       no    | 0.41      1.00                   | 1 / 63
+l6    0       3    | yes     1      0        -       no    | 0.35      1.00                   | 1 / 50
+l6    0       4    | yes     1      0        -       no    | 0.39      1.00                   | 1 / 64
+tone  0.03    0    | yes     1      0        -       no    | 0.03      1.00                   | 1 / 69
+tone  0.03    1    | yes     1      0        -       no    | 0.04      1.00                   | 1 / 68
+tone  0.03    2    | yes     1      0        -       no    | 0.04      1.00                   | 1 / 63
+tone  0.03    3    | yes     1      0        -       no    | 0.05      1.00                   | 1 / 50
+tone  0.03    4    | yes     1      0        -       no    | 0.04      1.00                   | 1 / 64
+tone  0.003   0    | yes     1      0        -       no    | 0.25      1.00                   | 1 / 69
+tone  0.003   1    | yes     1      0        -       no    | 0.25      1.00                   | 1 / 68
+tone  0.003   2    | yes     1      0        -       no    | 0.26      1.00                   | 1 / 63
+tone  0.003   3    | yes     1      0        -       no    | 0.30      1.00                   | 1 / 50
+tone  0.003   4    | yes     1      0        -       no    | 0.25      1.00                   | 1 / 64
+tone  0.001   0    | yes     1      0        -       no    | 0.44      1.00                   | 1 / 69
+tone  0.001   1    | yes     1      0        -       no    | 0.45      1.00                   | 1 / 68
+tone  0.001   2    | yes     1      0        -       no    | 0.45      1.00                   | 1 / 63
+tone  0.001   3    | yes     1      0        -       no    | 0.50      1.00                   | 1 / 50
+tone  0.001   4    | yes     1      0        -       no    | 0.45      1.00                   | 1 / 64
+tone  0.0005  0    | yes     1      0        -       no    | 0.58      1.00                   | 1 / 69
+tone  0.0005  1    | yes     1      0        -       no    | 0.59      1.00                   | 1 / 68
+tone  0.0005  2    | yes     1      0        -       no    | 0.59      1.00                   | 1 / 63
+tone  0.0005  3    | yes     1      0        -       no    | 0.64      1.00                   | 1 / 50
+tone  0.0005  4    | yes     1      0        -       no    | 0.59      1.00                   | 1 / 64
+tone  0       0    | yes     1      0        -       no    | 0.99      1.00                   | 1 / 69
+tone  0       1    | yes     1      0        -       no    | 0.97      1.00                   | 1 / 68
+tone  0       2    | yes     1      0        -       no    | 0.96      1.00                   | 1 / 63
+tone  0       3    | yes     1      0        -       no    | 0.99      1.00                   | 1 / 50
+tone  0       4    | yes     1      0        -       no    | 0.96      1.00                   | 1 / 64
+
+per (kick, g_gap), over seeds: evoked / median cycles / max cycles / runs with >= 6 cycles / median RE first-spike SD
+  l6    g_gap=0.03    evoked 5/5, cycles median 1 max 1, >=6: 0/5, RE SD 0.03 ms
+  l6    g_gap=0.003   evoked 5/5, cycles median 1 max 1, >=6: 0/5, RE SD 0.13 ms
+  l6    g_gap=0.001   evoked 5/5, cycles median 1 max 1, >=6: 0/5, RE SD 0.21 ms
+  l6    g_gap=0.0005  evoked 5/5, cycles median 1 max 1, >=6: 0/5, RE SD 0.27 ms
+  l6    g_gap=0       evoked 5/5, cycles median 1 max 1, >=6: 0/5, RE SD 0.39 ms
+  tone  g_gap=0.03    evoked 5/5, cycles median 1 max 1, >=6: 0/5, RE SD 0.04 ms
+  tone  g_gap=0.003   evoked 5/5, cycles median 1 max 1, >=6: 0/5, RE SD 0.25 ms
+  tone  g_gap=0.001   evoked 5/5, cycles median 1 max 1, >=6: 0/5, RE SD 0.45 ms
+  tone  g_gap=0.0005  evoked 5/5, cycles median 1 max 1, >=6: 0/5, RE SD 0.59 ms
+  tone  g_gap=0       evoked 5/5, cycles median 1 max 1, >=6: 0/5, RE SD 0.97 ms

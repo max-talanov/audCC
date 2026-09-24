@@ -84,7 +84,7 @@ class ParallelCorticoThalamicNet:
                  g_e_i=0.02, g_i_e=0.08, g_i_e_l5=0.0, gsk_cx=8e-4, ib_frac=0.5,
                  g_tc_l4=0.02, g_l6_tc=0.03, g_l6_re=0.03,
                  conv=100, gap_deg=6, gap_short=2, g_l5_gap=0.02,
-                 het=0.05, delay_jitter=0.0, state=None):
+                 het=0.05, delay_jitter=0.0, state=None, het_seed=0):
         self.pc = h.ParallelContext()
         self.rank = int(self.pc.id())
         self.nhost = int(self.pc.nhost())
@@ -126,6 +126,10 @@ class ParallelCorticoThalamicNet:
         # model up to rounding (aud_checks.py --only leak), "wake" closes the
         # K+ leak (PLAN-auditory-input.md D4; uncalibrated until Stage B).
         self.state = state
+        # het_seed: 0 (default) = the production per-cell jitter; other values
+        # draw a different, equally deterministic set of cells (seeds for
+        # thal_ring_test.py, PLAN-spindels.md Stage 1).
+        self.het_seed = het_seed
 
         # -- gid ranges (contiguous blocks) ----------------------------------
         self.ranges = {}
@@ -208,7 +212,8 @@ class ParallelCorticoThalamicNet:
         result is independent of which rank built this cell/connection."""
         if self.het == 0:
             return base
-        r = np.random.default_rng(self.JITTER_OFFSET + gid * 97 + salt)
+        r = np.random.default_rng(self.JITTER_OFFSET + gid * 97 + salt
+                                   + self.het_seed * 7_919_993)
         return base * (1.0 + r.uniform(-self.het, self.het))
 
     def _make_cell(self, pop, gid):
@@ -821,6 +826,10 @@ def main():
                          "try e.g. \"8,15,25,40,60,100\".")
     ap.add_argument("--tau2-re-tc", type=float, default=8.0,
                     help="RE->TC GABA_A decay (ms). See --sweep-tau2-re-tc.")
+    ap.add_argument("--g-gap", type=float, default=0.03,
+                    help="RE<->RE gap-junction conductance (uS). 0.03 is ~30x "
+                         "too strong (Edu-questions.md Q7); PLAN-spindels.md "
+                         "Stage 1 sweeps it down (thal_ring_test.py).")
     ap.add_argument("--state", choices=["nrem", "wake"], default=None,
                     help="brain state (PLAN-auditory-input.md D4). Unset keeps "
                          "the legacy single pas leak; 'nrem' splits it into "
@@ -1089,7 +1098,8 @@ def main():
                                       tau2_re_tc=a.tau2_re_tc,
                                       g_l5_rec=a.g_l5_rec, tau2_l5_rec=a.tau2_l5_rec,
                                       l5_rec_mech=a.l5_rec_mech, mg_l5_rec=a.mg_l5_rec,
-                                      taur_l5e_rs=a.taur_l5e_rs, state=a.state)
+                                      taur_l5e_rs=a.taur_l5e_rs, state=a.state,
+                                      g_gap=a.g_gap)
     aud = AI.AuditoryInput(net, a.stim, a.tstop) if a.stim else None
     wall = net.run(tstop=a.tstop)
     t, g = net.gather()

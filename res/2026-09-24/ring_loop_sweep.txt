@@ -1,0 +1,88 @@
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+kick  g_gap   seed | evoked  cycles dur_ms   Hz      wax   | RE_SD_ms  TC part per cycle      | trains after kick / pre-kick spikes
+----------------------------------------------------------------------------------------------------------------------
+l6    0.001   0    | yes     1      0        -       no    | 0.22      1.00                   | 1 / 69 g_tc_re=0.011 tau2_re_tc=8
+l6    0.001   1    | yes     1      0        -       no    | 0.21      1.00                   | 1 / 68 g_tc_re=0.011 tau2_re_tc=8
+l6    0.001   2    | yes     1      0        -       no    | 0.23      1.00                   | 1 / 63 g_tc_re=0.011 tau2_re_tc=8
+l6    0.001   0    | yes     1      0        -       no    | 0.13      1.00                   | 1 / 69 g_tc_re=0.03 tau2_re_tc=8
+l6    0.001   1    | yes     1      0        -       no    | 0.13      1.00                   | 1 / 68 g_tc_re=0.03 tau2_re_tc=8
+l6    0.001   2    | yes     1      0        -       no    | 0.14      1.00                   | 1 / 63 g_tc_re=0.03 tau2_re_tc=8
+l6    0.001   0    | yes     1      0        -       no    | 0.09      1.00                   | 1 / 69 g_tc_re=0.06 tau2_re_tc=8
+l6    0.001   1    | yes     1      0        -       no    | 0.09      1.00                   | 1 / 68 g_tc_re=0.06 tau2_re_tc=8
+l6    0.001   2    | yes     1      0        -       no    | 0.09      1.00                   | 1 / 63 g_tc_re=0.06 tau2_re_tc=8
+l6    0.001   0    | yes     1      0        -       no    | 0.22      1.00                   | 1 / 69 g_tc_re=0.011 tau2_re_tc=20
+l6    0.001   1    | yes     1      0        -       no    | 0.21      1.00                   | 1 / 68 g_tc_re=0.011 tau2_re_tc=20
+l6    0.001   2    | yes     1      0        -       no    | 0.23      1.00                   | 1 / 63 g_tc_re=0.011 tau2_re_tc=20
+l6    0.001   0    | yes     1      0        -       no    | 0.13      1.00                   | 1 / 69 g_tc_re=0.03 tau2_re_tc=20
+l6    0.001   1    | yes     1      0        -       no    | 0.13      1.00                   | 1 / 68 g_tc_re=0.03 tau2_re_tc=20
+l6    0.001   2    | yes     1      0        -       no    | 0.14      1.00                   | 1 / 63 g_tc_re=0.03 tau2_re_tc=20
+l6    0.001   0    | yes     1      0        -       no    | 0.09      1.00                   | 1 / 69 g_tc_re=0.06 tau2_re_tc=20
+l6    0.001   1    | yes     1      0        -       no    | 0.09      1.00                   | 1 / 68 g_tc_re=0.06 tau2_re_tc=20
+l6    0.001   2    | yes     1      0        -       no    | 0.09      1.00                   | 1 / 63 g_tc_re=0.06 tau2_re_tc=20
+l6    0.001   0    | yes     1      0        -       no    | 0.22      1.00                   | 1 / 69 g_tc_re=0.011 tau2_re_tc=40
+l6    0.001   1    | yes     1      0        -       no    | 0.21      1.00                   | 1 / 68 g_tc_re=0.011 tau2_re_tc=40
+l6    0.001   2    | yes     1      0        -       no    | 0.23      1.00                   | 1 / 63 g_tc_re=0.011 tau2_re_tc=40
+l6    0.001   0    | yes     1      0        -       no    | 0.13      1.00                   | 1 / 69 g_tc_re=0.03 tau2_re_tc=40
+l6    0.001   1    | yes     1      0        -       no    | 0.13      1.00                   | 1 / 68 g_tc_re=0.03 tau2_re_tc=40
+l6    0.001   2    | yes     1      0        -       no    | 0.14      1.00                   | 1 / 63 g_tc_re=0.03 tau2_re_tc=40
+l6    0.001   0    | yes     1      0        -       no    | 0.09      1.00                   | 1 / 69 g_tc_re=0.06 tau2_re_tc=40
+l6    0.001   1    | yes     1      0        -       no    | 0.09      1.00                   | 1 / 68 g_tc_re=0.06 tau2_re_tc=40
+l6    0.001   2    | yes     1      0        -       no    | 0.09      1.00                   | 1 / 63 g_tc_re=0.06 tau2_re_tc=40
+l6    0.001   0    | yes     1      0        -       no    | 0.22      1.00                   | 1 / 69 g_tc_re=0.011 tau2_re_tc=80
+l6    0.001   1    | yes     1      0        -       no    | 0.21      1.00                   | 1 / 68 g_tc_re=0.011 tau2_re_tc=80
+l6    0.001   2    | yes     1      0        -       no    | 0.23      1.00                   | 1 / 63 g_tc_re=0.011 tau2_re_tc=80
+l6    0.001   0    | yes     1      0        -       no    | 0.13      1.00                   | 1 / 69 g_tc_re=0.03 tau2_re_tc=80
+l6    0.001   1    | yes     1      0        -       no    | 0.13      1.00                   | 1 / 68 g_tc_re=0.03 tau2_re_tc=80
+l6    0.001   2    | yes     1      0        -       no    | 0.14      1.00                   | 1 / 63 g_tc_re=0.03 tau2_re_tc=80
+l6    0.001   0    | yes     1      0        -       no    | 0.09      1.00                   | 13 / 69 g_tc_re=0.06 tau2_re_tc=80
+l6    0.001   1    | yes     1      0        -       no    | 0.09      1.00                   | 13 / 68 g_tc_re=0.06 tau2_re_tc=80
+l6    0.001   2    | yes     1      0        -       no    | 0.09      1.00                   | 2 / 63 g_tc_re=0.06 tau2_re_tc=80
+
+per (kick, g_gap), over seeds: evoked / median cycles / max cycles / runs with >= 6 cycles / median RE first-spike SD
+  l6    g_gap=0.001   g_tc_re=0.011 tau2_re_tc=8   evoked 3/3, cycles median 1 max 1, >=6: 0/3, RE SD 0.22 ms
+  l6    g_gap=0.001   g_tc_re=0.03 tau2_re_tc=8    evoked 3/3, cycles median 1 max 1, >=6: 0/3, RE SD 0.13 ms
+  l6    g_gap=0.001   g_tc_re=0.06 tau2_re_tc=8    evoked 3/3, cycles median 1 max 1, >=6: 0/3, RE SD 0.09 ms
+  l6    g_gap=0.001   g_tc_re=0.011 tau2_re_tc=20  evoked 3/3, cycles median 1 max 1, >=6: 0/3, RE SD 0.22 ms
+  l6    g_gap=0.001   g_tc_re=0.03 tau2_re_tc=20   evoked 3/3, cycles median 1 max 1, >=6: 0/3, RE SD 0.13 ms
+  l6    g_gap=0.001   g_tc_re=0.06 tau2_re_tc=20   evoked 3/3, cycles median 1 max 1, >=6: 0/3, RE SD 0.09 ms
+  l6    g_gap=0.001   g_tc_re=0.011 tau2_re_tc=40  evoked 3/3, cycles median 1 max 1, >=6: 0/3, RE SD 0.22 ms
+  l6    g_gap=0.001   g_tc_re=0.03 tau2_re_tc=40   evoked 3/3, cycles median 1 max 1, >=6: 0/3, RE SD 0.13 ms
+  l6    g_gap=0.001   g_tc_re=0.06 tau2_re_tc=40   evoked 3/3, cycles median 1 max 1, >=6: 0/3, RE SD 0.09 ms
+  l6    g_gap=0.001   g_tc_re=0.011 tau2_re_tc=80  evoked 3/3, cycles median 1 max 1, >=6: 0/3, RE SD 0.22 ms
+  l6    g_gap=0.001   g_tc_re=0.03 tau2_re_tc=80   evoked 3/3, cycles median 1 max 1, >=6: 0/3, RE SD 0.13 ms
+  l6    g_gap=0.001   g_tc_re=0.06 tau2_re_tc=80   evoked 3/3, cycles median 1 max 1, >=6: 0/3, RE SD 0.09 ms

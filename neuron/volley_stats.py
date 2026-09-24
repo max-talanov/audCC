@@ -12,7 +12,18 @@ For each run (.npz spike dump) this reports:
     the same filter (equal widths => the "spindle" is the filter's response)
 and optionally plots thalamus/cortex population rates for a short window.
 
+Spike-based spindle measure (PLAN-spindels.md Stage 0, --trains): RE
+population volleys are detected from spikes, consecutive volleys 60-150 ms
+apart are chained into one train, and each train is reported with its cycle
+count, duration, within-train frequency and TC / RE participation per cycle.
+No band-pass filter is involved, so a single volley counts as 1 cycle (a
+10-15 Hz filter turns it into ~3 cycles of ripple, Edu-questions.md Q5).
+`--self-test` checks the measure on a synthetic spike train.
+
 Usage:
+    python3 neuron/volley_stats.py --trains "Option 2=res/2026-09-07/ctx_nrn_45453403.npz"
+    python3 neuron/volley_stats.py --self-test
+
     python3 neuron/volley_stats.py \
         "before=res/2026-08-31/ctx_nrn_45171023.npz" \
         "Option 2=res/2026-09-07/ctx_nrn_45453403.npz" \
@@ -124,6 +135,251 @@ def window_table(npz, windows_ms):
     return rows
 
 
+# -- Stage 0: spike-based RE volley trains ----------------------------------
+TRAIN_MIN_IVI = 60.0    # ms; volleys closer than this are one volley (<= 16.7 Hz)
+TRAIN_MAX_IVI = 150.0   # ms; volleys further apart start a new train (>= 6.7 Hz)
+SPINDLE_MIN_CYCLES = 6  # "real spindle": >= 6 cycles (PLAN-spindels.md goal table)
+
+
+def re_volleys(t, g, R, tstop, min_part=0.10, skip_ms=0.0, smooth_ms=3.0):
+    """RE population volleys from spikes: peaks of the RE rate at least
+    TRAIN_MIN_IVI apart in which >= min_part of RE cells fire within +-20 ms.
+
+    Returns a list of dicts: t (peak, ms), re_part / tc_part (fraction of
+    cells firing: RE within +-20 ms of the peak, TC within [-40, +10] ms, i.e.
+    the TC activity that leads into this RE volley), re_sd (SD of the RE
+    cells' first-spike times in the volley, ms)."""
+    rlo, rhi = R["re"]
+    tlo, thi = R["tc"]
+    mre = (g >= rlo) & (g < rhi)
+    tre, gre = t[mre], g[mre]
+    mtc = (g >= tlo) & (g < thi)
+    ttc, gtc = t[mtc], g[mtc]
+    r, b = A._rate(tre, tstop, 1.0, smooth_ms)
+    r[b < skip_ms] = 0.0
+    pk, _ = find_peaks(r, height=1e-9, distance=int(TRAIN_MIN_IVI))
+    out = []
+    for i in pk:
+        p = b[i]
+        m = (tre >= p - 20.0) & (tre < p + 20.0)
+        cells = np.unique(gre[m])
+        part = len(cells) / (rhi - rlo)
+        if part < min_part:
+            continue
+        first = [tre[m][gre[m] == c].min() for c in cells]
+        mt = (ttc >= p - 40.0) & (ttc < p + 10.0)
+        out.append({"t": float(p), "re_part": part,
+                    "tc_part": len(np.unique(gtc[mt])) / (thi - tlo),
+                    "re_sd": float(np.std(first))})
+    return out
+
+
+def volley_trains(volleys):
+    """Chain volleys whose interval is <= TRAIN_MAX_IVI into trains."""
+    trains, cur = [], []
+    for v in volleys:
+        if cur and v["t"] - cur[-1]["t"] > TRAIN_MAX_IVI:
+            trains.append(cur)
+            cur = []
+        cur.append(v)
+    if cur:
+        trains.append(cur)
+    out = []
+    for tr in trains:
+        ts = np.array([v["t"] for v in tr])
+        dur = float(ts[-1] - ts[0])
+        part = np.array([v["re_part"] for v in tr])
+        out.append({"t0": float(ts[0]), "t1": float(ts[-1]), "cycles": len(tr),
+                    "duration": dur,
+                    "freq": (len(tr) - 1) * 1000.0 / dur if len(tr) > 1 else float("nan"),
+                    "re_part": part, "tc_part": np.array([v["tc_part"] for v in tr]),
+                    "re_sd": np.array([v["re_sd"] for v in tr]),
+                    # waxing/waning: participation peaks strictly inside the train
+                    "wax_wane": bool(len(tr) >= 3 and 0 < int(np.argmax(part)) < len(tr) - 1)})
+    return out
+
+
+def train_summary(trains, span_ms):
+    """Per-run summary of volley trains over span_ms of analysed time."""
+    if not trains:
+        return {"n_trains": 0}
+    cyc = np.array([t["cycles"] for t in trains])
+    starts = np.array([t["t0"] for t in trains])
+    sp = [t for t in trains if t["cycles"] >= SPINDLE_MIN_CYCLES]
+    multi = [t for t in trains if t["cycles"] > 1]
+    return {
+        "n_trains": len(trains),
+        "trains_per_min": len(trains) / (span_ms / 60000.0),
+        "cycles_median": float(np.median(cyc)), "cycles_max": int(cyc.max()),
+        "frac_single": float(np.mean(cyc == 1)),
+        "cycles_hist": {k: int((cyc == k).sum()) for k in range(1, min(cyc.max(), 12) + 1)},
+        "n_spindles": len(sp), "spindles_per_min": len(sp) / (span_ms / 60000.0),
+        "freq_median": float(np.median([t["freq"] for t in multi])) if multi else float("nan"),
+        "duration_max": float(max(t["duration"] for t in trains)),
+        "iti_median": float(np.median(np.diff(starts))) if len(starts) > 1 else float("nan"),
+        "tc_part_median": float(np.median(np.concatenate([t["tc_part"] for t in trains]))),
+        "re_part_median": float(np.median(np.concatenate([t["re_part"] for t in trains]))),
+        "re_sd_median": float(np.median(np.concatenate([t["re_sd"] for t in trains]))),
+    }
+
+
+def run_trains(npz, skip_ms=1000.0):
+    t, g, R, tstop = npz["times"], npz["gids"], npz["ranges"].item(), float(npz["tstop"])
+    trains = volley_trains(re_volleys(t, g, R, tstop, skip_ms=skip_ms))
+    return trains, train_summary(trains, tstop - skip_ms)
+
+
+def print_train_summary(label, s):
+    print(f"\n== {label}")
+    if not s["n_trains"]:
+        print("  no RE volleys")
+        return
+    print(f"  RE volley trains: {s['n_trains']} ({s['trains_per_min']:.1f}/min), "
+          f"median inter-train interval {s['iti_median']:.0f} ms")
+    print(f"  cycles per train: median {s['cycles_median']:.0f}, max {s['cycles_max']}, "
+          f"single-volley trains {100 * s['frac_single']:.0f}%; histogram "
+          + " ".join(f"{k}:{v}" for k, v in s["cycles_hist"].items()))
+    print(f"  spindle-like trains (>= {SPINDLE_MIN_CYCLES} cycles): {s['n_spindles']} "
+          f"({s['spindles_per_min']:.1f}/min); multi-cycle frequency median "
+          f"{s['freq_median']:.1f} Hz; longest train {s['duration_max']:.0f} ms")
+    print(f"  per cycle: RE participation {100 * s['re_part_median']:.0f}%, "
+          f"TC participation {100 * s['tc_part_median']:.0f}%, "
+          f"RE first-spike SD {s['re_sd_median']:.2f} ms")
+
+
+def self_test():
+    """Synthetic run: an 8-cycle 12 Hz train with a waxing/waning envelope,
+    a single volley, and a 3-cycle 10 Hz train; plus sparse background."""
+    rng = np.random.default_rng(0)
+    R = {"tc": (0, 100), "re": (100, 130)}
+    ts, gs = [], []
+
+    def volley(t0, part_re, part_tc):
+        for c in rng.choice(np.arange(100, 130), int(30 * part_re), replace=False):
+            for k in range(3):   # a 3-spike RE burst
+                ts.append(t0 + rng.normal(0, 2) + 3 * k); gs.append(c)
+        for c in rng.choice(np.arange(0, 100), int(100 * part_tc), replace=False):
+            ts.append(t0 - 25 + rng.normal(0, 3)); gs.append(c)
+
+    env = [0.3, 0.5, 0.8, 1.0, 1.0, 0.8, 0.5, 0.3]
+    for k, a in enumerate(env):
+        volley(2000 + k * 1000 / 12.0, a, 0.4 * a)
+    volley(5000, 0.9, 0.5)
+    for k in range(3):
+        volley(8000 + k * 100.0, 0.7, 0.3)
+    bg = rng.uniform(0, 10000, 40)
+    ts += list(bg); gs += list(rng.integers(0, 130, 40))
+    npz = {"times": np.array(ts), "gids": np.array(gs), "ranges": np.array(R, dtype=object),
+           "tstop": 10000.0}
+    trains, s = run_trains(npz, skip_ms=0.0)
+    got = [(tr["cycles"], round(tr["freq"], 1) if tr["cycles"] > 1 else None, tr["wax_wane"])
+           for tr in trains]
+    want = [(8, 12.0, True), (1, None, False), (3, 10.0, False)]
+    ok = got == want
+    print("[self-test] trains found (cycles, Hz, waxing/waning):", got)
+    print("[self-test] expected:                               ", want)
+    print("[self-test]", "PASS" if ok else "FAIL")
+    return ok
+
+
+def _thal_lfp(npz, fs=1000.0):
+    """Thalamic LFP proxy: mean per-cell synaptic-kernel signal of TC and RE
+    (ctx_analyze._synaptic_lfp), NOT z-scored, so runs with different
+    activity are on one scale. Used for the isolated thalamus (no cortex)."""
+    t, g, R, tstop = npz["times"], npz["gids"], npz["ranges"].item(), float(npz["tstop"])
+    out = 0.0
+    for k in THAL:
+        lo, hi = R[k]
+        lfp, bins = A._synaptic_lfp(t[(g >= lo) & (g < hi)], tstop, fs=fs)
+        out = out + lfp / max(1, hi - lo) / len(THAL)
+    return out - out[bins >= min(1000.0, tstop / 4)].mean(), bins
+
+
+def plot_train_reconstruction(cases, out_png, window, lfp="cortex", title=None):
+    """Literature-style SO-band + 10-15 Hz reconstruction (ctx_analyze's
+    format) per case, shared y-scales, with BOTH event definitions:
+    grey shading = band-pass events (ctx_analyze._detect_spindles), markers
+    at the top = spike-based RE volley trains (Stage 0): black tick = single
+    volley, orange = 2-5 cycles, green = >= 6 cycles (spindle-like).
+    Blue lines = stimulus times (npz 'stim_t' or 'kick_t').
+    cases: list of (label, npz, colour)."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    fs = 1000.0
+    comp = []
+    for label, npz, color in cases:
+        if lfp == "cortex":
+            _, x, _, bins, _ = A._composite_lfp(npz, fs=fs)
+        else:
+            x, bins = _thal_lfp(npz, fs)
+        so = A._bandpass(x, fs, 0.5, 2.0)
+        sp = A._bandpass(x, fs, 10.0, 15.0)
+        st, en = A._detect_spindles(sp, bins, skip_ms=min(1000.0, float(npz["tstop"]) / 4))
+        trains = volley_trains(re_volleys(npz["times"], npz["gids"], npz["ranges"].item(),
+                                          float(npz["tstop"]), skip_ms=0.0))
+        stim = []
+        if "stim_t" in npz:
+            stim = list(np.asarray(npz["stim_t"]))
+        elif "kick_t" in npz:
+            stim = [float(npz["kick_t"])]
+        comp.append((label, color, bins, so + sp, sp, st, en, trains, stim))
+    w0 = lambda b: (b >= window[0]) & (b < window[1])
+    rmax = max(np.abs(c[3][w0(c[2])]).max() for c in comp) or 1.0
+    smax = max(np.abs(c[4][w0(c[2])]).max() for c in comp) or 1.0
+    fig, axes = plt.subplots(2 * len(comp), 1, sharex=True,
+                             figsize=(14, 2.25 * 2 * len(comp) + 0.9))
+    for i, (label, color, bins, rec, sp, st, en, trains, stim) in enumerate(comp):
+        w = w0(bins)
+        ts = bins[w] / 1000.0
+        a1, a2 = axes[2 * i], axes[2 * i + 1]
+        a1.plot(ts, rec[w], color=color, lw=0.8)
+        a1.set_ylim(-rmax * 1.1, rmax * 1.35)
+        a1.set_ylabel("raw\n(SO+spindle)", fontsize=8)
+        a1.set_title(label, fontsize=10, loc="left", fontweight="bold")
+        a2.plot(ts, sp[w], color=color, lw=0.8)
+        a2.set_ylim(-smax * 1.1, smax * 1.1)
+        a2.set_ylabel("10-15 Hz", fontsize=8)
+        for s_, e_ in zip(st, en):
+            a, b = bins[s_] / 1000.0, bins[e_] / 1000.0
+            if b >= window[0] / 1000.0 and a <= window[1] / 1000.0:
+                for ax in (a1, a2):
+                    ax.axvspan(a, b, color="0.5", alpha=0.18, lw=0)
+        y = rmax * 1.22
+        for tr in trains:
+            if not (window[0] <= tr["t0"] < window[1]):
+                continue
+            c = tr["cycles"]
+            col = "k" if c == 1 else ("#e67e22" if c < SPINDLE_MIN_CYCLES else "#1e8449")
+            if c == 1:
+                a1.plot([tr["t0"] / 1000.0] * 2, [y - rmax * 0.07, y + rmax * 0.07],
+                        color=col, lw=1.2)
+            else:
+                a1.plot([tr["t0"] / 1000.0, tr["t1"] / 1000.0], [y, y], color=col, lw=4,
+                        solid_capstyle="butt")
+                a1.text(tr["t1"] / 1000.0 + 0.02, y, str(c), color=col, fontsize=7,
+                        va="center")
+        for t in stim:
+            if window[0] <= t < window[1]:
+                for ax in (a1, a2):
+                    ax.axvline(t / 1000.0, color=A.BLUE, lw=1.2, alpha=0.8)
+    axes[-1].set_xlabel("time (s)")
+    axes[-1].set_xlim(window[0] / 1000.0, window[1] / 1000.0)
+    src = ("cortical LFP proxy (L2/3-L6 composite)" if lfp == "cortex"
+           else "thalamic LFP proxy (TC+RE, per cell)")
+    import textwrap
+    cap = textwrap.fill(src + ", SO band (0.5-2 Hz) + spindle band (10-15 Hz). Grey = "
+                        "band-pass events; top markers = spike-based RE volley trains "
+                        "(black tick = 1 cycle, orange = 2-5, green = >= 6 cycles, "
+                        "number = cycles); blue = stimulus", 150)
+    fig.suptitle((title + "\n" if title else "") + cap, fontsize=9)
+    top = 1 - (0.05 + 0.17 * (cap.count("\n") + (2 if title else 1))) / fig.get_size_inches()[1]
+    fig.tight_layout(rect=[0, 0, 1, top])
+    fig.savefig(out_png, dpi=140)
+    plt.close(fig)
+    print(f"Saved {out_png}")
+
+
 def plot_rates(cases, out_png, window=(20000, 23000)):
     import matplotlib.pyplot as plt
     fig, axes = plt.subplots(2 * len(cases), 1, figsize=(14, 2.5 * 2 * len(cases)), sharex=True)
@@ -148,7 +404,17 @@ def plot_rates(cases, out_png, window=(20000, 23000)):
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("runs", nargs="+", help='"label=path.npz" pairs')
+    ap.add_argument("runs", nargs="*", help='"label=path.npz" pairs')
+    ap.add_argument("--trains", action="store_true",
+                    help="Stage 0 spike-based RE volley-train report instead")
+    ap.add_argument("--recon", default="",
+                    help="output PNG: literature-style SO+10-15 Hz reconstruction "
+                         "per run with band-pass events AND spike-based trains "
+                         "(uses --window-start/--window-len, --lfp)")
+    ap.add_argument("--lfp", choices=["cortex", "thal"], default="cortex")
+    ap.add_argument("--title", default=None)
+    ap.add_argument("--self-test", action="store_true",
+                    help="check the train measure on a synthetic spike train")
     ap.add_argument("--plot", default=None, help="optional output PNG for the rate plot")
     ap.add_argument("--window-start", type=float, default=20000.0)
     ap.add_argument("--window-len", type=float, default=3000.0)
@@ -157,10 +423,22 @@ def main(argv=None):
                          '"20-40,60-80,100-120,160-180" (seconds)')
     a = ap.parse_args(argv)
 
+    if a.self_test:
+        return 0 if self_test() else 1
     cases = []
     for pair in a.runs:
         label, path = pair.split("=", 1)
         cases.append((label, np.load(path, allow_pickle=True)))
+    if a.recon:
+        cols = ["#b03a2e", "0.3", "#1f618d", "#7d3c98", "#117a65", "#b9770e"]
+        plot_train_reconstruction([(l, n, cols[i % len(cols)]) for i, (l, n) in enumerate(cases)],
+                                  a.recon, (a.window_start, a.window_start + a.window_len),
+                                  lfp=a.lfp, title=a.title)
+        return 0
+    if a.trains:
+        for label, npz in cases:
+            print_train_summary(label, run_trains(npz)[1])
+        return 0
     if a.windows:
         wins = [tuple(float(x) * 1000.0 for x in w.split("-")) for w in a.windows.split(",")]
         for label, npz in cases:
