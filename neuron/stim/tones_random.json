@@ -1,0 +1,12 @@
+{
+  "seed": 1,
+  "protocol": {
+    "type": "random_tones",
+    "start": 2000,
+    "stop": 1e12,
+    "isi_min": 2000,
+    "isi_max": 4000,
+    "dur": 50,
+    "level": 60
+  }
+}

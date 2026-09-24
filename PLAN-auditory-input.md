@@ -1,6 +1,7 @@
 # Plan: auditory input to the thalamocortical loop, awake and asleep
 
-Status: **plan only, nothing implemented yet.** Builds on the production
+Status: **Stage A done (2026-09-24, local, see "Stage A results"); Stages
+B and C not started.** Builds on the production
 NEURON model `ParallelCorticoThalamicNet` (`neuron/ctx_thalamus_mpi.py`;
 architecture in `Edu-questions.md` Q2). Runs alongside `PLAN-spindels.md`,
 and the spindle-related experiments here depend on it (see "Dependencies").
@@ -183,27 +184,80 @@ detector events).
 Every new mechanism is behind a flag with the old behaviour as default, so
 the two plans don't break each other's runs.
 
-## Stage A — infrastructure and NREM regression (local)
+## Stage A — infrastructure and NREM regression (local) — **done 2026-09-24**
 
-- [ ] `mod/kleak.mod`; add to every cell type; `nrnivmodl` build and the MN5
+- [x] `mod/kleak.mod`; add to every cell type; `nrnivmodl` build and the MN5
       upload list (`MN5_NEURON.md`).
-- [ ] Recalibrate NREM `e_pas` → `pas + kleak` (D4). **Regression gate:**
+- [x] Recalibrate NREM `e_pas` → `pas + kleak` (D4). **Regression gate:**
       `--state nrem` with no stimulus reproduces baseline spike counts per
       population within a few percent at `--scale 0.1`, same seeds.
-- [ ] `neuron/auditory_input.py`: stimulus spec (YAML or dict), fibre spike
-      trains keyed by fibre id, IC → TC driver synapses, event queuing. One
-      channel.
-- [ ] Unit checks: fibre trains identical at 1 and 4 ranks; PSTH of the fibres
-      alone matches the rate model; a single TC cell clamped at −60 mV vs
-      −80 mV answers one fibre volley with tonic spikes vs an I_T burst.
-- [ ] `--state`, `--stim`, and `--save-stim-log` flags on
-      `ctx_thalamus_mpi.py`; the stimulus log goes into the `.npz`.
-- [ ] `neuron/aud_analyze.py`: PSTH, TC burst/tonic classifier, cortical-state
-      metrics (D6).
+- [x] `neuron/auditory_input.py`: stimulus spec (JSON, so MN5 needs no YAML;
+      or a dict), fibre spike trains keyed by fibre id, IC → TC driver
+      synapses, event queuing. One channel.
+- [x] Unit checks (`neuron/aud_checks.py`): fibre trains identical at 1 and 4
+      ranks; PSTH of the fibres alone matches the rate model; a single TC
+      cell held at −68 mV vs −80 mV answers one fibre volley with tonic
+      spikes vs an I_T burst. (−68, not −60: this `TCCell` fires tonically on
+      its own from about −67 mV.)
+- [x] `--state` and `--stim` flags on `ctx_thalamus_mpi.py` (and `STATE` /
+      `STIM` in `run_ctx_nrn.sh`). No separate `--save-stim-log`: with
+      `--stim` the schedule and all fibre spikes always go into the `.npz`.
+- [x] `neuron/aud_analyze.py`: PSTH, TC burst/tonic classifier, cortical-state
+      metrics (D6), plus `--compare` for regression and rank-count checks.
 
 **Done when:** the NREM regression gate passes, and tones at `--scale 0.1`
 produce a measurable TC response in NREM with the analysis script reporting
 it.
+
+### Stage A results
+
+All at `--scale 0.1` (305 cells), 4 ranks, Option 2 flags. Raw output:
+`res/2026-09-24/stageA_summary.txt`; figure:
+`out/stageA_nrem60_tones_psth.png`.
+
+- **Leak split is exact per cell:** legacy vs `nrem` voltage traces differ by
+  < 1e-8 mV, same spikes, for TC, RE, L5 IB, RS pyramidal and FS cells.
+- **Regression gate passes.** In the network, legacy and `--state nrem` give
+  identical rasters for the first 4.9 s, then diverge (the network is
+  chaotic, so a 1e-8 mV rounding difference grows). After 20 s the largest
+  per-population count difference is 5.1% (L2/3E; TC 0.1%). The noise floor
+  is larger: nudging every cell's `e_pas` by 1e-9 mV in the legacy model
+  changes counts by up to 9.0% (L6E), divergence at 3.3 s. So the split
+  changes nothing beyond the network's own sensitivity.
+- **Rank count doesn't matter:** NREM + tones at 1 and 4 ranks give identical
+  spike rasters.
+- **Driver calibration:** w = 0.002 µS per fibre, a ~4 mV EPSP. At −68 mV two
+  coincident fibres fire a TC cell and one doesn't; at −80 mV two fibres
+  trigger a 4-spike I_T burst.
+- **Tones reach the thalamus and L4 in NREM** (60 s, 20 tones of 60 dB,
+  50 ms, vs a sham run without `--stim`; spikes/cell, Wilcoxon paired):
+
+  | 0–50 ms | tone | sham | p |
+  |---|---|---|---|
+  | TC | 4.96 | 0.71 | 9e-5 |
+  | RE | 2.10 | 1.00 | 0.07 |
+  | L4E | 1.89 | 0.65 | 3e-4 |
+  | L4I | 4.16 | 1.71 | 6e-4 |
+  | L2/3E | 0.24 | 0.11 | 0.07 |
+  | L2/3I | 2.08 | 0.78 | 0.015 |
+  | L5E / L6E | 0.45 / 0.41 | 0.37 / 0.24 | n.s. |
+
+  TC responds on 20/20 tones, median first-spike latency 7 ms after onset.
+  Nothing changes in 50–300 ms, so no evoked slow-wave cycle is visible at
+  this sample size (a Stage C question).
+
+**Found along the way, for Stage B:**
+
+- The placeholder `wake` preset (K⁺ leak fully closed, `E_OPEN["tc"] = −62`)
+  turns an isolated TC cell into a **35 Hz pacemaker with no input**. Stage
+  B1 has to calibrate it, starting from the fact that this `TCCell` fires
+  tonically from about −67 mV.
+- The current NREM network is less "bursty" than the plan's target table
+  assumes: only **~25% of TC spikes are Lu-criterion bursts** (TC fires at
+  ~13 Hz/cell at this scale), and pooled cortical E activity never goes
+  silent for ≥ 100 ms, so the silence metric reads 0 in NREM. The
+  wake/NREM contrast in B1 should be judged relative to this baseline, and
+  the silence metric may need a per-layer or thresholded version.
 
 ## Stage B — the awake state (local, then MN5)
 

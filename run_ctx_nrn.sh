@@ -148,6 +148,12 @@ else
     [ -n "${TAUR_L5E_RS:-}" ] && PROD_ARGS+=(--taur-l5e-rs "$TAUR_L5E_RS")
     [ -n "${L5_REC_MECH:-}" ] && PROD_ARGS+=(--l5-rec-mech "$L5_REC_MECH")
     [ -n "${MG_L5_REC:-}" ] && PROD_ARGS+=(--mg-l5-rec "$MG_L5_REC")
+    # STATE / STIM (optional, PLAN-auditory-input.md): STATE=nrem|wake splits
+    # every leak into pas + K+ leak (nrem = unchanged dynamics); STIM is an
+    # auditory stimulus spec, e.g. STIM=neuron/stim/tones_random.json. Unset
+    # -> legacy leak, no auditory input.
+    [ -n "${STATE:-}" ] && PROD_ARGS+=(--state "$STATE")
+    [ -n "${STIM:-}" ] && PROD_ARGS+=(--stim "$STIM")
     srun --mpi=pmix "$PY" neuron/ctx_thalamus_mpi.py \
         --scale "$SCALE" --tstop "$TSTOP" --conv "$CONV" \
         --out "out/${TAG}.npz" "${PROD_ARGS[@]}"

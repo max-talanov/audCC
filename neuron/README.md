@@ -38,6 +38,12 @@ scale both are fast enough.
 | `cortex_neuron.py` | `PYCell` (pyramidal, hh2 + ical + cad + sk2 adaptation), `FSCell` (PV⁺ fast-spiking), `CorticalColumn` (L4/L2·3/L5/L6) |
 | `ctx_thalamus_network.py` | `CorticoThalamicNet` — cortical column + thalamic TC↔RE loop, closed via TC→L4 and L6→TC/RE |
 | `tc_neuron_figures.py` | six-panel spindle figure (`out/tc_neuron_spindles.png`): cell bursts → gap-junction sync → network raster / LFP / spectrogram |
+| `mod/kleak.mod` | K⁺ leak, the neuromodulatory sleep/wake knob (`PLAN-auditory-input.md` D4) |
+| `brain_state.py` | `nrem` / `wake` presets: splits each cell's leak into pas + K⁺ leak (`--state`) |
+| `auditory_input.py` | IC → TC auditory driver input: stimulus spec, fibre spike trains, delivery (`--stim`) |
+| `stim/*.json` | stimulus specs for `--stim` |
+| `aud_checks.py` | Stage A unit checks: fibre PSTH, determinism, leak split, TC driver calibration |
+| `aud_analyze.py` | tone-evoked PSTH vs sham, TC burst/tonic, cortical-state metrics, `--compare` |
 | `arm64/` (git-ignored) | compiled mechanisms, from `nrnivmodl mod` |
 
 ## Build & run

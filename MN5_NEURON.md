@@ -138,6 +138,10 @@ column.
 | `neuron/mod/ical.mod` | HVA Ca²⁺ (cortical SK2 Ca²⁺ source) |
 | `neuron/mod/inap.mod` | persistent Na⁺ (L5 `PYCellIB` intrinsic bursting) |
 | `neuron/mod/nmda.mod` | Mg²⁺-block NMDA (L5E↔L5E recurrent excitation, `--l5-rec-mech nmda`) — the slow-wave-generation fix; see `res/2026-09-02/` and `out/compare_regularity_vs_literature_score.png` |
+| `neuron/mod/kleak.mod` | K⁺ leak, the sleep/wake knob (`--state`, `PLAN-auditory-input.md`) |
+| `neuron/brain_state.py` | `nrem` / `wake` presets: splits each leak into pas + K⁺ leak |
+| `neuron/auditory_input.py` | IC → TC auditory driver input (`--stim`) |
+| `neuron/stim/*.json` | stimulus specs for `--stim` |
 
 Everything else (`tc_neuron.py`, `it`/`it2`/`hh2`/`cad`/`sk2`/`ihca`/`gap`/
 `gapmpi` mod files) is already on the thalamus-only list above — `nrnivmodl

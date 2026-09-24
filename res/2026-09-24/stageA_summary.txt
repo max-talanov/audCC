@@ -1,0 +1,79 @@
+# Stage A (PLAN-auditory-input.md), local, 2026-09-24. scale 0.1 (305 cells), 4 ranks,
+# Option 2 flags: --g-i-e-l5 0.02 --g-l5-rec 0.013 --tau2-l5-rec 200 --taur-l5e-rs 120 --l5-rec-mech nmda
+
+## unit checks: python aud_checks.py
+[fibres] peak model 153 Hz, empirical 134 Hz; corr 0.999; total empirical/model 0.919 (refractoriness lowers it slightly)
+[fibres] PASS
+[determ] trains order-independent: True; TC->fibre map stable: True; schedule reproducible: True (6 tones) -> PASS
+[leak] tc  max |dV| legacy vs nrem = 7.57e-09 mV, spikes 10 vs 10  PASS
+[leak] re  max |dV| legacy vs nrem = 3.06e-10 mV, spikes 8 vs 8  PASS
+[leak] ib  max |dV| legacy vs nrem = 1.37e-10 mV, spikes 11 vs 11  PASS
+[leak] py  max |dV| legacy vs nrem = 3.74e-10 mV, spikes 9 vs 9  PASS
+[leak] fs  max |dV| legacy vs nrem = 4.06e-10 mV, spikes 67 vs 67  PASS
+[tc] nrem state, no input: silent, rest -75.6 mV
+[tc] wake state, no input: 35.5 Hz spontaneous firing (not at rest)
+[tc] single-fibre EPSP (Na blocked) and spikes evoked by n coincident
+     fibre spikes in 0-50 ms, cell DC-held at -68/-80 mV
+     w (uS)  | EPSP  n=1/2/3/4 @-68 | EPSP  n=1/2/3/4 @-80
+     0.0010  |  1.8 mV  0/0/1/1   |  1.7 mV  0/0/3/4  
+     0.0020  |  4.2 mV  0/1/1/1   |  5.1 mV  0/4/5/5  
+     0.0030  |  7.6 mV  1/1/1/1   | 70.9 mV  3/5/5/5  
+     0.0040  | 12.3 mV  1/1/1/1   | 74.3 mV  4/5/5/6  
+     0.0060  | 18.5 mV  1/1/1/2   | 77.1 mV  5/5/6/6  
+[tc] one 60 dB tone via k=8 fibres, w=0.0020:
+     held -68  :  5 spikes in 0-100 ms, first at   6.8 ms, min ISI   7.1 ms, burst (Lu 1992): False
+     held -80  :  9 spikes in 0-100 ms, first at   6.7 ms, min ISI   2.0 ms, burst (Lu 1992): True
+     wake state*:  8 spikes in 0-100 ms, first at   0.3 ms, min ISI   7.0 ms, burst (Lu 1992): False
+     nrem state:  6 spikes in 0-100 ms, first at   6.7 ms, min ISI   4.5 ms, burst (Lu 1992): False
+     * the placeholder wake preset fires spontaneously (see above), so this row is not a pure tone response
+[tc] tonic at -68 mV and burst at -80 mV: PASS
+
+## regression gate: legacy vs --state nrem (20 s)
+pop    stageA_legacy stageA_nrem   diff %
+tc           5381       5384    +0.06
+re           1556       1572    +1.03
+l4e         14722      14545    -1.20
+l4i         10173       9928    -2.41
+l23e         1995       2096    +5.06
+l23i         3950       4089    +3.52
+l5e          6840       6971    +1.92
+l5i         15730      15815    +0.54
+l6e          2921       2929    +0.27
+l6i          3570       3599    +0.81
+identical spike rasters: False; first divergence at t = 4907.0 ms; largest per-population count difference 5.06%
+
+## noise floor: legacy vs legacy with e_pas + 1e-9 mV on every cell (stageA_perturbed.py, PERT_MODE=all)
+pop    stageA_legacy stageA_legacy_pert_all   diff %
+tc           5381       5766    +7.15
+re           1556       1580    +1.54
+l4e         14722      14983    +1.77
+l4i         10173      10099    -0.73
+l23e         1995       2031    +1.80
+l23i         3950       4008    +1.47
+l5e          6840       6925    +1.24
+l5i         15730      15720    -0.06
+l6e          2921       3185    +9.04
+l6i          3570       3874    +8.52
+identical spike rasters: False; first divergence at t = 3282.7 ms; largest per-population count difference 9.04%
+
+## rank count: nrem + tones, 4 ranks vs 1 rank (20 s)
+identical spike rasters: True; first divergence at t = none ms; largest per-population count difference 0.00%
+
+## tones in NREM vs sham (60 s, stim/tones_random.json)
+== stageA_nrem60_tones: 20 tones, state=nrem ==
+pop    cells | spikes/cell 0-50 ms      | spikes/cell 50-300 ms   
+             | tone  sham   p           | tone  sham   p          
+tc        21 |  4.96  0.71 8.8e-05      |  3.13  3.05 7.4e-01     
+re         6 |  2.10  1.00 7.4e-02      |  2.61  2.76 8.4e-01     
+l4e       64 |  1.89  0.65 2.8e-04      |  2.23  2.60 3.3e-01     
+l4i       16 |  4.16  1.71 6.0e-04      |  6.07  7.53 1.8e-01     
+l23e      64 |  0.24  0.11 7.3e-02      |  0.36  0.36 7.7e-01     
+l23i      16 |  2.08  0.78 1.5e-02      |  2.66  2.85 7.6e-01     
+l5e       53 |  0.45  0.37 4.4e-01      |  1.53  1.73 1.0e-01     
+l5i       13 |  3.41  3.22 3.8e-01      | 14.65 15.60 3.5e-02     
+l6e       42 |  0.41  0.24 2.7e-01      |  0.98  0.73 1.7e-01     
+l6i       10 |  2.04  1.22 1.6e-01      |  4.67  4.42 6.0e-01     
+TC first-spike latency: median 7.0 ms (IQR 1.8-7.6), 20/20 tones with a TC spike in 0-100 ms; evoked TC spikes in bursts: 15%
+state: TC 14.37 Hz/cell, TC burst fraction 0.23 | cortex ISI CV 0.93, pair corr 0.381, silence>=100ms 0.00, SO-band power frac 0.36
+sham:
+state: TC 13.01 Hz/cell, TC burst fraction 0.25 | cortex ISI CV 0.93, pair corr 0.420, silence>=100ms 0.00, SO-band power frac 0.32

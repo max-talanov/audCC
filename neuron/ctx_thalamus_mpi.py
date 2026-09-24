@@ -49,6 +49,8 @@ h.nrnmpi_init()
 
 import tc_neuron as T                                    # noqa: E402
 import cortex_neuron as C                                 # noqa: E402
+import brain_state as BS                                  # noqa: E402
+import auditory_input as AI                               # noqa: E402
 
 h.load_file("stdrun.hoc")
 
@@ -82,7 +84,7 @@ class ParallelCorticoThalamicNet:
                  g_e_i=0.02, g_i_e=0.08, g_i_e_l5=0.0, gsk_cx=8e-4, ib_frac=0.5,
                  g_tc_l4=0.02, g_l6_tc=0.03, g_l6_re=0.03,
                  conv=100, gap_deg=6, gap_short=2, g_l5_gap=0.02,
-                 het=0.05, delay_jitter=0.0):
+                 het=0.05, delay_jitter=0.0, state=None):
         self.pc = h.ParallelContext()
         self.rank = int(self.pc.id())
         self.nhost = int(self.pc.nhost())
@@ -119,6 +121,11 @@ class ParallelCorticoThalamicNet:
         # note) exists to avoid, and the property just verified on MN5
         # (identical spike counts at 2/4/100 ranks).
         self.het, self.delay_jitter = het, delay_jitter
+        # state: None keeps the legacy single pas leak. "nrem"/"wake" split
+        # every leak into pas + kleak (brain_state.py); "nrem" is the legacy
+        # model up to rounding (aud_checks.py --only leak), "wake" closes the
+        # K+ leak (PLAN-auditory-input.md D4; uncalibrated until Stage B).
+        self.state = state
 
         # -- gid ranges (contiguous blocks) ----------------------------------
         self.ranges = {}
@@ -143,6 +150,8 @@ class ParallelCorticoThalamicNet:
                 gids = list(range(plo + self.rank, phi, self.nhost))
             for gid in gids:
                 c = self._make_cell(pop, gid)
+                if self.state:
+                    BS.apply_state(c, pop, self.state)
                 self._register(gid, c)
 
         # -- synapses + fixed-convergence wiring -----------------------------
@@ -812,6 +821,16 @@ def main():
                          "try e.g. \"8,15,25,40,60,100\".")
     ap.add_argument("--tau2-re-tc", type=float, default=8.0,
                     help="RE->TC GABA_A decay (ms). See --sweep-tau2-re-tc.")
+    ap.add_argument("--state", choices=["nrem", "wake"], default=None,
+                    help="brain state (PLAN-auditory-input.md D4). Unset keeps "
+                         "the legacy single pas leak; 'nrem' splits it into "
+                         "pas + K+ leak with identical dynamics; 'wake' closes "
+                         "the K+ leak (placeholder until Stage B calibrates it).")
+    ap.add_argument("--stim", default="",
+                    help="auditory stimulus spec (JSON, see neuron/stim/ and "
+                         "auditory_input.py): IC -> TC driver input. The "
+                         "schedule and every IC fibre's spikes are saved in "
+                         "the --out .npz.")
     ap.add_argument("--gh-tc", type=float, default=0.0,
                     help="TC's Ca2+-dependent I_h (ihca.mod) conductance. "
                          "Declared but never actually wired to TCCell until "
@@ -1070,7 +1089,8 @@ def main():
                                       tau2_re_tc=a.tau2_re_tc,
                                       g_l5_rec=a.g_l5_rec, tau2_l5_rec=a.tau2_l5_rec,
                                       l5_rec_mech=a.l5_rec_mech, mg_l5_rec=a.mg_l5_rec,
-                                      taur_l5e_rs=a.taur_l5e_rs)
+                                      taur_l5e_rs=a.taur_l5e_rs, state=a.state)
+    aud = AI.AuditoryInput(net, a.stim, a.tstop) if a.stim else None
     wall = net.run(tstop=a.tstop)
     t, g = net.gather()
     if net.rank == 0:
@@ -1094,9 +1114,11 @@ def main():
                   % (s2["frac_burst"], s2["mean_burst_size"], s2["event_hz"]))
         if a.out:
             os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
+            extra = aud.log() if aud else {}
             np.savez_compressed(a.out.replace(".h5", ".npz"),
                                  times=t, gids=g, sizes=net.sizes,
-                                 ranges=net.ranges, tstop=a.tstop, wall=wall)
+                                 ranges=net.ranges, tstop=a.tstop, wall=wall,
+                                 state=a.state or "legacy", **extra)
     net.teardown()
     pc = h.ParallelContext()
     pc.barrier()
