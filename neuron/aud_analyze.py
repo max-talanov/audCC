@@ -213,6 +213,187 @@ def figure(d, sham, onsets, out_png):
     plt.close(fig)
 
 
+LFP_ROWS = [("l23e", "L2/3"), ("l4e", "L4"), ("l5e", "L5"), ("l6e", "L6"),
+            ("tc", "TC"), ("re", "RE")]
+LFP_SIGN = {"l5e": -1.0, "l6e": -1.0, "re": -1.0}   # as ctx_analyze._composite_lfp
+
+
+def _lfp_pair(d, sham, fs=1000.0):
+    """Per-population LFP proxy (ctx_analyze._synaptic_lfp, same sign
+    convention as _composite_lfp) for the tone run and the sham run, both
+    z-scored with the SHAM's mean and SD so their amplitudes are comparable.
+    Returns (bins, {pop: tone trace}, {pop: sham trace}); the "ctx" entry is
+    the composite cortical LFP (mean of the four layers)."""
+    tstop = float(d["tstop"])
+    out_t, out_s = {}, {}
+    bins = None
+    for pop, _ in LFP_ROWS:
+        tt, _, _, _ = _sel(d, pop)
+        lt, bins = A._synaptic_lfp(tt, tstop, fs=fs)
+        if sham is not None:
+            ts, _, _, _ = _sel(sham, pop)
+            ls, _ = A._synaptic_lfp(ts, tstop, fs=fs)
+        else:
+            ls = lt
+        ref = ls[bins >= SKIP_MS]
+        mu, sd = ref.mean(), ref.std() + 1e-9
+        sign = LFP_SIGN.get(pop, 1.0)
+        out_t[pop] = sign * (lt - mu) / sd
+        out_s[pop] = sign * (ls - mu) / sd
+    for dct in (out_t, out_s):
+        dct["ctx"] = np.mean([dct[p] for p in CX_E], axis=0)
+    return bins, out_t, out_s
+
+
+def lfp_figure(d, sham, onsets, out_png, window=None, pre=300.0, post=1000.0):
+    """(a) composite cortical + thalamic LFP proxy over a window of several
+    tones, tone run vs sham; (b) tone-triggered average LFP per layer, tone
+    vs sham, mean +/- SEM over tones; (c) tone-triggered average of the
+    0.5-2 Hz slow-oscillation band of the composite LFP."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    fs = 1000.0
+    bins, lt, ls = _lfp_pair(d, sham, fs)
+    tstop = float(d["tstop"])
+    if window is None:
+        t0 = onsets[min(3, len(onsets) - 1)] - 1500.0
+        window = (max(SKIP_MS, t0), min(tstop, t0 + 12000.0))
+    w = (bins >= window[0]) & (bins < window[1])
+    tsec = bins[w] / 1000.0
+
+    fig = plt.figure(figsize=(13, 13))
+    gs = fig.add_gridspec(3, 1, height_ratios=[1.2, 1.6, 0.8], hspace=0.35,
+                          top=0.95)
+
+    ax = fig.add_subplot(gs[0])
+    for key, lab, off, col in [("ctx", "cortex (L2/3-L6)", 0.0, "0.2"),
+                               ("tc", "TC", -5.0, A.BLUE), ("re", "RE", -10.0, A.RED)]:
+        if sham is not None:
+            ax.plot(tsec, ls[key][w] + off, color=A.GREY, lw=0.7, alpha=0.8)
+        ax.plot(tsec, lt[key][w] + off, color=col, lw=0.9)
+        ax.text(tsec[0] - 0.1, off, lab, ha="right", va="center", fontsize=8)
+    for t0 in onsets[(onsets >= window[0]) & (onsets < window[1])]:
+        ax.axvline(t0 / 1000.0, color=A.BLUE, lw=1.0, alpha=0.35)
+    ax.set_yticks([])
+    ax.set_xlabel("time (s)")
+    ax.set_title("(a) LFP proxy, %.1f-%.1f s: tone run (colour) vs sham (grey); "
+                 "vertical lines = tone onsets" % (window[0] / 1000, window[1] / 1000),
+                 fontsize=10, loc="left")
+
+    lags = np.arange(-pre, post, 1000.0 / fs)
+    idx0 = [int(round(t0 * fs / 1000.0)) for t0 in onsets]
+    ok = [i for i in idx0 if i - pre >= 0 and i + post < len(bins)]
+
+    def epochs(x):
+        return np.array([x[i - int(pre):i + int(post)] for i in ok])
+
+    sub = gs[1].subgridspec(2, 3, hspace=0.45, wspace=0.25)
+    for k, (pop, lab) in enumerate(LFP_ROWS):
+        ax = fig.add_subplot(sub[k // 3, k % 3])
+        for tr, col, name in [(ls, A.GREY, "sham"), (lt, A.RED, "tones")]:
+            if tr is ls and sham is None:
+                continue
+            E = epochs(tr[pop])
+            m, se = E.mean(0), E.std(0) / np.sqrt(len(E))
+            ax.fill_between(lags, m - se, m + se, color=col, alpha=0.25, lw=0)
+            ax.plot(lags, m, color=col, lw=1.1, label=name)
+        ax.axvspan(0, 50, color=A.BLUE, alpha=0.12)
+        ax.axhline(0, color="k", lw=0.4)
+        ax.set_title(lab, fontsize=9, loc="left")
+        ax.tick_params(labelsize=7)
+        if k % 3 == 0:
+            ax.set_ylabel("z (sham SD)", fontsize=8)
+        if k >= 3:
+            ax.set_xlabel("time from tone onset (ms)", fontsize=8)
+        if k == 0:
+            ax.legend(fontsize=7, frameon=False)
+    fig.axes[1].text(0.0, 1.28, "(b) Tone-triggered average LFP proxy per population, "
+                     "mean ± SEM over %d tones (blue = tone)" % len(ok),
+                     transform=fig.axes[1].transAxes, fontsize=10)
+
+    ax = fig.add_subplot(gs[2])
+    for tr, col, name in [(ls, A.GREY, "sham"), (lt, "#8e44ad", "tones")]:
+        if tr is ls and sham is None:
+            continue
+        so = A._bandpass(tr["ctx"], fs, 0.5, 2.0)
+        E = epochs(so)
+        m, se = E.mean(0), E.std(0) / np.sqrt(len(E))
+        ax.fill_between(lags, m - se, m + se, color=col, alpha=0.25, lw=0)
+        ax.plot(lags, m, color=col, lw=1.2, label=name)
+    ax.axvspan(0, 50, color=A.BLUE, alpha=0.12)
+    ax.axhline(0, color="k", lw=0.4)
+    ax.set_xlabel("time from tone onset (ms)")
+    ax.set_ylabel("z")
+    ax.legend(fontsize=8, frameon=False)
+    ax.set_title("(c) Tone-triggered 0.5-2 Hz (slow-oscillation) band of the cortical "
+                 "LFP proxy -- an evoked slow wave would show here", fontsize=10, loc="left")
+
+    fig.suptitle("Tone-evoked LFP proxy (state=%s, %d tones of %s dB, 50 ms). LFP proxy "
+                 "= spikes x PSP kernel (rise 2 ms, decay 100 ms), not a volume-conductor LFP"
+                 % (str(d.get("state", "?")), len(onsets),
+                    "/".join("%g" % x for x in np.unique(d["stim_level"]))),
+                 fontsize=10, y=0.985)
+    fig.savefig(out_png, dpi=130, bbox_inches="tight")
+    plt.close(fig)
+
+
+def reconstruction_figure(d, sham, onsets, out_png, window=(20000.0, 30000.0)):
+    """ctx_analyze's literature-style format (Fernandez & Luthi 2020 Fig. 1A
+    style): SO-band + 10-15 Hz band of the composite cortical LFP proxy, the
+    10-15 Hz band below it, detected 10-15 Hz events shaded grey
+    (ctx_analyze._detect_spindles). One pair of panels for the tone run and
+    one for the sham, on identical y-scales, with tone onsets in blue."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    fs = 1000.0
+    cases = [("NREM + tones (60 dB, 50 ms)", d, "#b03a2e")]
+    if sham is not None:
+        cases.append(("NREM, no tones (sham)", sham, "0.35"))
+    comp = []
+    for label, npz, color in cases:
+        _, composite, _, bins, _ = A._composite_lfp(npz, fs=fs)
+        so = A._bandpass(composite, fs, 0.5, 2.0)
+        spin = A._bandpass(composite, fs, 10.0, 15.0)
+        starts, ends = A._detect_spindles(spin, bins)
+        comp.append((label, color, bins, so + spin, spin, starts, ends))
+    w0 = lambda b: (b >= window[0]) & (b < window[1])
+    raw_max = max(np.abs(c[3][w0(c[2])]).max() for c in comp)
+    spin_max = max(np.abs(c[4][w0(c[2])]).max() for c in comp)
+    fig, axes = plt.subplots(2 * len(comp), 1, figsize=(14, 2.3 * 2 * len(comp) + 0.6),
+                             sharex=True)
+    tone_s = onsets[(onsets >= window[0]) & (onsets < window[1])] / 1000.0
+    for i, (label, color, bins, rec, spin, starts, ends) in enumerate(comp):
+        w = w0(bins)
+        tsec = bins[w] / 1000.0
+        ax_raw, ax_spin = axes[2 * i], axes[2 * i + 1]
+        ax_raw.plot(tsec, rec[w], color=color, lw=0.8)
+        ax_raw.set_ylim(-raw_max * 1.1, raw_max * 1.1)
+        ax_raw.set_ylabel("raw\n(SO+spindle)", fontsize=8)
+        ax_raw.set_title(label, fontsize=10, loc="left", fontweight="bold")
+        ax_spin.plot(tsec, spin[w], color=color, lw=0.8)
+        ax_spin.set_ylim(-spin_max * 1.1, spin_max * 1.1)
+        ax_spin.set_ylabel("10-15 Hz", fontsize=8)
+        for s_, e_ in zip(starts, ends):
+            a, b = bins[s_] / 1000.0, bins[e_] / 1000.0
+            if b < window[0] / 1000.0 or a > window[1] / 1000.0:
+                continue
+            for ax in (ax_raw, ax_spin):
+                ax.axvspan(a, b, color="0.5", alpha=0.18, lw=0)
+        for ax in (ax_raw, ax_spin):
+            for t in tone_s:
+                ax.axvline(t, color=A.BLUE, lw=1.2, alpha=0.8, ls="--" if i else "-")
+    axes[-1].set_xlabel("time (s)")
+    axes[-1].set_xlim(window[0] / 1000.0, window[1] / 1000.0)
+    fig.suptitle("Cortical LFP proxy, SO band (0.5-2 Hz) + spindle band (10-15 Hz); "
+                 "grey = detected 10-15 Hz events, blue = tone onsets "
+                 "(dashed in the sham: the same times, no tone)", fontsize=10)
+    fig.tight_layout(rect=[0, 0, 1, 0.97])
+    fig.savefig(out_png, dpi=140)
+    plt.close(fig)
+
+
 def compare(a_path, b_path):
     a, b = load(a_path), load(b_path)
     print("%-6s %10s %10s %8s" % ("pop", Path(a_path).stem, Path(b_path).stem, "diff %"))
@@ -244,6 +425,9 @@ def main():
     ap.add_argument("--sham", default="")
     ap.add_argument("--outdir", default="out")
     ap.add_argument("--compare", nargs=2, metavar=("A", "B"))
+    ap.add_argument("--recon-windows", type=float, nargs="*", default=[20000.0],
+                    help="start times (ms) of 10 s windows for the "
+                         "literature-style SO+spindle reconstruction figure")
     a = ap.parse_args()
     if a.compare:
         compare(*a.compare)
@@ -277,6 +461,14 @@ def main():
         png = os.path.join(a.outdir, "%s_psth.png" % tag)
         figure(d, sham, onsets, png)
         print("figure:", png)
+        png = os.path.join(a.outdir, "%s_lfp.png" % tag)
+        lfp_figure(d, sham, onsets, png)
+        print("figure:", png)
+        for w0 in a.recon_windows:
+            png = os.path.join(a.outdir, "%s_reconstructed_%d-%ds.png"
+                               % (tag, w0 / 1000, (w0 + 10000) / 1000))
+            reconstruction_figure(d, sham, onsets, png, window=(w0, w0 + 10000.0))
+            print("figure:", png)
     sm = state_metrics(d)
     print("state: TC %.2f Hz/cell, TC burst fraction %.2f | cortex ISI CV %.2f, "
           "pair corr %.3f, silence>=100ms %.2f, SO-band power frac %.2f"
