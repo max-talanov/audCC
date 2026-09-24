@@ -331,3 +331,110 @@ Labels can't contain `,` or `=`, because `--compare` splits on them.
 - **Calculate the extracellular potential directly** with NEURON's
   `extracellular` mechanism or LFPy. Both need cell morphology, which the
   current point-like cells mostly lack.
+
+## 4) Can we calculate the EEG from the LFP? If yes, how?
+
+Not from the LFP trace we have now. But yes from the same simulation, by
+computing a different quantity.
+
+### Why the current LFP trace can't be converted
+
+An LFP and an EEG are two measurements of the same thing: currents crossing
+neuron membranes. They measure it in different ways.
+
+- **An LFP** is the voltage at one point inside the tissue, dominated by nearby
+  cells.
+- **An EEG** is the voltage on the scalp. At that distance, the tissue's
+  currents only matter through their net **current dipole moment**: roughly,
+  how much current flows along the pyramidal cells' long axis. The scalp signal
+  is that dipole seen through the brain, cerebrospinal fluid, skull and skin.
+
+The standard chain is therefore:
+
+> membrane currents → current dipole moment **p(t)** → head model (volume
+> conductor) → scalp voltage
+
+This uses the dipole, not the LFP. Our current LFP proxy (question 3) doesn't
+contain the dipole: it's built from spike times with one standard kernel and a
+sign convention we chose, not from real currents.
+
+One useful consequence: the head model is quasi-static, meaning it has no
+delays or frequency filtering. For one cortical patch with a fixed
+orientation, the scalp signal is just the dipole's time course multiplied by a
+constant. So **the EEG waveform is the dipole waveform**. The head model only
+sets the amplitude in µV and how the signal spreads across electrodes.
+
+### How to do it in this project (best option first)
+
+**A. Compute the dipole directly in NEURON (most accurate, and practical
+here).** Our pyramidal cells (`PYCell` in `neuron/cortex_neuron.py`) have a
+25 µm soma plus a 300 µm dendrite split into 5 segments, and synapses sit at
+the middle of the dendrite. That is enough geometry to compute a dipole:
+
+1. Turn on NEURON's fast membrane-current output (`cvode.use_fast_imem(1)`).
+2. For each cell, compute `p_z(t) = Σ_seg i_membrane(seg) · z(seg)`, with z
+   measured along the soma–dendrite axis. Assume all pyramidal dendrites are
+   parallel and point towards the brain surface.
+3. Sum over the cells on each MPI rank, add up the ranks, and save at 1 kHz
+   next to the spikes.
+4. Which cells to include:
+   - Include L2/3E, L5E and L6E.
+   - Leave out L4E, which in reality is mostly stellate cells whose currents
+     cancel out.
+   - FS interneurons have no dendrite, so they contribute nothing anyway.
+   - Leave out the thalamus: it is deep and its geometry cancels out, so it
+     isn't visible in EEG.
+
+This needs code changes in `neuron/ctx_thalamus_mpi.py` and new MN5 runs.
+
+**B. Current-based EEG proxy.** Martínez-Cañada et al. (2021, *PLoS Comput
+Biol*) built an EEG proxy for simple point-neuron networks. It is a weighted
+sum of the AMPA and GABA currents onto pyramidal cells, and was validated
+against full biophysical models. It needs synaptic currents to be recorded, so
+it also needs new runs. It's simpler than A but less faithful to our actual
+geometry.
+
+**C. From spikes only, using the existing `.npz` files.** The kernel method of
+Hagen et al. (2022, *PLoS Comput Biol*) convolves each population's firing rate
+with a kernel for each projection, to predict the dipole. Our current proxy is
+a crude version of this, with one kernel for everything. Using per-projection
+kernels with the right synapse time constants and signs would already help.
+This is the least accurate option, but it needs no new simulations.
+
+**Then the head model**, only needed for µV values or electrode maps: LFPy has
+a four-sphere head model (Næss et al. 2017) and the realistic New York Head
+model (Huang et al. 2016). Hagen et al. (2018) describe using them in LFPy 2.0.
+
+### Caveats
+
+- **Amplitude.** 5031 cells is a tiny patch. A scalp EEG needs several cm² of
+  cortex active together, which is millions of neurons. Absolute µV values
+  therefore depend on assuming how many columns act together. The total scales
+  roughly with the number of columns if they are perfectly in sync, or with its
+  square root if they are independent. The waveform, spectrum and
+  spindle/slow-oscillation timing are what can be compared with real data, not
+  the amplitude.
+- **Geometry is simplified.** Every synapse sits at the same point on a single
+  straight dendrite. So the dipole's sign mostly reflects excitation versus
+  inhibition at that spot. Real L5 cells, for example, also get input on their
+  apical tuft.
+- **The benefit.** With an EEG-like signal, we could apply standard sleep-EEG
+  spindle detectors and compare with published values: spindle density per
+  minute at central electrodes, and how spindles line up with slow
+  oscillations. That's a better target than the LFP-proxy comparisons so far.
+
+### References
+
+- Hagen E, Næss S, Ness TV, Einevoll GT (2018). Multimodal modeling of neural
+  network activity: computing LFP, ECoG, EEG, and MEG signals with LFPy 2.0.
+  *Front Neuroinform*.
+- Hagen E et al. (2022). Brain signal predictions from multi-scale networks
+  using a linearized framework. *PLoS Comput Biol*.
+- Huang Y, Parra LC, Haufe S (2016). The New York Head — a precise
+  standardized volume conductor model for EEG source localization and tES
+  targeting. *NeuroImage*.
+- Martínez-Cañada P, Ness TV, Einevoll GT, Fellin T, Panzeri S (2021).
+  Computation of the electroencephalogram (EEG) from network models of point
+  neurons. *PLoS Comput Biol*.
+- Næss S et al. (2017). Corrected four-sphere head model for EEG signals.
+  *Front Hum Neurosci*.
