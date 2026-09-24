@@ -267,31 +267,38 @@ def _synaptic_lfp(times, tstop, fs=1000.0, tau_rise=2.0, tau_decay=100.0, kernel
     return lfp, bins[:-1]
 
 
+LAM_LAYERS = ["l23e", "l4e", "l5e", "l6e"]
+LAM_LABELS = ["L2/3", "L4", "L5", "L6"]
+LAM_COLORS = ["#1b4965", "#2471a3", "#5fa8d3", "#7f8c8d"]
+
+
+def _composite_lfp(npz, fs=1000.0):
+    """Shared per-layer + composite/thalamic LFP-proxy computation, used by
+    every figure below. sign convention: excitatory synaptic current ->
+    deflection; deep layers (L5/L6/RE) flipped to mimic the classic
+    surface-negative/deep-positive dipole seen in real laminar LFP during
+    synchronized volleys. Returns (lfps dict, composite, thal, bins, tstop)."""
+    t, g, ranges, tstop = npz["times"], npz["gids"], npz["ranges"].item(), float(npz["tstop"])
+    lfps = {}
+    bins = None
+    for name in LAM_LAYERS + ["tc", "re"]:
+        lo, hi = ranges[name]
+        m = (g >= lo) & (g < hi)
+        lfp, bins = _synaptic_lfp(t[m], tstop, fs=fs)
+        sign = -1.0 if name in ("l5e", "l6e", "re") else 1.0
+        lfps[name] = sign * (lfp - lfp.mean()) / (lfp.std() + 1e-9)
+    composite = np.mean([lfps[k] for k in LAM_LAYERS], axis=0)
+    thal = np.mean([lfps["tc"], lfps["re"]], axis=0)
+    return lfps, composite, thal, bins, tstop
+
+
 def make_lfp_figure(npz, out_png, window=(20000, 30000), epoch_ms=2000.0):
     """LFP-style figure for direct comparison to spindle-review figures
     (e.g. Fernandez & Luthi 2020): stacked laminar traces, a single-epoch
     zoom, and a composite-LFP raw/spindle-band/spectrogram panel."""
-    t, g, ranges, tstop = npz["times"], npz["gids"], npz["ranges"].item(), float(npz["tstop"])
     fs = 1000.0
-
-    # Laminar order, superficial to deep, cortex only (thalamus shown separately)
-    lam_layers = ["l23e", "l4e", "l5e", "l6e"]
-    lam_labels = ["L2/3", "L4", "L5", "L6"]
-    lam_colors = ["#1b4965", "#2471a3", "#5fa8d3", "#7f8c8d"]
-
-    lfps = {}
-    for name in lam_layers + ["tc", "re"]:
-        lo, hi = ranges[name]
-        m = (g >= lo) & (g < hi)
-        lfp, bins = _synaptic_lfp(t[m], tstop, fs=fs)
-        # sign convention: excitatory synaptic current -> deflection; deep
-        # layers flipped to mimic the classic surface-negative/deep-positive
-        # dipole seen in real laminar LFP during synchronized volleys
-        sign = -1.0 if name in ("l5e", "l6e", "re") else 1.0
-        lfps[name] = sign * (lfp - lfp.mean()) / (lfp.std() + 1e-9)
-
-    composite = np.mean([lfps[k] for k in lam_layers], axis=0)
-    thal = np.mean([lfps["tc"], lfps["re"]], axis=0)
+    lam_layers, lam_labels, lam_colors = LAM_LAYERS, LAM_LABELS, LAM_COLORS
+    lfps, composite, thal, bins, tstop = _composite_lfp(npz, fs=fs)
 
     fig = plt.figure(figsize=(13, 12))
     gs = fig.add_gridspec(3, 1, height_ratios=[1.3, 1, 1.2], hspace=0.5)
@@ -348,10 +355,148 @@ def make_lfp_figure(npz, out_png, window=(20000, 30000), epoch_ms=2000.0):
     print(f"Saved LFP figure to {out_png}")
 
 
+def make_literature_reconstruction_figure(npz, out_png, window=(20000, 40000),
+                                           label=None, so_band=(0.5, 2.0),
+                                           spindle_band=(10.0, 15.0)):
+    """Reconstructs a literature-style raw trace as SO-band + spindle-band
+    (not the full synaptic-kernel composite), stacked with the pure
+    spindle band below and detected-spindle shading -- matching the format
+    of published multi-species spindle figures (e.g. Fernandez & Luthi
+    2020 Fig. 1A: raw trace + 10-15 Hz filtered trace, spindles shaded).
+
+    This is deliberately NOT the same signal as make_lfp_figure's
+    "composite LFP (raw)" -- that one is dominated by fast synaptic
+    transients and reads as a sharp spike-and-flatline; summing just the
+    two bands that are actually diagnostic (slow oscillation + spindle)
+    gives a trace whose texture is directly comparable to a real LFP
+    recording. Spindle events are detected as spindle-band Hilbert-
+    envelope crossings above mean + 1.5*sd (same threshold used for
+    _literature_score in ctx_thalamus_mpi.py -- keep the two in sync)."""
+    fs = 1000.0
+    _, composite, _, bins, _ = _composite_lfp(npz, fs=fs)
+    so = _bandpass(composite, fs, *so_band)
+    spin = _bandpass(composite, fs, *spindle_band)
+    reconstructed = so + spin
+    env = np.abs(hilbert(spin))
+    thresh = env.mean() + 1.5 * env.std()
+    is_spindle = env > thresh
+    edges = np.diff(is_spindle.astype(int), prepend=0, append=0)
+    starts, ends = np.where(edges == 1)[0], np.where(edges == -1)[0]
+
+    w = (bins >= window[0]) & (bins < window[1])
+    tsec = bins[w] / 1000.0
+
+    fig, axes = plt.subplots(2, 1, figsize=(14, 4.6), sharex=True)
+    axes[0].plot(tsec, reconstructed[w], color="#b03a2e", lw=0.8)
+    axes[0].set_ylabel(f"raw\n(SO+spindle)", fontsize=8)
+    if label:
+        axes[0].set_title(label, fontsize=10, loc="left", fontweight="bold")
+    axes[1].plot(tsec, spin[w], color="#b03a2e", lw=0.8, alpha=0.85)
+    axes[1].set_ylabel(f"{spindle_band[0]:.0f}-{spindle_band[1]:.0f} Hz", fontsize=8)
+    for s, e in zip(starts, ends):
+        ts_, te_ = bins[s] / 1000.0, bins[e] / 1000.0
+        if te_ < window[0] / 1000.0 or ts_ > window[1] / 1000.0:
+            continue
+        for ax in axes:
+            ax.axvspan(ts_, te_, color="0.5", alpha=0.18, lw=0)
+    axes[-1].set_xlabel("time (s)")
+    fig.tight_layout()
+    fig.savefig(out_png, dpi=140)
+    plt.close(fig)
+    print(f"Saved literature-style reconstruction to {out_png}")
+
+
+def make_comparison_figure(cases, out_png, window=(2000, 12000), mode="reconstruction"):
+    """Overlay multiple runs on IDENTICAL y-scales for direct comparison --
+    either the literature-style SO+spindle reconstruction (mode=
+    "reconstruction", stacked one pair of panels per case, like
+    make_literature_reconstruction_figure but multi-case) or the raw/
+    SO-band/spindle-band triple used in make_lfp_figure's panel (c)
+    (mode="panel_c", all cases overlaid on 3 shared panels instead of
+    stacked). `cases` is a list of (label, npz, color) tuples."""
+    fs = 1000.0
+    computed = {}
+    for label, npz, color in cases:
+        _, composite, _, bins, _ = _composite_lfp(npz, fs=fs)
+        so = _bandpass(composite, fs, 0.5, 2.0)
+        spin = _bandpass(composite, fs, 10.0 if mode == "reconstruction" else 8.0, 15.0)
+        d = dict(bins=bins, composite=composite, so=so, spin=spin, color=color)
+        if mode == "reconstruction":
+            d["reconstructed"] = so + spin
+            env = np.abs(hilbert(spin))
+            thresh = env.mean() + 1.5 * env.std()
+            is_spindle = env > thresh
+            edges = np.diff(is_spindle.astype(int), prepend=0, append=0)
+            d["starts"], d["ends"] = np.where(edges == 1)[0], np.where(edges == -1)[0]
+        computed[label] = d
+
+    def _w(b):
+        return (b >= window[0]) & (b < window[1])
+
+    if mode == "reconstruction":
+        raw_max = max(np.max(np.abs(computed[l]["reconstructed"][_w(computed[l]["bins"])]))
+                      for l, _, _ in cases)
+        spin_max = max(np.max(np.abs(computed[l]["spin"][_w(computed[l]["bins"])]))
+                       for l, _, _ in cases)
+        fig, axes = plt.subplots(len(cases) * 2, 1, figsize=(14, 2.3 * len(cases) * 2), sharex=True)
+        for i, (label, _, color) in enumerate(cases):
+            d = computed[label]
+            w = _w(d["bins"]); tsec = d["bins"][w] / 1000.0
+            ax_raw, ax_spin = axes[2 * i], axes[2 * i + 1]
+            ax_raw.plot(tsec, d["reconstructed"][w], color=color, lw=0.8)
+            ax_raw.set_ylim(-raw_max * 1.1, raw_max * 1.1)
+            ax_raw.set_ylabel("raw\n(SO+spindle)", fontsize=8)
+            ax_raw.set_title(label, fontsize=10, loc="left", fontweight="bold")
+            ax_spin.plot(tsec, d["spin"][w], color=color, lw=0.8, alpha=0.85)
+            ax_spin.set_ylim(-spin_max * 1.1, spin_max * 1.1)
+            ax_spin.set_ylabel("10-15 Hz", fontsize=8)
+            for s, e in zip(d["starts"], d["ends"]):
+                ts_, te_ = d["bins"][s] / 1000.0, d["bins"][e] / 1000.0
+                if te_ < window[0] / 1000.0 or ts_ > window[1] / 1000.0:
+                    continue
+                for ax in (ax_raw, ax_spin):
+                    ax.axvspan(ts_, te_, color="0.5", alpha=0.18, lw=0)
+        axes[-1].set_xlabel("time (s)")
+        fig.suptitle("Reconstructed (SO-band + spindle-band) LFP, literature-style stacked format\n"
+                     "(identical y-scales across cases; shaded = detected spindle events)",
+                     fontsize=12, y=0.995)
+        fig.tight_layout(rect=[0, 0, 1, 0.94])
+    else:
+        def common_ylim(key, pad=1.15):
+            vals = [computed[l][key][_w(computed[l]["bins"])] for l, _, _ in cases]
+            m = np.max(np.abs(np.concatenate(vals)))
+            return (-m * pad, m * pad)
+        fig, axes = plt.subplots(3, 1, figsize=(13, 10), sharex=True)
+        titles = ["Composite cortical LFP (raw), same y-scale across all cases",
+                  "0.5-2 Hz slow-oscillation band, same y-scale",
+                  "8-15 Hz spindle band, same y-scale"]
+        keys = ["composite", "so", "spin"]
+        for ax, key, title in zip(axes, keys, titles):
+            ax.set_ylim(common_ylim(key))
+            ax.set_title(title, fontsize=10, loc="left")
+            ax.set_ylabel("a.u.")
+        for label, _, color in cases:
+            d = computed[label]
+            w = _w(d["bins"]); tsec = d["bins"][w] / 1000.0
+            for ax, key in zip(axes, keys):
+                ax.plot(tsec, d[key][w], color=color, lw=0.8, label=label, alpha=0.85)
+        axes[0].legend(fontsize=8, loc="upper right", framealpha=0.9)
+        axes[-1].set_xlabel("time (s)")
+        fig.suptitle("Panel-(c) comparison across configurations (identical y-scales)",
+                     fontsize=13, y=0.995)
+        fig.tight_layout(rect=[0, 0, 1, 0.97])
+
+    fig.savefig(out_png, dpi=140)
+    plt.close(fig)
+    print(f"Saved comparison figure to {out_png}")
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("npz", type=str, help="path to a ctx_thalamus_mpi.py --out .npz")
+    ap.add_argument("npz", type=str, nargs="?", default=None,
+                     help="path to a ctx_thalamus_mpi.py --out .npz "
+                          "(omit when using --compare)")
     ap.add_argument("--outdir", type=str, default="out")
     ap.add_argument("--tag", type=str, default=None,
                      help="output filename prefix (default: derived from the npz filename)")
@@ -359,16 +504,52 @@ def main(argv=None):
                      help="zoomed-window start (ms), default 20000")
     ap.add_argument("--window-len", type=float, default=10000.0,
                      help="zoomed-window length (ms), default 10000")
+    ap.add_argument("--no-reconstruction", action="store_true",
+                     help="skip the literature-style SO+spindle reconstruction "
+                          "figure (on by default alongside meanfield/spindles/lfp)")
+    ap.add_argument("--compare", default="",
+                     help="instead of the single-npz figures above, overlay "
+                          "several runs on identical y-scales. Comma-separated "
+                          "label=path pairs, e.g. "
+                          "\"old=out/a.npz,new=out/b.npz\". Colors are assigned "
+                          "automatically. See --compare-mode.")
+    ap.add_argument("--compare-mode", choices=["reconstruction", "panel_c"],
+                     default="reconstruction",
+                     help="--compare output style: \"reconstruction\" (stacked "
+                          "SO+spindle raw + pure spindle band per case, "
+                          "shaded spindle events -- the literature-comparison "
+                          "format) or \"panel_c\" (raw/SO-band/spindle-band "
+                          "all overlaid on 3 shared panels, make_lfp_figure's "
+                          "panel c style). Default reconstruction.")
     args = ap.parse_args(argv)
 
-    npz = np.load(args.npz, allow_pickle=True)
+    if not args.compare and not args.npz:
+        ap.error("npz is required unless --compare is given")
+
     outdir = Path(args.outdir); outdir.mkdir(parents=True, exist_ok=True)
+
+    if args.compare:
+        palette = ["#1e8449", "#b03a2e", "#7d3c98", "#2471a3", "#e67e22", "#17a589"]
+        cases = []
+        for i, pair in enumerate(args.compare.split(",")):
+            label, path = pair.split("=", 1)
+            cases.append((label, np.load(path, allow_pickle=True), palette[i % len(palette)]))
+        window = (args.window_start, args.window_start + args.window_len)
+        tag = args.tag or "compare"
+        make_comparison_figure(cases, outdir / f"{tag}_comparison.png",
+                                window=window, mode=args.compare_mode)
+        return 0
+
+    npz = np.load(args.npz, allow_pickle=True)
     tag = args.tag or Path(args.npz).stem
     window = (args.window_start, args.window_start + args.window_len)
 
     make_meanfield_figure(npz, outdir / f"{tag}_meanfield.png", window=window)
     s = make_spindle_figure(npz, outdir / f"{tag}_spindles.png", window=window)
     make_lfp_figure(npz, outdir / f"{tag}_lfp.png", window=window)
+    if not args.no_reconstruction:
+        make_literature_reconstruction_figure(
+            npz, outdir / f"{tag}_reconstructed_literature_style.png", window=window)
 
     print(f"RE burst shape: frac_burst={s['frac_burst']:.3f} "
           f"mean_burst_size={s['mean_burst_size']:.2f} n_events={s['n_events']} "
