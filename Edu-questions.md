@@ -49,6 +49,10 @@ same definition is used for scoring in `_literature_score` in
   are really "spindle-band amplitude peaks", not spindles in the strict EEG
   sense. That matters if `n_spindle_events` or `spindle_cv` are compared
   directly to published numbers.
+- **Most shaded events are filter ripple from one thalamic volley, not a
+  spindle.** On the MN5 runs, a 10–15 Hz band-pass of a single sharp volley
+  already produces about 200 ms (about 3 cycles) of 12 Hz ripple, and the model's
+  spindle-band envelope matches that of a pure impulse. See question 5.
 
 ### Possible follow-ups
 
@@ -438,3 +442,86 @@ model (Huang et al. 2016). Hagen et al. (2018) describe using them in LFPy 2.0.
   neurons. *PLoS Comput Biol*.
 - Næss S et al. (2017). Corrected four-sphere head model for EEG signals.
   *Front Hum Neurosci*.
+
+## 5) Does the simulation produce continuous oscillations or distinct events?
+
+**Distinct events, but they are not spindles.** Both full-scale MN5 runs
+(5031 cells, 200 s) produce a train of single, separate thalamic volleys. In
+each volley nearly every TC and RE cell bursts at once. The main peak is only
+a few ms wide, and the whole volley is over within a few tens of ms. The
+volleys are separated by 600–700 ms of near-silence. Nothing in the thalamus
+oscillates at spindle frequency (10–15 Hz): no volley is ever followed by
+another within 200 ms. At most there is a weak second bump about 90 ms later.
+
+![Population firing rates, MN5: before L5 tuning vs Option 2](out/mn5_population_rates_before_vs_option2.png)
+
+Full 200 s of each run (first second excluded):
+
+| | Before L5 tuning (45171023) | Option 2 (45453403) |
+|---|---:|---:|
+| Thalamic volleys | 279 (1.40/s) | 378 (1.90/s) |
+| Interval between volleys | 712 ms, CV 0.00 | 591 ms (5–95%: 258–649), CV 0.28 |
+| Volleys following another within 200 ms (spindle-like trains) | 0% | 0% |
+| Strongest activity 50–250 ms after a volley | 9% of the volley peak | 9% of the volley peak |
+| Time the thalamus is active (> 20 Hz per cell) | 5% | 7% |
+| Cortex between volleys | silent | low-level ~19 Hz activity |
+
+### Why the figures look like spindles
+
+It comes from the filter, not from the network. A 10–15 Hz band-pass filter
+turns any single sharp spike into about 200 ms of 12 Hz ripple, roughly 3
+cycles. The test: average the width of the spindle-band amplitude around the
+volleys, and compare it with a train of pure impulses placed at the same
+times, run through the same filter.
+
+- Before L5 tuning: 225 ms for the model vs 210 ms for pure impulses.
+- Option 2: 690 ms vs 705 ms. These are wider because volleys are closer
+  together, so each average also picks up the neighbouring volleys' ripple.
+
+The network's signal matches the pure impulses almost exactly. So **the
+grey-boxed "spindles" in the comparison figures (questions 1 and 3) are mostly
+the filter's response to one volley.** This also affects `n_spindle_events`
+and `spindle_cv` in `_literature_score`: they count single volleys, not
+spindles.
+
+### What the two runs actually show
+
+- **Before L5 tuning:** a perfectly regular 1.4 Hz train. Each cycle has one
+  thalamic volley, a cortical response and then a DOWN state where the cortex
+  is completely silent.
+- **Option 2:** the same kind of volleys, but faster (1.9/s) and irregular.
+  The cortex is no longer silent between them. L5 keeps up ongoing activity at
+  about 19 Hz, driven mostly by its interneurons, which fire about 22 Hz per
+  cell between volleys, plus L5E (1.7 Hz per cell) and L4E (1.0 Hz per cell).
+  This is the NMDA recurrence at work. So Option 2 does contain a continuous
+  oscillation, but at low amplitude and at about 19 Hz (beta range), not at
+  spindle frequency.
+
+Compared with real sleep, where spindles last 0.5–2 s and contain about 7–15
+waxing and waning cycles at 11–16 Hz, the model has the
+slow-oscillation-like part (periodic UP events, though at 1.4–1.9 Hz, faster
+than the usual < 1 Hz). It has **no spindles**.
+
+### Why the thalamic loop fires only once (hypotheses, not tested)
+
+A spindle needs a repeating cycle: RE inhibits TC → TC fires a rebound burst →
+TC excites RE → repeat. Here the second cycle reaches only 9% of the first.
+Two possible reasons:
+
+1. The whole thalamus fires in near-perfect synchrony, at about 370 Hz per
+   cell at the peak. Every TC cell then recovers on the same schedule, so
+   there's no partly recruited population left to carry the next cycle.
+2. The RE → TC inhibition is only fast GABA_A (8 ms decay) with no GABA_B.
+   That may be too short to de-inactivate TC's T-type calcium current (I_T)
+   again for a second rebound.
+
+A "cycles per volley" measure on the spike data would test fixes for either
+one directly, without going through the band-pass filter.
+
+### Reproduce
+
+The figure and every number above come from `neuron/volley_stats.py`:
+
+```bash
+python3 neuron/volley_stats.py "Before L5 tuning (MN5 job 45171023)=res/2026-08-31/ctx_nrn_45171023.npz" "Option 2 (MN5 job 45453403)=res/2026-09-07/ctx_nrn_45453403.npz" --plot out/mn5_population_rates_before_vs_option2.png
+```
