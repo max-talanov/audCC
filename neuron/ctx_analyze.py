@@ -158,12 +158,23 @@ def make_meanfield_figure(npz, out_png, window=(20000, 30000)):
     print(f"Saved mean-field figure to {out_png}")
 
 
-def make_spindle_figure(npz, out_png, window=(20000, 30000)):
+def make_spindle_figure(npz, out_png, window=(20000, 30000), stats_in_window=False):
+    """stats_in_window: compute panels (b)-(d) (RE ISIs, burst sizes, and the
+    RE volleys the PSTH is aligned on) from the raster window only, instead
+    of the whole run -- so figures for different time windows of one run
+    actually differ. Panel titles say which period their statistics cover."""
     t, g, ranges, tstop = npz["times"], npz["gids"], npz["ranges"].item(), float(npz["tstop"])
     re_lo, re_hi = ranges["re"]
     tc_lo, tc_hi = ranges["tc"]
 
-    s = _re_burst_stats(t, g, re_lo, re_hi)
+    if stats_in_window:
+        sel = (t >= window[0]) & (t < window[1])
+        ts, gsel = t[sel], g[sel]
+        period = f"{window[0]/1000:.0f}-{window[1]/1000:.0f} s"
+    else:
+        ts, gsel = t, g
+        period = "full run"
+    s = _re_burst_stats(ts, gsel, re_lo, re_hi)
 
     fig = plt.figure(figsize=(13, 15))
     gs = fig.add_gridspec(3, 2, height_ratios=[2.4, 1, 1.1], hspace=0.3, wspace=0.25)
@@ -181,7 +192,7 @@ def make_spindle_figure(npz, out_png, window=(20000, 30000)):
     if len(s["isis"]):
         ax.hist(s["isis"], bins=np.arange(0, 205, 5), color=BLUE, alpha=0.85)
     ax.axvline(30, color=RED, ls="--", lw=1.0, label="burst-ISI threshold (30 ms)")
-    ax.set_title("(b) RE within-cell ISI distribution", fontsize=10, loc="left")
+    ax.set_title(f"(b) RE within-cell ISI distribution [{period}]", fontsize=10, loc="left")
     ax.set_xlabel("ISI (ms)"); ax.set_ylabel("count")
     ax.legend(fontsize=8)
 
@@ -190,12 +201,12 @@ def make_spindle_figure(npz, out_png, window=(20000, 30000)):
     if len(bs):
         ax.hist(bs, bins=np.arange(0.5, bs.max() + 1.5, 1), color=GREEN, alpha=0.85)
     ax.set_title(f"(c) RE burst-size distribution (n_events={s['n_events']}, "
-                 f"event_Hz={s['event_hz']:.2f})", fontsize=10, loc="left")
+                 f"event_Hz={s['event_hz']:.2f}) [{period}]", fontsize=10, loc="left")
     ax.set_xlabel("spikes per burst"); ax.set_ylabel("count")
 
     # (d) event-triggered PSTH: align on each RE population volley, show
     # per-layer rate around it to see thalamus->cortex propagation.
-    t_re = np.sort(t[(g >= re_lo) & (g < re_hi)])
+    t_re = np.sort(ts[(gsel >= re_lo) & (gsel < re_hi)])
     if len(t_re) > 1:
         gaps = np.diff(t_re)
         ev_times = t_re[np.concatenate([[True], gaps > 300.0])]
@@ -225,7 +236,7 @@ def make_spindle_figure(npz, out_png, window=(20000, 30000)):
             rate_hz = counts
         ax.plot(edges[:-1] + bin_ms / 2, rate_hz, color=color, lw=1.2, label=name.upper())
     ax.axvline(0, color="k", ls="--", lw=0.8, alpha=0.6)
-    ax.set_title(f"(d) RE-volley-triggered per-layer PSTH (n={n_ev} events) -- "
+    ax.set_title(f"(d) RE-volley-triggered per-layer PSTH (n={n_ev} events) [{period}] -- "
                  "thalamus -> cortex propagation", fontsize=10, loc="left")
     ax.set_xlabel("time from RE volley onset (ms)"); ax.set_ylabel("rate (Hz/cell)")
     ax.legend(fontsize=8, ncol=3, loc="upper right", framealpha=0.9)
@@ -573,6 +584,11 @@ def main(argv=None):
                      help="zoomed-window start (ms), default 20000")
     ap.add_argument("--window-len", type=float, default=10000.0,
                      help="zoomed-window length (ms), default 10000")
+    ap.add_argument("--stats-in-window", action="store_true",
+                     help="spindle figure: compute panels (b)-(d) from the "
+                          "window only, not the whole run")
+    ap.add_argument("--label", default=None,
+                     help="title for the literature-style reconstruction figure")
     ap.add_argument("--no-reconstruction", action="store_true",
                      help="skip the literature-style SO+spindle reconstruction "
                           "figure (on by default alongside meanfield/spindles/lfp)")
@@ -618,11 +634,13 @@ def main(argv=None):
     window = (args.window_start, args.window_start + args.window_len)
 
     make_meanfield_figure(npz, outdir / f"{tag}_meanfield.png", window=window)
-    s = make_spindle_figure(npz, outdir / f"{tag}_spindles.png", window=window)
+    s = make_spindle_figure(npz, outdir / f"{tag}_spindles.png", window=window,
+                            stats_in_window=args.stats_in_window)
     make_lfp_figure(npz, outdir / f"{tag}_lfp.png", window=window)
     if not args.no_reconstruction:
         make_literature_reconstruction_figure(
-            npz, outdir / f"{tag}_reconstructed_literature_style.png", window=window)
+            npz, outdir / f"{tag}_reconstructed_literature_style.png", window=window,
+            label=args.label)
 
     print(f"RE burst shape: frac_burst={s['frac_burst']:.3f} "
           f"mean_burst_size={s['mean_burst_size']:.2f} n_events={s['n_events']} "

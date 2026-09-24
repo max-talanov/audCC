@@ -653,3 +653,73 @@ The NEURON measurements come from `neuron/re_gap_sync_test.py`:
 ```bash
 cd neuron && ../.venv-neuron/bin/python re_gap_sync_test.py
 ```
+
+## 8) Is the activity the same over the whole 200 s run? (different time windows)
+
+The Option 2 MN5 run (job 45453403, 5031 cells) lasts 200 s, but most figures
+show only 20–30 s or 20–40 s. Here are the same LFP reconstruction and spindle
+analysis for three later 20 s windows: **60–80 s, 100–120 s and 160–180 s**.
+
+In the spindle figures, panels (b)–(d) (RE ISIs, burst sizes, and the RE
+volleys the PSTH is aligned on) are computed **from each window only**
+(`--stats-in-window`). Previously they always covered the whole run, so they
+would have been identical in all three figures. Each panel title says which
+period it covers.
+
+### How the windows compare
+
+20–40 s included as a reference:
+
+| Window | Thalamic volleys | Mean interval (CV) | Detected "spindles" | SO-band RMS | RE burst size | L5 RS / IB (Hz per cell) |
+|---|---:|---:|---:|---:|---:|---:|
+| 20–40 s | 44 (2.20/s) | 458 ms (0.33) | 21 | 0.135 | 5.2 | 8.8 / 3.2 |
+| 60–80 s | 37 (1.85/s) | 530 ms (0.28) | 27 | 0.106 | 5.8 | 8.6 / 3.1 |
+| 100–120 s | 38 (1.90/s) | 531 ms (0.25) | 25 | 0.105 | 5.6 | 8.7 / 3.2 |
+| 160–180 s | 39 (1.95/s) | 513 ms (0.27) | 23 | 0.140 | 5.5 | 8.7 / 3.1 |
+
+- **The network settles and stays settled.** After the first ~40 s the volley
+  rate stays at 1.85–1.95/s. RE burst size, the L5 firing rates and the
+  volley-triggered response in panel (d) are nearly identical in every window.
+  There's no drift across the 200 s.
+- **The main difference is the large slow dips.** 60–80 s and 100–120 s are
+  quieter and more regular, with about one deep trough each (around 76 s and
+  119 s). 160–180 s has three (around 165, 171 and 177 s), like the 20–40 s
+  window. That's why its slow-oscillation amplitude is higher.
+- **Question 5's conclusion holds across the whole run.** In every window,
+  each shaded "spindle" sits on a single RE volley. There are no multi-cycle
+  trains anywhere.
+
+### 60–80 s
+
+![LFP reconstruction, 60-80 s](out/ctx_45453403_reconstructed_literature_style_60-80s.png)
+
+![Spindle analysis, 60-80 s](out/ctx_45453403_spindles_60-80s.png)
+
+### 100–120 s
+
+![LFP reconstruction, 100-120 s](out/ctx_45453403_reconstructed_literature_style_100-120s.png)
+
+![Spindle analysis, 100-120 s](out/ctx_45453403_spindles_100-120s.png)
+
+### 160–180 s
+
+![LFP reconstruction, 160-180 s](out/ctx_45453403_reconstructed_literature_style_160-180s.png)
+
+![Spindle analysis, 160-180 s](out/ctx_45453403_spindles_160-180s.png)
+
+### Reproduce
+
+The table:
+
+```bash
+python3 neuron/volley_stats.py "Option 2 (MN5 job 45453403)=res/2026-09-07/ctx_nrn_45453403.npz" --windows "20-40,60-80,100-120,160-180"
+```
+
+The figures, one window at a time (shown for 60–80 s; `ctx_analyze.py` also
+writes the mean-field and LFP figures for the window). Rename the outputs to
+`out/ctx_45453403_spindles_60-80s.png` and
+`out/ctx_45453403_reconstructed_literature_style_60-80s.png`:
+
+```bash
+python3 neuron/ctx_analyze.py res/2026-09-07/ctx_nrn_45453403.npz --outdir out --tag w60 --window-start 60000 --window-len 20000 --stats-in-window --label "MN5 full-scale (5031 cells, 200s) -- job 45453403, 60-80s window"
+```

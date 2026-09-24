@@ -91,6 +91,39 @@ def volley_stats(npz, volley_hz=100.0, min_gap_ms=200.0, skip_ms=1000.0):
                 halfwidth_model=halfwidth(spin), halfwidth_impulse=halfwidth(spin_imp))
 
 
+def window_table(npz, windows_ms):
+    """Per-window stats for one run, to check the dynamics are stationary:
+    thalamic volleys, their mean interval + CV, detected 'spindle' events
+    (ctx_analyze._detect_spindles, threshold from the whole run), SO-band
+    RMS of the composite LFP proxy, RE mean burst size, and L5 RS / IB
+    firing rates (IB = first half of the L5E gid range)."""
+    t, g, R, tstop = npz["times"], npz["gids"], npz["ranges"].item(), float(npz["tstop"])
+    _, comp, _, bins, _ = A._composite_lfp(npz)
+    so = A._bandpass(comp, 1000.0, 0.5, 2.0)
+    starts, _ = A._detect_spindles(A._bandpass(comp, 1000.0, 10.0, 15.0), bins)
+    r, b = _pop_rate(t, g, R, THAL, tstop)
+    vt = b[find_peaks(r, height=100.0, distance=200)[0]]
+    lo, hi = R["l5e"]
+    nib = int(round((hi - lo) * 0.5))
+    rows = []
+    for w0, w1 in windows_ms:
+        sec = (w1 - w0) / 1000.0
+        mv = (vt >= w0) & (vt < w1)
+        iv = np.diff(vt[mv])
+        tw = (t >= w0) & (t < w1)
+        re = A._re_burst_stats(t[tw], g[tw], *R["re"])
+        rows.append(dict(
+            window=(w0, w1), volleys=int(mv.sum()), volley_rate=mv.sum() / sec,
+            ivi_mean=float(iv.mean()) if len(iv) else float("nan"),
+            ivi_cv=float(iv.std() / iv.mean()) if len(iv) > 1 else float("nan"),
+            spindles=int(((bins[starts] >= w0) & (bins[starts] < w1)).sum()),
+            so_rms=float(np.sqrt(np.mean(so[(bins >= w0) & (bins < w1)] ** 2))),
+            re_burst=re["mean_burst_size"],
+            l5_rs=((g >= lo + nib) & (g < hi) & tw).sum() / (hi - lo - nib) / sec,
+            l5_ib=((g >= lo) & (g < lo + nib) & tw).sum() / nib / sec))
+    return rows
+
+
 def plot_rates(cases, out_png, window=(20000, 23000)):
     import matplotlib.pyplot as plt
     fig, axes = plt.subplots(2 * len(cases), 1, figsize=(14, 2.5 * 2 * len(cases)), sharex=True)
@@ -119,12 +152,27 @@ def main(argv=None):
     ap.add_argument("--plot", default=None, help="optional output PNG for the rate plot")
     ap.add_argument("--window-start", type=float, default=20000.0)
     ap.add_argument("--window-len", type=float, default=3000.0)
+    ap.add_argument("--windows", default="",
+                    help='per-window table instead of the full-run report, e.g. '
+                         '"20-40,60-80,100-120,160-180" (seconds)')
     a = ap.parse_args(argv)
 
     cases = []
     for pair in a.runs:
         label, path = pair.split("=", 1)
         cases.append((label, np.load(path, allow_pickle=True)))
+    if a.windows:
+        wins = [tuple(float(x) * 1000.0 for x in w.split("-")) for w in a.windows.split(",")]
+        for label, npz in cases:
+            print(f"\n== {label}")
+            print("  window      | volleys (rate)  | mean interval (CV) | 'spindles' | SO RMS "
+                  "| RE burst | L5 RS / IB Hz/cell")
+            for row in window_table(npz, wins):
+                w0, w1 = row["window"]
+                print(f"  {w0/1000:4.0f}-{w1/1000:4.0f} s | {row['volleys']:3d} ({row['volley_rate']:.2f}/s) "
+                      f"| {row['ivi_mean']:4.0f} ms ({row['ivi_cv']:.2f})     | {row['spindles']:3d}        "
+                      f"| {row['so_rms']:.3f}  | {row['re_burst']:.2f}     | {row['l5_rs']:.1f} / {row['l5_ib']:.1f}")
+        return 0
     for label, npz in cases:
         s = volley_stats(npz)
         print(f"\n== {label}")
