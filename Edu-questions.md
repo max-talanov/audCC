@@ -214,3 +214,74 @@ cell. The counts below are one-directional `GapMPI` halves.
 - Any interneuron subtypes. All I cells are a single fast-spiking type
   (`FSCell`). The NEST reference model splits cells into Basket/LTS/Axoaxonic
   and RS/FRB/Tuft subtypes, and this model does not reproduce those splits.
+
+## 3) How is the LFP calculated from the neuronal activity?
+
+The simulation doesn't compute a real LFP, because it never records any
+voltages or currents. The only output saved is spike times:
+`pc.spike_record` in `neuron/ctx_thalamus_mpi.py` (line ~188), written to the
+`.npz` with gids and population ranges. The "LFP" is a **proxy built
+afterwards from those spikes**. The code is `_synaptic_lfp` in
+`neuron/ctx_analyze.py` (line ~242), with an identical copy
+(`_synaptic_lfp_local`) in `neuron/ctx_thalamus_mpi.py` (line ~603).
+
+### Steps
+
+1. **One trace per layer.** The excitatory cells of each layer (L2/3E, L4E,
+   L5E, L6E) are taken separately. Inhibitory cells are left out.
+2. **Count spikes per 1 ms bin.** This gives the whole population's spike count
+   over time, not per-cell rates.
+3. **Smooth with a synaptic-shaped kernel.** Each spike is replaced by a
+   PSP-like waveform, `exp(-t/100) − exp(-t/2)`: 2 ms rise, 100 ms decay, cut
+   off at 800 ms and scaled to a peak of 1. The smoothing only uses past
+   spikes. The idea is that a real LFP comes mostly from slow synaptic
+   currents, not from the spikes themselves.
+4. **Normalise each layer** to mean 0 and SD 1.
+5. **Flip the sign of L5 and L6.** This mimics the usual dipole in laminar
+   recordings, negative near the surface and positive in deep layers. In the
+   LFP figure the RE trace is flipped too.
+6. **Average the four layers** into one cortical signal. The thalamic trace is
+   the average of TC and RE.
+7. **Band-pass filter** (3rd-order Butterworth, applied forwards and backwards
+   so there's no phase shift):
+   - slow oscillation: 0.5–2 Hz
+   - spindle band: 8–15 Hz in `make_lfp_figure`, but 10–15 Hz in
+     `_literature_score` and in the comparison figure from question 1
+   - Hilbert envelope of the spindle band
+
+The "raw (SO+spindle)" panel in the comparison figure can't be confirmed,
+because its plotting script wasn't committed. The label suggests it's the SO
+band plus the spindle band added together, not the unfiltered signal.
+
+The mean-field figure uses a simpler proxy still: the population firing rate,
+smoothed with a 5 ms moving average (`make_meanfield_figure` in
+`neuron/ctx_analyze.py`).
+
+### How this differs from a real LFP
+
+- **A layer's trace is built from that layer's own output spikes.** A real LFP
+  comes from the synaptic currents flowing into the cells at the recording
+  site. The proxy is really "the current these spikes would cause downstream",
+  credited to the layer that fired them.
+- **One 100 ms kernel is used for every spike,** but the model's AMPA synapses
+  decay in 2 ms and GABA_A in 6–8 ms. Only the optional L5 NMDA synapses are
+  that slow (115–200 ms). So the proxy is much smoother than the real synaptic
+  currents and can add slow-wave content that doesn't exist in them. The
+  docstring explains the history: the kernel used to be 10 ms / 60 ms, which
+  hid the slow content. Moving to 100 ms fixed that, but may now overstate it.
+- **Normalising each layer gives all four equal weight,** whatever their cell
+  counts and firing rates.
+- **The model has no electrode position and no dendritic geometry.** The
+  deep-layer sign flip is a convention, not a calculated dipole.
+- **Inhibition contributes nothing,** although real LFPs carry a large
+  GABAergic component, especially during spindles.
+
+### More standard options, if needed
+
+- **Record synaptic currents in NEURON** (the `Exp2Syn`/`NMDA` currents per
+  population) and use a current-based proxy. Mazzoni et al. (2015, *PLoS
+  Comput Biol*) showed that a weighted sum of AMPA and GABA currents tracks the
+  real LFP well.
+- **Calculate the extracellular potential directly** with NEURON's
+  `extracellular` mechanism or LFPy. Both need cell morphology, which the
+  current point-like cells mostly lack.
