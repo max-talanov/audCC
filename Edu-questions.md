@@ -255,7 +255,9 @@ signal: it is the 0.5–2 Hz band plus the 10–15 Hz band added together
 (`make_literature_reconstruction_figure` / `make_comparison_figure` in
 `neuron/ctx_analyze.py`). Because everything outside those two bands is
 removed, any run will look like slow oscillations with spindles on top, so its
-visual similarity to published raw traces is weak evidence on its own.
+visual similarity to published raw traces is weak evidence on its own. The
+code now labels this panel "SO + spindle bands (sum)"; the committed PNGs
+made before that change still show the old "raw" label.
 
 The mean-field figure uses a simpler proxy still: the population firing rate,
 smoothed with a 5 ms moving average (`make_meanfield_figure` in

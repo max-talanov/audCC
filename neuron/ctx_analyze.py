@@ -383,9 +383,12 @@ def _detect_spindles(spin, bins, k_sd=1.5, skip_ms=1000.0):
 def make_literature_reconstruction_figure(npz, out_png, window=(20000, 40000),
                                            label=None, so_band=(0.5, 2.0),
                                            spindle_band=(10.0, 15.0)):
-    """Reconstructs a literature-style raw trace as SO-band + spindle-band
-    (not the full synaptic-kernel composite), stacked with the pure
-    spindle band below and detected-spindle shading -- matching the format
+    """Reconstructs a literature-style trace as SO-band + spindle-band
+    (not the full synaptic-kernel composite, and NOT a raw signal --
+    everything outside the two bands is removed, so any run will look
+    like SO + spindles; labelled "SO + spindle bands (sum)" accordingly),
+    stacked with the pure spindle band below and detected-spindle shading
+    -- matching the format
     of published multi-species spindle figures (e.g. Fernandez & Luthi
     2020 Fig. 1A: raw trace + 10-15 Hz filtered trace, spindles shaded).
 
@@ -407,7 +410,7 @@ def make_literature_reconstruction_figure(npz, out_png, window=(20000, 40000),
 
     fig, axes = plt.subplots(2, 1, figsize=(14, 4.6), sharex=True)
     axes[0].plot(tsec, reconstructed[w], color="#b03a2e", lw=0.8)
-    axes[0].set_ylabel(f"raw\n(SO+spindle)", fontsize=8)
+    axes[0].set_ylabel("SO + spindle\nbands (sum)", fontsize=8)
     if label:
         axes[0].set_title(label, fontsize=10, loc="left", fontweight="bold")
     axes[1].plot(tsec, spin[w], color="#b03a2e", lw=0.8, alpha=0.85)
@@ -460,7 +463,7 @@ def make_comparison_figure(cases, out_png, window=(2000, 12000), mode="reconstru
             ax_raw, ax_spin = axes[2 * i], axes[2 * i + 1]
             ax_raw.plot(tsec, d["reconstructed"][w], color=color, lw=0.8)
             ax_raw.set_ylim(-raw_max * 1.1, raw_max * 1.1)
-            ax_raw.set_ylabel("raw\n(SO+spindle)", fontsize=8)
+            ax_raw.set_ylabel("SO + spindle\nbands (sum)", fontsize=8)
             ax_raw.set_title(label, fontsize=10, loc="left", fontweight="bold")
             ax_spin.plot(tsec, d["spin"][w], color=color, lw=0.8, alpha=0.85)
             ax_spin.set_ylim(-spin_max * 1.1, spin_max * 1.1)
@@ -531,7 +534,7 @@ def main(argv=None):
     ap.add_argument("--compare-mode", choices=["reconstruction", "panel_c"],
                      default="reconstruction",
                      help="--compare output style: \"reconstruction\" (stacked "
-                          "SO+spindle raw + pure spindle band per case, "
+                          "SO+spindle band sum + pure spindle band per case, "
                           "shaded spindle events -- the literature-comparison "
                           "format) or \"panel_c\" (raw/SO-band/spindle-band "
                           "all overlaid on 3 shared panels, make_lfp_figure's "
