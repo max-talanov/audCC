@@ -263,6 +263,46 @@ The mean-field figure uses a simpler proxy still: the population firing rate,
 smoothed with a 5 ms moving average (`make_meanfield_figure` in
 `neuron/ctx_analyze.py`).
 
+### Example: LFP proxy from two full-scale MN5 runs
+
+![MN5 LFP proxy: before L5 tuning vs Option 2](out/mn5_before_vs_option2_comparison.png)
+
+Both runs are 5031 cells and 200 s on MN5; the plot shows 20–30 s, after the
+start-up period, on identical y-scales. For each run the upper trace is the
+0.5–2 Hz band plus the 10–15 Hz band, the lower trace is the 10–15 Hz band
+alone, and grey boxes are detected spindle events (question 1).
+
+- **Top, job 45171023:** before the L5 tuning. It predates three changes: L5
+  recurrence, weaker L5 inhibition (`g_i_e_l5`) and slower L5 adaptation
+  (`taur_l5e_rs`).
+- **Bottom, job 45453403:** Option 2, with all three changes (L5 NMDA
+  recurrence, `tau2 = 200 ms`, `taur = 120 ms`, `g_i_e_l5 = 0.02`).
+
+Option 1 has not been run on MN5, so this is not the Option 1 vs Option 2
+comparison from question 1, and the difference reflects the three L5 changes
+together, not the recurrence alone.
+
+Over the full run (first second excluded):
+
+| | Spindle events | Rate | Interval between events | CV of intervals | Median event length | SO amplitude (RMS) |
+|---|---:|---:|---:|---:|---:|---:|
+| Before L5 tuning | 279 | 1.40/s | 712 ± 2 ms | 0.00 | 106 ms | 0.090 |
+| Option 2 | 258 | 1.30/s | 771 ± 384 ms | 0.50 | 85 ms | 0.119 |
+
+Before the tuning the network is a metronome: one spindle every 712 ms with
+±2 ms jitter and a steady sawtooth slow wave. Option 2 has irregular spindle
+timing, with bunched events and long gaps, and a larger slow wave with deep
+troughs (around 21 s and 26 s). The "grey box = amplitude peak, not a full
+spindle" caveat from question 1 applies to both.
+
+Regenerate with:
+
+```bash
+python3 neuron/ctx_analyze.py --compare "MN5 job 45171023: before L5 tuning (no L5 recurrence)=res/2026-08-31/ctx_nrn_45171023.npz,MN5 job 45453403: Option 2 (L5 NMDA recurrence; tau2 200 ms / taur 120 ms)=res/2026-09-07/ctx_nrn_45453403.npz" --outdir out --tag mn5_before_vs_option2 --window-start 20000 --window-len 10000
+```
+
+Labels can't contain `,` or `=`, because `--compare` splits on them.
+
 ### How this differs from a real LFP
 
 - **A layer's trace is built from that layer's own output spikes.** A real LFP
