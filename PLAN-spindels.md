@@ -23,9 +23,12 @@ All criteria are measured **from spikes**, never from band-pass counts: a
 ## Diagnosis: why the loop fires only once
 
 1. **Total synchrony.** All 91 RE cells fire within 50 µs (`neuron/README.md`,
-   MN5 round 3). RE → TC is all-to-all (k = 91), RE is gap-coupled, and the
-   cortical kick reaches every cell at once. After one volley every TC cell is
-   in the same refractory state, so no subset is left to carry cycle 2.
+   MN5 round 3); in the Option 2 run the median spread is 16 µs, with every
+   cell in every volley. **Main cause, measured: the RE ↔ RE gap junctions
+   are ~30× too strong** (`Edu-questions.md` Q7). Contributing: RE → TC is
+   all-to-all (k = 91), every L6E cell fires ~6 ms before each RE volley, and
+   the model has no noise. After one volley every TC cell is in the same
+   refractory state, so no subset is left to carry cycle 2.
 2. **No slow inhibition.** RE → TC is GABA_A only (8 ms decay) in
    `ctx_thalamus_mpi.py` (`_wire_re_tc`). GABA_B was tried in the serial model
    as a *linear* `Exp2Syn` (τ 60/200 ms), active on every spike: it acted as
@@ -44,7 +47,9 @@ From `neuron/README.md` (mostly the 10–40-cell serial model):
 
 - loop gain (`g_tc_re`, `g_re_tc`) over a 7× range
 - population size 10 → 40
-- gap-junction strength alone
+- gap-junction strength alone — but only in the 10–40-cell model, where every
+  cell is a near neighbour anyway; **not** ruled out at 91 RE cells, where it
+  is the measured main cause of RE synchrony (Stage 1, step 1)
 - heterogeneous resting potentials
 - "progressive recruitment" — but only in a 10-cell network, where local
   wiring can't exist; **not** ruled out at 437 cells
@@ -89,12 +94,22 @@ run is TC + RE only, seconds of wall time, on a laptop.
 
 Then try the levers **one at a time**, keeping each that helps:
 
-1. [ ] **Local, topographic RE ↔ TC wiring** instead of all-to-all. Cells on a
+1. [ ] **Weaker RE gap junctions: `g_gap` 0.03 → ~0.001 µS** (sweep 0.003,
+       0.001, 0.0005, 0). Measured cause of RE's microsecond synchrony
+       (`Edu-questions.md` Q7, `neuron/re_gap_sync_test.py`): at 0.03 µS one
+       junction is 4.3× an RE cell's own conductance, coupling is 0.43 to the
+       nearest neighbour and 0.27 across the whole ring, and RE fires within
+       0.08 ms even when its input is spread over 25 ms (9.9 ms with gaps
+       off). 0.001 µS gives realistic coupling: 0.09 nearest neighbour, 0.008
+       across the ring. Check first that RE's spread now follows its input,
+       then whether the loop gets a second cycle.
+       **Also change it in production:** `g_gap` in `ctx_thalamus_mpi.py`
+       (constructor default 0.03). Keep the old value reachable by flag so
+       earlier runs can be reproduced.
+2. [ ] **Local, topographic RE ↔ TC wiring** instead of all-to-all. Cells on a
        line or ring; each TC gets input from the ~10–20 nearest RE cells, each
        RE from nearby TC cells. Sweep the footprint (5, 10, 20, 40, all).
        Expected effect: phase dispersion, TC firing every 2nd–3rd cycle.
-2. [ ] **Weaker RE gap junctions** (`g_gap` 0.03 → 0.01, 0.003, 0), so RE is
-       not locked to microsecond synchrony.
 3. [ ] **Cooperative GABA_B on RE → TC**, alongside GABA_A. Add `gabab.mod`
        (Destexhe & Sejnowski 1995 kinetic model; a published version is on
        ModelDB). Check first that one RE spike gives almost no GABA_B current

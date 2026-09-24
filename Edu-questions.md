@@ -566,3 +566,90 @@ python3 neuron/ctx_analyze.py res/2026-09-07/ctx_nrn_45453403.npz --outdir out -
 
 The same raster is added under each run in the LFP comparison figure
 (`make_comparison_figure`, question 3); `--no-raster` turns it off there.
+
+## 7) Why is RE so synchronised?
+
+In the Option 2 MN5 run (45453403) every one of the 357 RE volleys recruits
+all 91 RE cells, and their first spikes differ by a median of just **16 µs**
+(max 0.3 ms). The main cause is the **RE ↔ RE gap junctions: they are about
+30× too strong**, which turns the 91 RE cells into what is effectively one big
+cell. The synchronised L6 input adds to it but is secondary.
+
+### 1. The gap junctions (the main cause)
+
+Measured in NEURON:
+
+| | Value |
+|---|---|
+| One RE cell's own membrane conductance at rest | 0.007 µS |
+| One gap junction (`g_gap = 0.03 µS`) | 4.3× the cell's own conductance |
+| Gap junctions per RE cell (ring ±3 plus 2 random shortcuts) | 7.9, a total of 34× the cell's own conductance |
+| Coupling to the nearest neighbour | 0.43 |
+| Coupling to the cell on the far side of the ring | 0.27 |
+
+The coupling coefficient is the fraction of one cell's voltage change that
+appears in another. Reported values for real reticular-nucleus cells are
+mostly a few percent, rarely above about 0.1, and only between nearby cells.
+Here even cells at opposite ends of the nucleus share 27%.
+
+**The experiment that separates the causes.** 91 RE cells with the same
+gap-junction layout, no TC, no RE → RE inhibition, no cortex. Each cell gets
+100 inputs from a 693-cell "L6" volley whose timing is deliberately spread
+out:
+
+| Spread of the L6 input (SD) | RE spread, gap junctions on | RE spread, gap junctions off |
+|---|---:|---:|
+| 0.5 ms | 0.02 ms | 0.41 ms |
+| 3 ms | 0.05 ms | 0.71 ms |
+| 10 ms | 0.07 ms | 2.4 ms |
+| 25 ms | 0.08 ms | 9.9 ms |
+
+With the gap junctions on, RE fires within 0.1 ms however spread out the input
+is. With them off, RE's timing follows the input. The MN5 run's 16 µs sits in
+the gap-junctions-on regime.
+
+### 2. Secondary causes
+
+- **Synchronised input:** in every volley, all L6E cells fire about 6 ms
+  before RE (median lead 5.7 ms), and each RE cell samples 100 of them. So
+  even without gap junctions, RE would get a nearly identical kick.
+- **No noise:** the model has no background input or noise sources, so
+  nothing breaks up identical timing.
+- **All-or-none bursts:** once the T-type calcium current (I_T) fires, the
+  burst time is set mainly by the channel's kinetics, not by small input
+  differences.
+
+### Why this wasn't caught earlier
+
+`neuron/README.md` tested gap strength (0.03 → 0) in the 10–40-cell model and
+saw "no effect". In a network that small every cell is a near neighbour
+anyway, so the problem only shows at 91 cells. The value 0.03 appears to have
+carried over from there.
+
+### What gap strength would be realistic
+
+| `g_gap` (µS) | Nearest neighbour | Far side of the ring |
+|---|---:|---:|
+| 0.03 (current) | 0.43 | 0.27 |
+| 0.01 | 0.28 | 0.11 |
+| 0.003 | 0.17 | 0.03 |
+| **0.001** | **0.09** | **0.008** |
+| 0.0005 | 0.06 | 0.003 |
+
+About **0.001 µS**, 30× weaker than now, gives realistic local coupling.
+
+This matters for spindles (question 5). With RE locked this tightly, every TC
+cell receives exactly the same inhibition at the same moment, so the whole
+thalamus fires once and is exhausted together. Weakening the gap junctions is
+step 2 of Stage 1 in `PLAN-spindels.md`, now with this target.
+
+Caveat: the test used RE alone. But the effect is large (0.08 ms vs 9.9 ms),
+so the conclusion should hold in the full network.
+
+### Reproduce
+
+The NEURON measurements come from `neuron/re_gap_sync_test.py`:
+
+```bash
+cd neuron && ../.venv-neuron/bin/python re_gap_sync_test.py
+```
