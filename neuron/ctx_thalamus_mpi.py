@@ -614,7 +614,7 @@ def _synaptic_lfp_local(times, tstop, fs=1000.0, tau_rise=2.0, tau_decay=100.0, 
     return lfp, bins[:-1]
 
 
-def _literature_score(t, g, ranges, tstop, fs=1000.0):
+def _literature_score(t, g, ranges, tstop, fs=1000.0, skip_ms=1000.0):
     """Score a run against the qualitative signature found by comparing our
     LFP reconstruction (SO-band + spindle-band, ctx_analyze.py) to published
     multi-species spindle traces (Fernandez & Luthi 2020-style figures):
@@ -650,9 +650,15 @@ def _literature_score(t, g, ranges, tstop, fs=1000.0):
     spin = bandpass(composite, 10.0, 15.0)
     so_rms = float(np.sqrt(np.mean(so ** 2)))
 
+    # Same definition as ctx_analyze._detect_spindles -- keep in sync. The
+    # first skip_ms (start-up transient + kernel/filtfilt edge effects at
+    # t=0) is excluded from both the threshold statistics and detection.
     env = np.abs(hilbert(spin))
-    thresh = env.mean() + 1.5 * env.std()
-    is_spindle = env > thresh
+    valid = bins >= skip_ms
+    if not valid.any():
+        valid = np.ones_like(valid)
+    thresh = env[valid].mean() + 1.5 * env[valid].std()
+    is_spindle = (env > thresh) & valid
     edges = np.diff(is_spindle.astype(int), prepend=0, append=0)
     starts = np.where(edges == 1)[0]
     n_spindle_events = len(starts)

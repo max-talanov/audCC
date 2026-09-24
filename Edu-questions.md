@@ -5,11 +5,10 @@
 Figure: `out/compare_regularity_vs_literature_score.png` (commit `7b3e1c8`).
 
 The grey rectangles come from a simple threshold on the spindle-band amplitude.
-The detector is `_literature_score` in `neuron/ctx_thalamus_mpi.py` (line ~617).
-
-Caveat: the script that drew the figure was never committed, only the PNG.
-The commit message says the shading uses this detector, but this has not been
-confirmed by re-running it.
+The figure is drawn by `make_comparison_figure` in `neuron/ctx_analyze.py`
+(committed in `7170e23`), which detects events with `_detect_spindles`. The
+same definition is used for scoring in `_literature_score` in
+`neuron/ctx_thalamus_mpi.py`; the two are kept in sync by hand.
 
 ### How a spindle start is found
 
@@ -22,7 +21,10 @@ confirmed by re-running it.
 3. **Take the Hilbert envelope**, `env = |hilbert(spin)|`, which is the
    instantaneous amplitude of that oscillation.
 4. **Set the threshold** at `mean(env) + 1.5·SD(env)`, computed over the whole
-   run.
+   run except the first second. That second holds the network's start-up
+   transient and filter edge effects, and it is excluded from detection too.
+   The exclusion was added after the comparison figure was made, so the
+   committed PNG and earlier grid-sweep numbers used the whole run.
 5. **Mark events:** a spindle starts where the envelope rises above the
    threshold and ends where it falls back below. Each grey rectangle is one
    span where the envelope stays above the threshold.
@@ -52,7 +54,6 @@ confirmed by re-running it.
 
 - Add two-threshold detection with a minimum duration, so start and end times
   match the literature definition.
-- Commit the plotting script so the figure can be reproduced.
 
 ## 2) What is the network architecture? (number of neurons and synapses/projections)
 
@@ -249,9 +250,12 @@ afterwards from those spikes**. The code is `_synaptic_lfp` in
      `_literature_score` and in the comparison figure from question 1
    - Hilbert envelope of the spindle band
 
-The "raw (SO+spindle)" panel in the comparison figure can't be confirmed,
-because its plotting script wasn't committed. The label suggests it's the SO
-band plus the spindle band added together, not the unfiltered signal.
+The "raw (SO+spindle)" panel in the comparison figure is **not** the unfiltered
+signal: it is the 0.5–2 Hz band plus the 10–15 Hz band added together
+(`make_literature_reconstruction_figure` / `make_comparison_figure` in
+`neuron/ctx_analyze.py`). Because everything outside those two bands is
+removed, any run will look like slow oscillations with spindles on top, so its
+visual similarity to published raw traces is weak evidence on its own.
 
 The mean-field figure uses a simpler proxy still: the population firing rate,
 smoothed with a 5 ms moving average (`make_meanfield_figure` in

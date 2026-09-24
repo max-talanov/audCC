@@ -112,7 +112,8 @@ def make_meanfield_figure(npz, out_png, window=(20000, 30000)):
     ax = fig.add_subplot(gs[0, :])
     ax.plot(tbins / 1000.0, thal_rate, color=BLUE, lw=0.5, label="thalamus (TC+RE) rate")
     ax.plot(tbins / 1000.0, cx_rate, color=RED, lw=0.5, alpha=0.7, label="cortex (L4/L2-3/L5/L6 E) rate")
-    ax.set_title("(a) Population firing-rate mean-field, full 200 s run", fontsize=10, loc="left")
+    ax.set_title(f"(a) Population firing-rate mean-field, full {tstop / 1000:.0f} s run",
+                 fontsize=10, loc="left")
     ax.set_xlabel("time (s)"); ax.set_ylabel("spikes / ms (1 ms bin, 5 ms smoothed)")
     ax.legend(fontsize=8, loc="upper right", framealpha=0.9)
 
@@ -355,6 +356,30 @@ def make_lfp_figure(npz, out_png, window=(20000, 30000), epoch_ms=2000.0):
     print(f"Saved LFP figure to {out_png}")
 
 
+def _detect_spindles(spin, bins, k_sd=1.5, skip_ms=1000.0):
+    """Spindle events = spindle-band Hilbert-envelope excursions above
+    mean + k_sd*sd. Returns (starts, ends) as indices into bins; ends are
+    exclusive but clipped to the last bin, so bins[e] is always valid even
+    when an event is still above threshold at the end of the run.
+
+    The first skip_ms is excluded from both the threshold statistics and
+    event detection: it holds the network's start-up transient plus the
+    synaptic-kernel/filtfilt edge effects at t=0, which otherwise shift the
+    threshold noticeably on short (e.g. 20 s grid-point) runs. Same
+    definition as _literature_score in ctx_thalamus_mpi.py -- keep the two
+    in sync."""
+    env = np.abs(hilbert(spin))
+    valid = bins >= skip_ms
+    if not valid.any():
+        valid = np.ones_like(valid)
+    thresh = env[valid].mean() + k_sd * env[valid].std()
+    is_spindle = (env > thresh) & valid
+    edges = np.diff(is_spindle.astype(int), prepend=0, append=0)
+    starts = np.where(edges == 1)[0]
+    ends = np.minimum(np.where(edges == -1)[0], len(bins) - 1)
+    return starts, ends
+
+
 def make_literature_reconstruction_figure(npz, out_png, window=(20000, 40000),
                                            label=None, so_band=(0.5, 2.0),
                                            spindle_band=(10.0, 15.0)):
@@ -369,19 +394,13 @@ def make_literature_reconstruction_figure(npz, out_png, window=(20000, 40000),
     transients and reads as a sharp spike-and-flatline; summing just the
     two bands that are actually diagnostic (slow oscillation + spindle)
     gives a trace whose texture is directly comparable to a real LFP
-    recording. Spindle events are detected as spindle-band Hilbert-
-    envelope crossings above mean + 1.5*sd (same threshold used for
-    _literature_score in ctx_thalamus_mpi.py -- keep the two in sync)."""
+    recording. Spindle events: see _detect_spindles."""
     fs = 1000.0
     _, composite, _, bins, _ = _composite_lfp(npz, fs=fs)
     so = _bandpass(composite, fs, *so_band)
     spin = _bandpass(composite, fs, *spindle_band)
     reconstructed = so + spin
-    env = np.abs(hilbert(spin))
-    thresh = env.mean() + 1.5 * env.std()
-    is_spindle = env > thresh
-    edges = np.diff(is_spindle.astype(int), prepend=0, append=0)
-    starts, ends = np.where(edges == 1)[0], np.where(edges == -1)[0]
+    starts, ends = _detect_spindles(spin, bins)
 
     w = (bins >= window[0]) & (bins < window[1])
     tsec = bins[w] / 1000.0
@@ -423,11 +442,7 @@ def make_comparison_figure(cases, out_png, window=(2000, 12000), mode="reconstru
         d = dict(bins=bins, composite=composite, so=so, spin=spin, color=color)
         if mode == "reconstruction":
             d["reconstructed"] = so + spin
-            env = np.abs(hilbert(spin))
-            thresh = env.mean() + 1.5 * env.std()
-            is_spindle = env > thresh
-            edges = np.diff(is_spindle.astype(int), prepend=0, append=0)
-            d["starts"], d["ends"] = np.where(edges == 1)[0], np.where(edges == -1)[0]
+            d["starts"], d["ends"] = _detect_spindles(spin, bins)
         computed[label] = d
 
     def _w(b):
