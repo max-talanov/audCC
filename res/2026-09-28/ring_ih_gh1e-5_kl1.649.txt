@@ -1,0 +1,23 @@
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+kick  g_gap   seed | evoked  cycles dur_ms   Hz      wax   | RE_SD_ms  TC part per cycle      | trains after kick / pre-kick spikes
+----------------------------------------------------------------------------------------------------------------------
+l6    0.001   0    | yes     5      396      10.1    no    | 0.09      1.00,0.41,0.35,0.26,0.13 | 2 / 0 ek_re=-95 g_tc_re=0.06 gh_tc=1e-05 kl_scale_tc=1.649 taur_re=5 thal_footprint=10
+l6    0.001   1    | yes     4      321      9.3     no    | 0.09      1.00,0.40,0.34,0.28    | 2 / 0 ek_re=-95 g_tc_re=0.06 gh_tc=1e-05 kl_scale_tc=1.649 taur_re=5 thal_footprint=10
+l6    0.001   2    | yes     3      223      9.0     no    | 0.09      1.00,0.40,0.33         | 2 / 0 ek_re=-95 g_tc_re=0.06 gh_tc=1e-05 kl_scale_tc=1.649 taur_re=5 thal_footprint=10
+l6    0.001   3    | yes     4      316      9.5     no    | 0.09      1.00,0.41,0.33,0.22    | 2 / 0 ek_re=-95 g_tc_re=0.06 gh_tc=1e-05 kl_scale_tc=1.649 taur_re=5 thal_footprint=10
+l6    0.001   4    | yes     4      315      9.5     no    | 0.10      1.00,0.41,0.34,0.22    | 2 / 0 ek_re=-95 g_tc_re=0.06 gh_tc=1e-05 kl_scale_tc=1.649 taur_re=5 thal_footprint=10
+
+RE volley intervals after the kick (ms, first 8), per run:
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.06 gh_tc=1e-05 kl_scale_tc=1.649 taur_re=5 thal_footprint=10 seed 0: 10 volleys, IVI [113, 102, 95, 86, 1104, 88, 79, 82]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.06 gh_tc=1e-05 kl_scale_tc=1.649 taur_re=5 thal_footprint=10 seed 1: 10 volleys, IVI [114, 102, 105, 1179, 87, 79, 84, 83]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.06 gh_tc=1e-05 kl_scale_tc=1.649 taur_re=5 thal_footprint=10 seed 2:  8 volleys, IVI [116, 107, 1277, 87, 82, 79, 88]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.06 gh_tc=1e-05 kl_scale_tc=1.649 taur_re=5 thal_footprint=10 seed 3:  9 volleys, IVI [113, 111, 92, 1184, 89, 79, 83, 77]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.06 gh_tc=1e-05 kl_scale_tc=1.649 taur_re=5 thal_footprint=10 seed 4: 10 volleys, IVI [114, 109, 92, 1185, 87, 83, 84, 84]
+
+per (kick, g_gap), over seeds: evoked / median cycles / max cycles / runs with >= 6 cycles / median RE first-spike SD / median RE volleys after kick and their median interval
+  l6    g_gap=0.001   ek_re=-95 g_tc_re=0.06 gh_tc=1e-05 kl_scale_tc=1.649 taur_re=5 thal_footprint=10 kick 1 -> cycles [5, 4, 3, 4, 4] | kick 2 at 2500 ms -> cycles [5, 6, 5, 5, 6]
+  l6    g_gap=0.001   ek_re=-95 g_tc_re=0.06 gh_tc=1e-05 kl_scale_tc=1.649 taur_re=5 thal_footprint=10 evoked 5/5, cycles median 4 max 5, >=6: 0/5, RE SD 0.09 ms, volleys 10, IVI 88 ms

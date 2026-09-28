@@ -86,7 +86,7 @@ class ParallelCorticoThalamicNet:
                  conv=100, gap_deg=6, gap_short=2, g_l5_gap=0.02,
                  het=0.05, delay_jitter=0.0, state=None, het_seed=0,
                  kl_scale_tc=None, kl_scale_re=None, thal_footprint=None,
-                 ek_tc=None, ek_re=None, taur_re=None):
+                 ek_tc=None, ek_re=None, taur_re=None, depth_tc=None):
         self.pc = h.ParallelContext()
         self.rank = int(self.pc.id())
         self.nhost = int(self.pc.nhost())
@@ -152,6 +152,13 @@ class ParallelCorticoThalamicNet:
         # ms; Destexhe's cadecay uses ~5 ms). Slow clearance holds SK2
         # saturated for ~200 ms after a burst, blocking the next burst.
         self.ek_tc, self.ek_re, self.taur_re = ek_tc, ek_re, taur_re
+        # depth_tc: depth (um) of TC's submembrane Ca2+ pool (cad, only
+        # present when gh_tc > 0), which drives the Ca2+-dependent up-
+        # regulation of I_h (ihca). TCCell uses 10 um; at that depth a
+        # spindle's I_T influx peaks near 0.2 uM, far below ihca's 2 uM
+        # half-activation, so I_h barely up-regulates. ~1 um (Destexhe-like)
+        # gives the intended locking and the refractory depolarisation.
+        self.depth_tc = depth_tc
         # het_seed: 0 (default) = the production per-cell jitter; other values
         # draw a different, equally deterministic set of cells (seeds for
         # thal_ring_test.py, PLAN-spindels.md Stage 1).
@@ -249,6 +256,8 @@ class ParallelCorticoThalamicNet:
             c.soma.gcabar_it *= self._jitter(1.0, gid, 2)
             if self.ek_tc is not None:
                 c.soma.ek = self.ek_tc
+            if self.depth_tc is not None and c.soma.has_membrane("cad"):
+                c.soma.depth_cad = self.depth_tc
             return c
         if pop == "re":
             c = T.RECell(gsk=self.gsk_re)

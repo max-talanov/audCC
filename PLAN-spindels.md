@@ -1,8 +1,9 @@
 # Plan: make the thalamus produce real sleep spindles
 
-Status: **Stage 0 done. Stage 1: the isolated thalamus now rings
-(2026-09-28) — 4 of 5 "done when" criteria met; refractoriness missing.**
-See "Results so far" and "RE recovery" in Stage 1. Background and evidence:
+Status: **Stage 0 done. Stage 1: the isolated thalamus produces
+spindle-like trains at 11.7–12.6 Hz (2026-09-28); refractoriness still
+missing.** See "Results so far", "RE recovery" and "Lever 4 (I_h)" in
+Stage 1. Background and evidence:
 `Edu-questions.md` question 5, and the history in `neuron/README.md`.
 
 ## Goal and success criteria
@@ -129,7 +130,7 @@ Then try the levers **one at a time**, keeping each that helps:
        ModelDB). Check first that one RE spike gives almost no GABA_B current
        and a burst gives a large one. Sweep its conductance from small values
        up; watch that TC isn't silenced (the linear version's failure).
-4. [ ] **Ca²⁺-dependent I_h** (`gh_tc`) at physiological levels (around
+4. [x] **Ca²⁺-dependent I_h** (`gh_tc`) at physiological levels (around
        Destexhe's `2×10⁻⁵`), for waning and a refractory period of several
        seconds, not for setting the frequency.
 5. [ ] Only if still short: RE → TC GABA_A decay (`tau2_re_tc`; an earlier
@@ -287,6 +288,52 @@ full-size second spindle on 5/5 seeds.
 refractoriness; the README found I_h also raises the loop frequency, which
 may move ~10 Hz into the band. Then Stage 2 with these settings: none of
 them is in production yet (all behind options).
+
+### Lever 4: Ca²⁺-dependent I_h (2026-09-28)
+
+Raw output: `res/2026-09-28/ring_ih2_*.txt`; figure `out/stage1_ih_lfp.png`.
+Setting: the working point above (`ek_re −95`, `taur_re 5`, `g_tc_re 0.06`,
+F 10, g_gap 0.001), kicks at 3.0 s and 4.5 s (a 3 s settle, because I_h
+takes ~1 s to reach steady state), 5 seeds. New option `depth_tc` (TC Ca²⁺
+pool depth, default unchanged).
+
+- **I_h alone depolarises TC:** at Destexhe's 2e-5 S/cm² TC rests at
+  −65.6 mV (I_T availability 0.013 instead of 0.14), and the uncompensated
+  network oscillates almost continuously (16–55 cycles at 5e-6). So each
+  I_h level is **balanced by the K⁺ leak** (`kl_scale_tc` 1.33 / 1.65 /
+  2.27 for 5e-6 / 1e-5 / 2e-5), which restores the −75.6 mV rest exactly.
+- **The Ca²⁺ dependence needs a thinner Ca²⁺ pool.** With TC's 10 µm pool a
+  spindle's I_T influx peaks at 0.17 µM against ihca's 2 µM
+  half-activation (regulating factor p1 ≤ 0.04). With 1 µm (Destexhe-like)
+  it reaches 1.5 µM, p1 → 1, 90% of I_h locks open and stays 79% locked
+  1.5 s later, holding TC ~2 mV more depolarised (single-cell test).
+- **Network results (`depth_tc 1`):**
+
+  | I_h (S/cm²) | cycles | duration | frequency | TC part./cycle | 2nd kick 1.5 s later |
+  |---|---|---|---|---|---|
+  | 0 | 8–12 | 0.68–1.06 s | 10.0–10.4 Hz | 36% | same (8–12) |
+  | **5e-6** | **7–8** | **0.48–0.59 s** | **11.7–12.6 Hz** | 44% | same (7–8) |
+  | 1e-5 | 6 | 0.37–0.40 s | 12.6–13.5 Hz | 44% | same (6–7) |
+  | 2e-5 | 3 | 0.15–0.16 s | 12.3–13.0 Hz | 38% | 3–4 |
+
+  I_h **shortens** the spindle and **raises its frequency into the band**,
+  and removes all pre-kick activity (0 spikes). At 5e-6 the thalamic LFP
+  waxes over the first 3–4 cycles and wanes, even with a global kick.
+- **No refractoriness at any level.** Likely reason: the L6 kick puts
+  0.03 µS directly onto every RE cell, above the ~0.02 µS a rested RE cell
+  needs, so RE starts the second spindle whatever TC's state; the
+  Ca²⁺-locked I_h acts on TC and only shortens trains.
+
+**Against the "done when"** (I_h 5e-6, leak-compensated, 1 µm pool):
+≥ 6 cycles ✅ 5/5; 10–15 Hz ✅ (11.7–12.6); ≥ 0.5 s ⚠️ 4/5 seeds by median
+(0.48–0.59 s); envelope ✅; refractoriness ❌.
+
+**Next for refractoriness:** test with a kick that does not force RE — a
+**tone kick** (reaches RE only via TC, so TC's I_h state should gate it;
+also the case the auditory plan cares about) or an L6 kick near RE's
+threshold — and measure the 2nd-spindle probability vs interval (0.5–8 s).
+If still absent, add the RE side of refractoriness (review §V.D: RE
+Ca²⁺/Na⁺-dependent K⁺ hyperpolarisation).
 
 **Done when:** a single kick produces, on ≥ 4 of 5 seeds, a train of ≥ 6
 cycles at 10–15 Hz lasting ≥ 0.5 s with a growing-then-fading envelope, and a
