@@ -175,6 +175,54 @@ more I_T available; (b) **RE → TC IPSP amplitude** (`g_re_tc`) at the
 8 ms decay, i.e. stronger rather than longer inhibition. Then lever 2
 (local wiring) for waxing/waning and TC participation every 2nd–3rd cycle.
 
+### Levers (a) sleep depth and (b) fast-inhibition strength (2026-09-24)
+
+Raw output: `res/2026-09-24/ring_depth_sweep.txt`, `ring_gretc_sweep.txt`,
+`ring_combo_sweep.txt`; figure `out/stage1_levers_ab_thalamus_lfp.png`.
+All at g_gap 0.001, L6 kick. Sleep depth is the K⁺ leak scale
+(`kl_scale_tc` / `kl_scale_re`, new constructor options; 1 = the nrem
+preset, TC rest −75.6 → −84.5 mV and I_T availability 0.14 → 0.59 from
+1 to 2).
+
+- **(a) Deeper TC / RE rest** (`kl_scale_tc` 1, 1.25, 1.5, 2 ×
+  `kl_scale_re` 1, 1.5; 3 seeds): **1 volley in all 24 runs**, and the TC
+  rebound **disappears** (10–15 TC cells instead of ~100 per 20 ms at 1.5;
+  none at 2). At −81 to −85 mV the RE IPSP (E_GABA −85 mV) barely
+  hyperpolarises TC further, and afterwards TC just returns to a deep rest:
+  there is nothing to rebound to. Deeper is not better; the current depth
+  is near the useful range.
+- **(b) Stronger fast inhibition** (`g_re_tc` 0.015, 0.03, 0.06, 0.12 at
+  τ 8 ms; 3 seeds): **1 volley in all 12 runs.** The rebound grows only a
+  little (peak 104 → 164 TC cells per 20 ms at 8×), since TC is already
+  pulled close to E_GABA, and stays spread over ~100 ms; RE is never
+  recruited.
+- **Combined** (`g_re_tc` 0.015/0.06/0.12 × `g_tc_re` 0.03/0.06/0.12 ×
+  τ 8/20 ms; 2 seeds, 36 runs): 1 volley everywhere except the extreme
+  corner (all 8×, τ 20 ms), which is **bistable**: seed 0 starts oscillating
+  from the start-up transient at 0.12 s and runs at a steady **~8 Hz**
+  (RE volleys 119–129 ms apart, TC participation ~32% per cycle) for the
+  whole run, untouched by the kick; seed 1 fires once after the kick and
+  stays silent. Not a spindle (not triggered, no waxing/waning, never
+  terminates), but it is the first regime with TC firing on ~1 cycle in 3,
+  and termination is what lever 4 (Ca²⁺-dependent I_h) is for.
+
+**Where this leaves Stage 1.** Five levers now fail the same way: one RE
+volley, then a TC rebound that is too weak and too dispersed (~100 ms) to
+recruit RE again. RE in this model recovers slowly after its burst (sits at
+−77 mV, above its −81 mV rest, for hundreds of ms), and every RE cell sees
+the same all-to-all TC input. What is left in the list, in the order the
+evidence now suggests:
+1. **Lever 2, local RE ↔ TC wiring** — the only lever aimed at the
+   dispersion itself (different TC subsets rebounding on different cycles).
+2. **RE recovery after its burst** (not in the list): why RE stays
+   depolarised; SK2 / I_T2 kinetics or RE → RE inhibition as the RE
+   hyperpolarising drive that re-primes RE I_T between cycles.
+3. **Lever 4 (I_h)** only for termination, once a regime rings.
+4. **Lever 3 (GABA_B)** last: the long-IPSP runs here ring at 4 Hz, the
+   known GABA_B / absence rhythm, so it is expected to push the wrong way.
+If these fail too, the risk named below applies: the single-compartment RE
+cell may be the limit (dendritic Ca_v3.3).
+
 **Done when:** a single kick produces, on ≥ 4 of 5 seeds, a train of ≥ 6
 cycles at 10–15 Hz lasting ≥ 0.5 s with a growing-then-fading envelope, and a
 second kick within ~2 s produces a weaker or no spindle (refractoriness).

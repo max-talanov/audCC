@@ -1,0 +1,132 @@
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+kick  g_gap   seed | evoked  cycles dur_ms   Hz      wax   | RE_SD_ms  TC part per cycle      | trains after kick / pre-kick spikes
+----------------------------------------------------------------------------------------------------------------------
+l6    0.001   0    | yes     1      0        -       no    | 0.13      1.00                   | 1 / 69 g_re_tc=0.015 g_tc_re=0.03 tau2_re_tc=8
+l6    0.001   1    | yes     1      0        -       no    | 0.13      1.00                   | 1 / 68 g_re_tc=0.015 g_tc_re=0.03 tau2_re_tc=8
+l6    0.001   0    | yes     1      0        -       no    | 0.13      1.00                   | 1 / 69 g_re_tc=0.015 g_tc_re=0.03 tau2_re_tc=20
+l6    0.001   1    | yes     1      0        -       no    | 0.13      1.00                   | 1 / 68 g_re_tc=0.015 g_tc_re=0.03 tau2_re_tc=20
+l6    0.001   0    | yes     1      0        -       no    | 0.09      1.00                   | 1 / 69 g_re_tc=0.015 g_tc_re=0.06 tau2_re_tc=8
+l6    0.001   1    | yes     1      0        -       no    | 0.09      1.00                   | 1 / 68 g_re_tc=0.015 g_tc_re=0.06 tau2_re_tc=8
+l6    0.001   0    | yes     1      0        -       no    | 0.09      1.00                   | 1 / 69 g_re_tc=0.015 g_tc_re=0.06 tau2_re_tc=20
+l6    0.001   1    | yes     1      0        -       no    | 0.09      1.00                   | 1 / 68 g_re_tc=0.015 g_tc_re=0.06 tau2_re_tc=20
+l6    0.001   0    | yes     1      0        -       no    | 0.06      1.00                   | 1 / 124 g_re_tc=0.015 g_tc_re=0.12 tau2_re_tc=8
+l6    0.001   1    | yes     1      0        -       no    | 0.07      1.00                   | 1 / 68 g_re_tc=0.015 g_tc_re=0.12 tau2_re_tc=8
+l6    0.001   0    | yes     1      0        -       no    | 0.06      1.00                   | 1 / 160 g_re_tc=0.015 g_tc_re=0.12 tau2_re_tc=20
+l6    0.001   1    | yes     1      0        -       no    | 0.07      1.00                   | 1 / 68 g_re_tc=0.015 g_tc_re=0.12 tau2_re_tc=20
+l6    0.001   0    | yes     1      0        -       no    | 0.13      1.00                   | 1 / 69 g_re_tc=0.06 g_tc_re=0.03 tau2_re_tc=8
+l6    0.001   1    | yes     1      0        -       no    | 0.13      1.00                   | 1 / 68 g_re_tc=0.06 g_tc_re=0.03 tau2_re_tc=8
+l6    0.001   0    | yes     1      0        -       no    | 0.13      1.00                   | 1 / 69 g_re_tc=0.06 g_tc_re=0.03 tau2_re_tc=20
+l6    0.001   1    | yes     1      0        -       no    | 0.13      1.00                   | 1 / 68 g_re_tc=0.06 g_tc_re=0.03 tau2_re_tc=20
+l6    0.001   0    | yes     1      0        -       no    | 0.09      1.00                   | 1 / 69 g_re_tc=0.06 g_tc_re=0.06 tau2_re_tc=8
+l6    0.001   1    | yes     1      0        -       no    | 0.09      1.00                   | 1 / 68 g_re_tc=0.06 g_tc_re=0.06 tau2_re_tc=8
+l6    0.001   0    | yes     1      0        -       no    | 0.09      1.00                   | 1 / 69 g_re_tc=0.06 g_tc_re=0.06 tau2_re_tc=20
+l6    0.001   1    | yes     1      0        -       no    | 0.09      1.00                   | 1 / 68 g_re_tc=0.06 g_tc_re=0.06 tau2_re_tc=20
+l6    0.001   0    | yes     1      0        -       no    | 0.06      1.00                   | 1 / 144 g_re_tc=0.06 g_tc_re=0.12 tau2_re_tc=8
+l6    0.001   1    | yes     1      0        -       no    | 0.07      1.00                   | 1 / 68 g_re_tc=0.06 g_tc_re=0.12 tau2_re_tc=8
+l6    0.001   0    | yes     1      0        -       no    | 0.06      1.00                   | 1 / 139 g_re_tc=0.06 g_tc_re=0.12 tau2_re_tc=20
+l6    0.001   1    | yes     1      0        -       no    | 0.07      1.00                   | 1 / 68 g_re_tc=0.06 g_tc_re=0.12 tau2_re_tc=20
+l6    0.001   0    | yes     1      0        -       no    | 0.13      1.00                   | 1 / 69 g_re_tc=0.12 g_tc_re=0.03 tau2_re_tc=8
+l6    0.001   1    | yes     1      0        -       no    | 0.13      1.00                   | 1 / 68 g_re_tc=0.12 g_tc_re=0.03 tau2_re_tc=8
+l6    0.001   0    | yes     1      0        -       no    | 0.13      1.00                   | 1 / 69 g_re_tc=0.12 g_tc_re=0.03 tau2_re_tc=20
+l6    0.001   1    | yes     1      0        -       no    | 0.13      1.00                   | 1 / 68 g_re_tc=0.12 g_tc_re=0.03 tau2_re_tc=20
+l6    0.001   0    | yes     1      0        -       no    | 0.09      1.00                   | 1 / 69 g_re_tc=0.12 g_tc_re=0.06 tau2_re_tc=8
+l6    0.001   1    | yes     1      0        -       no    | 0.09      1.00                   | 1 / 68 g_re_tc=0.12 g_tc_re=0.06 tau2_re_tc=8
+l6    0.001   0    | yes     1      0        -       no    | 0.09      1.00                   | 1 / 69 g_re_tc=0.12 g_tc_re=0.06 tau2_re_tc=20
+l6    0.001   1    | yes     1      0        -       no    | 0.09      1.00                   | 1 / 68 g_re_tc=0.12 g_tc_re=0.06 tau2_re_tc=20
+l6    0.001   0    | yes     1      0        -       no    | 0.07      1.00                   | 1 / 139 g_re_tc=0.12 g_tc_re=0.12 tau2_re_tc=8
+l6    0.001   1    | yes     1      0        -       no    | 0.07      1.00                   | 1 / 68 g_re_tc=0.12 g_tc_re=0.12 tau2_re_tc=8
+l6    0.001   0    | no      -      -        -       -     | -         -                      | 0 / 2500 g_re_tc=0.12 g_tc_re=0.12 tau2_re_tc=20
+l6    0.001   1    | yes     1      0        -       no    | 0.07      1.00                   | 1 / 68 g_re_tc=0.12 g_tc_re=0.12 tau2_re_tc=20
+
+RE volley intervals after the kick (ms, first 8), per run:
+  l6    g_gap=0.001  g_re_tc=0.015 g_tc_re=0.03 tau2_re_tc=8  seed 0:  1 volleys, IVI []
+  l6    g_gap=0.001  g_re_tc=0.015 g_tc_re=0.03 tau2_re_tc=8  seed 1:  1 volleys, IVI []
+  l6    g_gap=0.001  g_re_tc=0.015 g_tc_re=0.03 tau2_re_tc=20 seed 0:  1 volleys, IVI []
+  l6    g_gap=0.001  g_re_tc=0.015 g_tc_re=0.03 tau2_re_tc=20 seed 1:  1 volleys, IVI []
+  l6    g_gap=0.001  g_re_tc=0.015 g_tc_re=0.06 tau2_re_tc=8  seed 0:  1 volleys, IVI []
+  l6    g_gap=0.001  g_re_tc=0.015 g_tc_re=0.06 tau2_re_tc=8  seed 1:  1 volleys, IVI []
+  l6    g_gap=0.001  g_re_tc=0.015 g_tc_re=0.06 tau2_re_tc=20 seed 0:  1 volleys, IVI []
+  l6    g_gap=0.001  g_re_tc=0.015 g_tc_re=0.06 tau2_re_tc=20 seed 1:  1 volleys, IVI []
+  l6    g_gap=0.001  g_re_tc=0.015 g_tc_re=0.12 tau2_re_tc=8  seed 0:  1 volleys, IVI []
+  l6    g_gap=0.001  g_re_tc=0.015 g_tc_re=0.12 tau2_re_tc=8  seed 1:  1 volleys, IVI []
+  l6    g_gap=0.001  g_re_tc=0.015 g_tc_re=0.12 tau2_re_tc=20 seed 0:  1 volleys, IVI []
+  l6    g_gap=0.001  g_re_tc=0.015 g_tc_re=0.12 tau2_re_tc=20 seed 1:  1 volleys, IVI []
+  l6    g_gap=0.001  g_re_tc=0.06 g_tc_re=0.03 tau2_re_tc=8   seed 0:  1 volleys, IVI []
+  l6    g_gap=0.001  g_re_tc=0.06 g_tc_re=0.03 tau2_re_tc=8   seed 1:  1 volleys, IVI []
+  l6    g_gap=0.001  g_re_tc=0.06 g_tc_re=0.03 tau2_re_tc=20  seed 0:  1 volleys, IVI []
+  l6    g_gap=0.001  g_re_tc=0.06 g_tc_re=0.03 tau2_re_tc=20  seed 1:  1 volleys, IVI []
+  l6    g_gap=0.001  g_re_tc=0.06 g_tc_re=0.06 tau2_re_tc=8   seed 0:  1 volleys, IVI []
+  l6    g_gap=0.001  g_re_tc=0.06 g_tc_re=0.06 tau2_re_tc=8   seed 1:  1 volleys, IVI []
+  l6    g_gap=0.001  g_re_tc=0.06 g_tc_re=0.06 tau2_re_tc=20  seed 0:  1 volleys, IVI []
+  l6    g_gap=0.001  g_re_tc=0.06 g_tc_re=0.06 tau2_re_tc=20  seed 1:  1 volleys, IVI []
+  l6    g_gap=0.001  g_re_tc=0.06 g_tc_re=0.12 tau2_re_tc=8   seed 0:  1 volleys, IVI []
+  l6    g_gap=0.001  g_re_tc=0.06 g_tc_re=0.12 tau2_re_tc=8   seed 1:  1 volleys, IVI []
+  l6    g_gap=0.001  g_re_tc=0.06 g_tc_re=0.12 tau2_re_tc=20  seed 0:  1 volleys, IVI []
+  l6    g_gap=0.001  g_re_tc=0.06 g_tc_re=0.12 tau2_re_tc=20  seed 1:  1 volleys, IVI []
+  l6    g_gap=0.001  g_re_tc=0.12 g_tc_re=0.03 tau2_re_tc=8   seed 0:  1 volleys, IVI []
+  l6    g_gap=0.001  g_re_tc=0.12 g_tc_re=0.03 tau2_re_tc=8   seed 1:  1 volleys, IVI []
+  l6    g_gap=0.001  g_re_tc=0.12 g_tc_re=0.03 tau2_re_tc=20  seed 0:  1 volleys, IVI []
+  l6    g_gap=0.001  g_re_tc=0.12 g_tc_re=0.03 tau2_re_tc=20  seed 1:  1 volleys, IVI []
+  l6    g_gap=0.001  g_re_tc=0.12 g_tc_re=0.06 tau2_re_tc=8   seed 0:  1 volleys, IVI []
+  l6    g_gap=0.001  g_re_tc=0.12 g_tc_re=0.06 tau2_re_tc=8   seed 1:  1 volleys, IVI []
+  l6    g_gap=0.001  g_re_tc=0.12 g_tc_re=0.06 tau2_re_tc=20  seed 0:  1 volleys, IVI []
+  l6    g_gap=0.001  g_re_tc=0.12 g_tc_re=0.06 tau2_re_tc=20  seed 1:  1 volleys, IVI []
+  l6    g_gap=0.001  g_re_tc=0.12 g_tc_re=0.12 tau2_re_tc=8   seed 0:  1 volleys, IVI []
+  l6    g_gap=0.001  g_re_tc=0.12 g_tc_re=0.12 tau2_re_tc=8   seed 1:  1 volleys, IVI []
+  l6    g_gap=0.001  g_re_tc=0.12 g_tc_re=0.12 tau2_re_tc=20  seed 0: 25 volleys, IVI [129, 119, 128, 120, 123, 123, 127, 121]
+  l6    g_gap=0.001  g_re_tc=0.12 g_tc_re=0.12 tau2_re_tc=20  seed 1:  1 volleys, IVI []
+
+per (kick, g_gap), over seeds: evoked / median cycles / max cycles / runs with >= 6 cycles / median RE first-spike SD / median RE volleys after kick and their median interval
+  l6    g_gap=0.001   g_re_tc=0.015 g_tc_re=0.03 tau2_re_tc=8  evoked 2/2, cycles median 1 max 1, >=6: 0/2, RE SD 0.13 ms, volleys 1, IVI - ms
+  l6    g_gap=0.001   g_re_tc=0.015 g_tc_re=0.03 tau2_re_tc=20 evoked 2/2, cycles median 1 max 1, >=6: 0/2, RE SD 0.13 ms, volleys 1, IVI - ms
+  l6    g_gap=0.001   g_re_tc=0.015 g_tc_re=0.06 tau2_re_tc=8  evoked 2/2, cycles median 1 max 1, >=6: 0/2, RE SD 0.09 ms, volleys 1, IVI - ms
+  l6    g_gap=0.001   g_re_tc=0.015 g_tc_re=0.06 tau2_re_tc=20 evoked 2/2, cycles median 1 max 1, >=6: 0/2, RE SD 0.09 ms, volleys 1, IVI - ms
+  l6    g_gap=0.001   g_re_tc=0.015 g_tc_re=0.12 tau2_re_tc=8  evoked 2/2, cycles median 1 max 1, >=6: 0/2, RE SD 0.07 ms, volleys 1, IVI - ms
+  l6    g_gap=0.001   g_re_tc=0.015 g_tc_re=0.12 tau2_re_tc=20 evoked 2/2, cycles median 1 max 1, >=6: 0/2, RE SD 0.07 ms, volleys 1, IVI - ms
+  l6    g_gap=0.001   g_re_tc=0.06 g_tc_re=0.03 tau2_re_tc=8   evoked 2/2, cycles median 1 max 1, >=6: 0/2, RE SD 0.13 ms, volleys 1, IVI - ms
+  l6    g_gap=0.001   g_re_tc=0.06 g_tc_re=0.03 tau2_re_tc=20  evoked 2/2, cycles median 1 max 1, >=6: 0/2, RE SD 0.13 ms, volleys 1, IVI - ms
+  l6    g_gap=0.001   g_re_tc=0.06 g_tc_re=0.06 tau2_re_tc=8   evoked 2/2, cycles median 1 max 1, >=6: 0/2, RE SD 0.09 ms, volleys 1, IVI - ms
+  l6    g_gap=0.001   g_re_tc=0.06 g_tc_re=0.06 tau2_re_tc=20  evoked 2/2, cycles median 1 max 1, >=6: 0/2, RE SD 0.09 ms, volleys 1, IVI - ms
+  l6    g_gap=0.001   g_re_tc=0.06 g_tc_re=0.12 tau2_re_tc=8   evoked 2/2, cycles median 1 max 1, >=6: 0/2, RE SD 0.07 ms, volleys 1, IVI - ms
+  l6    g_gap=0.001   g_re_tc=0.06 g_tc_re=0.12 tau2_re_tc=20  evoked 2/2, cycles median 1 max 1, >=6: 0/2, RE SD 0.06 ms, volleys 1, IVI - ms
+  l6    g_gap=0.001   g_re_tc=0.12 g_tc_re=0.03 tau2_re_tc=8   evoked 2/2, cycles median 1 max 1, >=6: 0/2, RE SD 0.13 ms, volleys 1, IVI - ms
+  l6    g_gap=0.001   g_re_tc=0.12 g_tc_re=0.03 tau2_re_tc=20  evoked 2/2, cycles median 1 max 1, >=6: 0/2, RE SD 0.13 ms, volleys 1, IVI - ms
+  l6    g_gap=0.001   g_re_tc=0.12 g_tc_re=0.06 tau2_re_tc=8   evoked 2/2, cycles median 1 max 1, >=6: 0/2, RE SD 0.09 ms, volleys 1, IVI - ms
+  l6    g_gap=0.001   g_re_tc=0.12 g_tc_re=0.06 tau2_re_tc=20  evoked 2/2, cycles median 1 max 1, >=6: 0/2, RE SD 0.09 ms, volleys 1, IVI - ms
+  l6    g_gap=0.001   g_re_tc=0.12 g_tc_re=0.12 tau2_re_tc=8   evoked 2/2, cycles median 1 max 1, >=6: 0/2, RE SD 0.07 ms, volleys 1, IVI - ms
+  l6    g_gap=0.001   g_re_tc=0.12 g_tc_re=0.12 tau2_re_tc=20  evoked 1/2, cycles median 1 max 1, >=6: 0/2, RE SD 0.07 ms, volleys 13, IVI 124 ms

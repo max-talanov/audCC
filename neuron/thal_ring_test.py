@@ -92,12 +92,17 @@ def run_one(g_gap, seed, kick, kick_t=1000.0, tstop=4000.0, kick_sd=3.0,
     post = [tr for tr in trains if tr["t0"] >= kick_t]
     ev = post[0] if post and post[0]["t0"] < kick_t + 300.0 else None
     pre_spikes = int((t < kick_t).sum())
+    vols = [v["t"] for v in V.re_volleys(t, g, R, tstop, skip_ms=0.0) if v["t"] >= kick_t]
+    ivi = np.diff(vols)
     s = {"g_gap": g_gap, "seed": seed, "kick": kick, "wall": wall,
          "params": dict(extra or {}),
          "pre_kick_spikes": pre_spikes,
          "tc_spikes": int(((g >= R["tc"][0]) & (g < R["tc"][1])).sum()),
          "re_spikes": int(((g >= R["re"][0]) & (g < R["re"][1])).sum()),
          "n_trains_after_kick": len(post),
+         "n_volleys_after_kick": len(vols),
+         "ivi": [round(float(x)) for x in ivi[:8]],
+         "ivi_median": float(np.median(ivi)) if len(ivi) else float("nan"),
          "evoked": ev is not None}
     if ev is not None:
         s.update({"cycles": ev["cycles"], "duration": ev["duration"],
@@ -167,17 +172,27 @@ def main():
             print("%-5s %-7g %-4d | %-7s %-6s %-8s %-7s %-5s | %-9s %-22s | %d / %d"
                   % (s["kick"], s["g_gap"], s["seed"], "no", "-", "-", "-", "-", "-", "-",
                      s["n_trains_after_kick"], s["pre_kick_spikes"]), ptag(s))
+    print("\nRE volley intervals after the kick (ms, first 8), per run:")
+    for s in results:
+        print("  %-5s g_gap=%-6g %-40s seed %d: %2d volleys, IVI %s"
+              % (s["kick"], s["g_gap"], ptag(s), s["seed"], s["n_volleys_after_kick"], s["ivi"]))
     print("\nper (kick, g_gap), over seeds: evoked / median cycles / max cycles / "
-          "runs with >= 6 cycles / median RE first-spike SD")
+          "runs with >= 6 cycles / median RE first-spike SD / median RE volleys after kick "
+          "and their median interval")
     for k, gg, ex in itertools.product(a.kick.split(","), [float(x) for x in a.g_gap.split(",")],
                                        combos):
         rs = [s for s in results if s["kick"] == k and s["g_gap"] == gg and s["params"] == ex]
         ev = [s for s in rs if s["evoked"]]
         cyc = [s["cycles"] for s in ev]
-        print("  %-5s g_gap=%-7g %-28s evoked %d/%d, cycles median %s max %s, >=6: %d/%d, RE SD %s ms"
+        nv = [s["n_volleys_after_kick"] for s in rs]
+        iv = [s["ivi_median"] for s in rs if s["n_volleys_after_kick"] > 1]
+        print("  %-5s g_gap=%-7g %-40s evoked %d/%d, cycles median %s max %s, >=6: %d/%d, "
+              "RE SD %s ms, volleys %s, IVI %s ms"
               % (k, gg, ptag(rs[0]) if rs else "", len(ev), len(rs), "%.0f" % np.median(cyc) if cyc else "-",
                  max(cyc) if cyc else "-", sum(c >= 6 for c in cyc), len(rs),
-                 "%.2f" % np.median([s["re_sd_first"] for s in ev]) if ev else "-"))
+                 "%.2f" % np.median([s["re_sd_first"] for s in ev]) if ev else "-",
+                 "%.0f" % np.median(nv) if nv else "-",
+                 "%.0f" % np.median(iv) if iv else "-"))
     if a.outdir:
         with open(os.path.join(a.outdir, "ring_summary.json"), "w") as f:
             json.dump(results, f, indent=1, default=float)

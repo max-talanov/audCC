@@ -84,7 +84,8 @@ class ParallelCorticoThalamicNet:
                  g_e_i=0.02, g_i_e=0.08, g_i_e_l5=0.0, gsk_cx=8e-4, ib_frac=0.5,
                  g_tc_l4=0.02, g_l6_tc=0.03, g_l6_re=0.03,
                  conv=100, gap_deg=6, gap_short=2, g_l5_gap=0.02,
-                 het=0.05, delay_jitter=0.0, state=None, het_seed=0):
+                 het=0.05, delay_jitter=0.0, state=None, het_seed=0,
+                 kl_scale_tc=None, kl_scale_re=None):
         self.pc = h.ParallelContext()
         self.rank = int(self.pc.id())
         self.nhost = int(self.pc.nhost())
@@ -125,6 +126,12 @@ class ParallelCorticoThalamicNet:
         # every leak into pas + kleak (brain_state.py); "nrem" is the legacy
         # model up to rounding (aud_checks.py --only leak), "wake" closes the
         # K+ leak (PLAN-auditory-input.md D4; uncalibrated until Stage B).
+        # kl_scale_tc / kl_scale_re: sleep depth of the thalamus, as a scale on
+        # the K+ leak after the pas + kleak split (implies state="nrem" if no
+        # state is given). 1 = the nrem preset; > 1 = deeper hyperpolarisation.
+        self.kl_override = {"tc": kl_scale_tc, "re": kl_scale_re}
+        if state is None and (kl_scale_tc is not None or kl_scale_re is not None):
+            state = "nrem"
         self.state = state
         # het_seed: 0 (default) = the production per-cell jitter; other values
         # draw a different, equally deterministic set of cells (seeds for
@@ -155,7 +162,7 @@ class ParallelCorticoThalamicNet:
             for gid in gids:
                 c = self._make_cell(pop, gid)
                 if self.state:
-                    BS.apply_state(c, pop, self.state)
+                    BS.apply_state(c, pop, self.state, self.kl_override)
                 self._register(gid, c)
 
         # -- synapses + fixed-convergence wiring -----------------------------

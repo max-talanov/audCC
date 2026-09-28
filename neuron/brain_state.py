@@ -63,10 +63,15 @@ def split_leak(sec, e_open, kl_scale=1.0, ekl=E_KL):
     return f
 
 
-def apply_state(cell, pop, state):
-    """Split the leak in every section of `cell` that has pas."""
+def apply_state(cell, pop, state, kl_override=None):
+    """Split the leak in every section of `cell` that has pas. kl_override
+    ({group: scale}) replaces the preset's K+ leak scale for those groups:
+    > 1 deepens the sleep-state hyperpolarisation (and lowers input
+    resistance), < 1 is the wake direction."""
     grp = group_of(pop)
     scale = STATES[state]["kl_scale"][grp]
+    if kl_override and kl_override.get(grp) is not None:
+        scale = kl_override[grp]
     for name in ("soma", "dend"):
         sec = getattr(cell, name, None)
         if sec is not None and sec.has_membrane("pas"):

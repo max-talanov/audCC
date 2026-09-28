@@ -1,0 +1,86 @@
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+kick  g_gap   seed | evoked  cycles dur_ms   Hz      wax   | RE_SD_ms  TC part per cycle      | trains after kick / pre-kick spikes
+----------------------------------------------------------------------------------------------------------------------
+l6    0.001   0    | yes     1      0        -       no    | 0.22      1.00                   | 1 / 69 kl_scale_re=1 kl_scale_tc=1
+l6    0.001   1    | yes     1      0        -       no    | 0.21      1.00                   | 1 / 68 kl_scale_re=1 kl_scale_tc=1
+l6    0.001   2    | yes     1      0        -       no    | 0.23      1.00                   | 1 / 63 kl_scale_re=1 kl_scale_tc=1
+l6    0.001   0    | yes     1      0        -       no    | 0.24      1.00                   | 1 / 69 kl_scale_re=1.5 kl_scale_tc=1
+l6    0.001   1    | yes     1      0        -       no    | 0.23      1.00                   | 1 / 68 kl_scale_re=1.5 kl_scale_tc=1
+l6    0.001   2    | yes     1      0        -       no    | 0.26      1.00                   | 1 / 63 kl_scale_re=1.5 kl_scale_tc=1
+l6    0.001   0    | yes     1      0        -       no    | 0.22      1.00                   | 1 / 0 kl_scale_re=1 kl_scale_tc=1.25
+l6    0.001   1    | yes     1      0        -       no    | 0.21      1.00                   | 1 / 0 kl_scale_re=1 kl_scale_tc=1.25
+l6    0.001   2    | yes     1      0        -       no    | 0.23      1.00                   | 1 / 0 kl_scale_re=1 kl_scale_tc=1.25
+l6    0.001   0    | yes     1      0        -       no    | 0.24      1.00                   | 1 / 0 kl_scale_re=1.5 kl_scale_tc=1.25
+l6    0.001   1    | yes     1      0        -       no    | 0.23      1.00                   | 1 / 0 kl_scale_re=1.5 kl_scale_tc=1.25
+l6    0.001   2    | yes     1      0        -       no    | 0.26      1.00                   | 1 / 0 kl_scale_re=1.5 kl_scale_tc=1.25
+l6    0.001   0    | yes     1      0        -       no    | 0.22      1.00                   | 1 / 0 kl_scale_re=1 kl_scale_tc=1.5
+l6    0.001   1    | yes     1      0        -       no    | 0.22      1.00                   | 1 / 0 kl_scale_re=1 kl_scale_tc=1.5
+l6    0.001   2    | yes     1      0        -       no    | 0.24      1.00                   | 1 / 0 kl_scale_re=1 kl_scale_tc=1.5
+l6    0.001   0    | yes     1      0        -       no    | 0.24      1.00                   | 1 / 0 kl_scale_re=1.5 kl_scale_tc=1.5
+l6    0.001   1    | yes     1      0        -       no    | 0.24      1.00                   | 1 / 0 kl_scale_re=1.5 kl_scale_tc=1.5
+l6    0.001   2    | yes     1      0        -       no    | 0.26      1.00                   | 1 / 0 kl_scale_re=1.5 kl_scale_tc=1.5
+l6    0.001   0    | yes     1      0        -       no    | 0.24      1.00                   | 1 / 0 kl_scale_re=1 kl_scale_tc=2
+l6    0.001   1    | yes     1      0        -       no    | 0.25      1.00                   | 1 / 0 kl_scale_re=1 kl_scale_tc=2
+l6    0.001   2    | yes     1      0        -       no    | 0.27      1.00                   | 1 / 0 kl_scale_re=1 kl_scale_tc=2
+l6    0.001   0    | yes     1      0        -       no    | 0.25      1.00                   | 1 / 0 kl_scale_re=1.5 kl_scale_tc=2
+l6    0.001   1    | yes     1      0        -       no    | 0.25      1.00                   | 1 / 0 kl_scale_re=1.5 kl_scale_tc=2
+l6    0.001   2    | yes     1      0        -       no    | 0.28      1.00                   | 1 / 0 kl_scale_re=1.5 kl_scale_tc=2
+
+RE volley intervals after the kick (ms, first 8), per run:
+  l6    g_gap=0.001  kl_scale_re=1 kl_scale_tc=1              seed 0:  1 volleys, IVI []
+  l6    g_gap=0.001  kl_scale_re=1 kl_scale_tc=1              seed 1:  1 volleys, IVI []
+  l6    g_gap=0.001  kl_scale_re=1 kl_scale_tc=1              seed 2:  1 volleys, IVI []
+  l6    g_gap=0.001  kl_scale_re=1.5 kl_scale_tc=1            seed 0:  1 volleys, IVI []
+  l6    g_gap=0.001  kl_scale_re=1.5 kl_scale_tc=1            seed 1:  1 volleys, IVI []
+  l6    g_gap=0.001  kl_scale_re=1.5 kl_scale_tc=1            seed 2:  1 volleys, IVI []
+  l6    g_gap=0.001  kl_scale_re=1 kl_scale_tc=1.25           seed 0:  1 volleys, IVI []
+  l6    g_gap=0.001  kl_scale_re=1 kl_scale_tc=1.25           seed 1:  1 volleys, IVI []
+  l6    g_gap=0.001  kl_scale_re=1 kl_scale_tc=1.25           seed 2:  1 volleys, IVI []
+  l6    g_gap=0.001  kl_scale_re=1.5 kl_scale_tc=1.25         seed 0:  1 volleys, IVI []
+  l6    g_gap=0.001  kl_scale_re=1.5 kl_scale_tc=1.25         seed 1:  1 volleys, IVI []
+  l6    g_gap=0.001  kl_scale_re=1.5 kl_scale_tc=1.25         seed 2:  1 volleys, IVI []
+  l6    g_gap=0.001  kl_scale_re=1 kl_scale_tc=1.5            seed 0:  1 volleys, IVI []
+  l6    g_gap=0.001  kl_scale_re=1 kl_scale_tc=1.5            seed 1:  1 volleys, IVI []
+  l6    g_gap=0.001  kl_scale_re=1 kl_scale_tc=1.5            seed 2:  1 volleys, IVI []
+  l6    g_gap=0.001  kl_scale_re=1.5 kl_scale_tc=1.5          seed 0:  1 volleys, IVI []
+  l6    g_gap=0.001  kl_scale_re=1.5 kl_scale_tc=1.5          seed 1:  1 volleys, IVI []
+  l6    g_gap=0.001  kl_scale_re=1.5 kl_scale_tc=1.5          seed 2:  1 volleys, IVI []
+  l6    g_gap=0.001  kl_scale_re=1 kl_scale_tc=2              seed 0:  1 volleys, IVI []
+  l6    g_gap=0.001  kl_scale_re=1 kl_scale_tc=2              seed 1:  1 volleys, IVI []
+  l6    g_gap=0.001  kl_scale_re=1 kl_scale_tc=2              seed 2:  1 volleys, IVI []
+  l6    g_gap=0.001  kl_scale_re=1.5 kl_scale_tc=2            seed 0:  1 volleys, IVI []
+  l6    g_gap=0.001  kl_scale_re=1.5 kl_scale_tc=2            seed 1:  1 volleys, IVI []
+  l6    g_gap=0.001  kl_scale_re=1.5 kl_scale_tc=2            seed 2:  1 volleys, IVI []
+
+per (kick, g_gap), over seeds: evoked / median cycles / max cycles / runs with >= 6 cycles / median RE first-spike SD / median RE volleys after kick and their median interval
+  l6    g_gap=0.001   kl_scale_re=1 kl_scale_tc=1              evoked 3/3, cycles median 1 max 1, >=6: 0/3, RE SD 0.22 ms, volleys 1, IVI - ms
+  l6    g_gap=0.001   kl_scale_re=1.5 kl_scale_tc=1            evoked 3/3, cycles median 1 max 1, >=6: 0/3, RE SD 0.24 ms, volleys 1, IVI - ms
+  l6    g_gap=0.001   kl_scale_re=1 kl_scale_tc=1.25           evoked 3/3, cycles median 1 max 1, >=6: 0/3, RE SD 0.22 ms, volleys 1, IVI - ms
+  l6    g_gap=0.001   kl_scale_re=1.5 kl_scale_tc=1.25         evoked 3/3, cycles median 1 max 1, >=6: 0/3, RE SD 0.24 ms, volleys 1, IVI - ms
+  l6    g_gap=0.001   kl_scale_re=1 kl_scale_tc=1.5            evoked 3/3, cycles median 1 max 1, >=6: 0/3, RE SD 0.22 ms, volleys 1, IVI - ms
+  l6    g_gap=0.001   kl_scale_re=1.5 kl_scale_tc=1.5          evoked 3/3, cycles median 1 max 1, >=6: 0/3, RE SD 0.24 ms, volleys 1, IVI - ms
+  l6    g_gap=0.001   kl_scale_re=1 kl_scale_tc=2              evoked 3/3, cycles median 1 max 1, >=6: 0/3, RE SD 0.25 ms, volleys 1, IVI - ms
+  l6    g_gap=0.001   kl_scale_re=1.5 kl_scale_tc=2            evoked 3/3, cycles median 1 max 1, >=6: 0/3, RE SD 0.25 ms, volleys 1, IVI - ms
