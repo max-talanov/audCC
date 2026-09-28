@@ -335,6 +335,42 @@ threshold — and measure the 2nd-spindle probability vs interval (0.5–8 s).
 If still absent, add the RE side of refractoriness (review §V.D: RE
 Ca²⁺/Na⁺-dependent K⁺ hyperpolarisation).
 
+### Refractoriness with a tone kick (2026-09-28)
+
+Raw output: `res/2026-09-28/ring_tone_refr.*.txt`; figure
+`out/stage1_tone_refractoriness_lfp.png`. Same working point, tone kick
+(60 dB, 50 ms, IC → TC input; RE reached only via TC) at 3.0 s, a second
+identical tone Δ later, 5 seeds; without I_h and with I_h 5e-6
+(compensated, 1 µm pool).
+
+- **One tone evokes a spindle** in the isolated thalamus: 7–11 cycles,
+  0.68–1.08 s, 8.8–9.6 Hz without I_h; 5 cycles with I_h.
+- **No refractoriness.** Second spindle (cycles) vs the first:
+
+  | Δ | no I_h (first: 7–11) | I_h 5e-6 (first: 5) |
+  |---|---|---|
+  | 0.75 s | 0 — tone 2 arrives during the last cycle of spindle 1, which it ends | 4–5 (tone 0.35 s after the end) |
+  | 1.5 s | 6–9 | 5–6 |
+  | 3 s | 6–9 | 5–6 |
+  | 6 s | 6–9 | 5–6 |
+
+  The TC response to the tone itself is unchanged (3.2 vs 3.2–3.5 spikes/
+  cell in 0–50 ms without I_h; 2.5 vs 2.4–2.6 with). The Ca²⁺-locked I_h
+  adds only ~2 mV of TC depolarisation, and the tone (like the L6 kick)
+  drives TC well past that.
+
+**So refractoriness is the one Stage 1 criterion still missing, and it
+does not come from I_h at this strength.** Options, roughly in order:
+1. **Stronger / longer I_h up-regulation** at the same resting balance:
+   `ginc` (locked-open conductance ratio, 2 now), `k2` (unbinding, τ 2.5 s),
+   so the post-spindle depolarisation is several mV and lasts seconds.
+2. **RE-side refractoriness** (review §V.D): a slow Ca²⁺- or Na⁺-activated
+   K⁺ current in RE that accumulates over a spindle.
+3. **Accept it as a network property** and move to Stage 2: in vivo the
+   cortex and neuromodulation also gate spindle timing; with the cortex
+   attached the 5–10 s spacing may come from the slow oscillation.
+None of the Stage 1 settings is in production yet.
+
 **Done when:** a single kick produces, on ≥ 4 of 5 seeds, a train of ≥ 6
 cycles at 10–15 Hz lasting ≥ 0.5 s with a growing-then-fading envelope, and a
 second kick within ~2 s produces a weaker or no spindle (refractoriness).

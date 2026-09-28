@@ -87,8 +87,8 @@ def run_one(g_gap, seed, kick, kick_t=1000.0, tstop=4000.0, kick_sd=3.0,
             lambda: [nc.event(float(t)) for nc, ts in events for t in ts])
         aud = None
     elif kick == "tone":
-        spec = {"seed": seed, "events": [{"t": kick_t, "type": "tone",
-                                          "dur": 50.0, "level": 60.0}]}
+        spec = {"seed": seed, "events": [{"t": t, "type": "tone", "dur": 50.0, "level": 60.0}
+                                         for t in [kick_t] + ([kick2_t] if kick2_t is not None else [])]}
         aud = AI.AuditoryInput(net, spec, tstop)
         fih = None
     else:
