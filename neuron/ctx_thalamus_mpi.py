@@ -86,7 +86,8 @@ class ParallelCorticoThalamicNet:
                  conv=100, gap_deg=6, gap_short=2, g_l5_gap=0.02,
                  het=0.05, delay_jitter=0.0, state=None, het_seed=0,
                  kl_scale_tc=None, kl_scale_re=None, thal_footprint=None,
-                 ek_tc=None, ek_re=None, taur_re=None, depth_tc=None):
+                 ek_tc=None, ek_re=None, taur_re=None, depth_tc=None,
+                 taur_tc=None, ginc_tc=None):
         self.pc = h.ParallelContext()
         self.rank = int(self.pc.id())
         self.nhost = int(self.pc.nhost())
@@ -159,6 +160,14 @@ class ParallelCorticoThalamicNet:
         # half-activation, so I_h barely up-regulates. ~1 um (Destexhe-like)
         # gives the intended locking and the refractory depolarisation.
         self.depth_tc = depth_tc
+        # taur_tc: TC Ca2+ pool clearance (cad taur, default 80 ms). With a
+        # 1 um pool and 80 ms, window I_T holds resting Ca2+ near 1 uM and
+        # I_h is ~80% locked AT REST, so a spindle cannot up-regulate it
+        # further (no refractoriness); ~5 ms (Destexhe's cadecay) gives 26%
+        # locked at rest -> 77% after a spindle, +2-3 mV for > 4 s.
+        # ginc_tc: conductance ratio of the Ca2+-locked I_h state (ihca
+        # ginc, default 2).
+        self.taur_tc, self.ginc_tc = taur_tc, ginc_tc
         # het_seed: 0 (default) = the production per-cell jitter; other values
         # draw a different, equally deterministic set of cells (seeds for
         # thal_ring_test.py, PLAN-spindels.md Stage 1).
@@ -258,6 +267,10 @@ class ParallelCorticoThalamicNet:
                 c.soma.ek = self.ek_tc
             if self.depth_tc is not None and c.soma.has_membrane("cad"):
                 c.soma.depth_cad = self.depth_tc
+            if self.taur_tc is not None and c.soma.has_membrane("cad"):
+                c.soma.taur_cad = self.taur_tc
+            if self.ginc_tc is not None and c.soma.has_membrane("ihca"):
+                c.soma.ginc_ihca = self.ginc_tc
             return c
         if pop == "re":
             c = T.RECell(gsk=self.gsk_re)

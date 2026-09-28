@@ -1,8 +1,8 @@
 # Plan: make the thalamus produce real sleep spindles
 
 Status: **Stage 0 done. Stage 1: the isolated thalamus produces
-spindle-like trains at 11.7–12.6 Hz (2026-09-28); refractoriness still
-missing.** See "Results so far", "RE recovery" and "Lever 4 (I_h)" in
+spindle-like trains in the 10–15 Hz band with partial refractoriness
+(2026-09-28, strong I_h locking; see "Option 1").** See "Results so far", "RE recovery" and "Lever 4 (I_h)" in
 Stage 1. Background and evidence:
 `Edu-questions.md` question 5, and the history in `neuron/README.md`.
 
@@ -370,6 +370,44 @@ does not come from I_h at this strength.** Options, roughly in order:
    cortex and neuromodulation also gate spindle timing; with the cortex
    attached the 5–10 s spacing may come from the slow oscillation.
 None of the Stage 1 settings is in production yet.
+
+### Option 1: stronger I_h locking — partial refractoriness (2026-09-28)
+
+Raw output: `res/2026-09-28/ring_ihlock.*.txt`; figure
+`out/stage1_ih_locking_lfp.png`. New options `taur_tc` (TC Ca²⁺ clearance)
+and `ginc_tc` (locked-open conductance ratio); defaults unchanged.
+
+- **Why the previous I_h runs could not be refractory:** with the 1 µm pool
+  and TC's 80 ms Ca²⁺ clearance, window I_T holds resting Ca²⁺ at 1.1 µM, so
+  I_h is ~83% locked *at rest* and a spindle cannot lock it further
+  (`k2` had no effect for the same reason). With Destexhe's ~5 ms clearance,
+  26% locked at rest → 77% after a spindle.
+- **Single-cell screen** (τ 5 ms, rest held at −75.6 mV by the K⁺ leak):
+  after a 7-cycle 12 Hz RE barrage TC stays depolarised by +2.9 / +5.2 /
+  +7.8 mV for > 4 s at `ginc` 2 / 4 / 8 (`kl_scale_tc` 1.273 / 1.422 /
+  1.671).
+- **Network, tone kick, 3 seeds** (`gh_tc 5e-6`, `depth_tc 1`, `taur_tc 5`,
+  plus the working point):
+
+  | ginc | 1st spindle | 2nd tone +1.5 s | 2nd tone +4 s |
+  |---|---|---|---|
+  | 2 | 5–7 cyc, 0.41–0.60 s, ~10 Hz | 6–7 cyc (no change) | 6–7 cyc |
+  | 4 | 7–9 cyc, 0.51–0.67 s, ~11.7 Hz | 7–9 cyc, ~10% shorter | 8–9 cyc |
+  | **8** | **8 cyc, 0.49–0.55 s, 12.7–14.3 Hz** | **6 cyc, 0.45 s, ~11 Hz** | **5–6 cyc, 0.43–0.44 s** |
+
+  At `ginc` 8 a second tone 1.5–4 s later gives a spindle with 25–35% fewer
+  cycles in 3/3 seeds: a **weaker** second spindle, which meets the Stage 1
+  wording ("weaker or no spindle"), but it is never abolished. Stronger
+  locking also speeds the first spindle up (volley interval 94 → 78 →
+  65 ms at `ginc` 2 → 4 → 8).
+
+**Stage 1 status with `ginc` 8:** ≥ 6 cycles ✅ (8, 3/3); 10–15 Hz ✅
+(12.7–14.3); ≥ 0.5 s ⚠️ (0.49–0.55); waxing/waning ✅ (earlier, local
+start); refractoriness ✅ partial (weaker, not absent). Only 3 seeds and
+one level (60 dB); the full-refractoriness question (no spindle within
+~2–5 s) is still open — RE-side K⁺ accumulation (option 2) is the
+remaining lever. Next logical step: Stage 2 (cortex attached) with these
+settings, all still behind options.
 
 **Done when:** a single kick produces, on ≥ 4 of 5 seeds, a train of ≥ 6
 cycles at 10–15 Hz lasting ≥ 0.5 s with a growing-then-fading envelope, and a

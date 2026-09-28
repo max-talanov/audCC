@@ -1,0 +1,17 @@
+numprocs=1
+numprocs=1
+numprocs=1
+kick  g_gap   seed | evoked  cycles dur_ms   Hz      wax   | RE_SD_ms  TC part per cycle      | trains after kick / pre-kick spikes
+----------------------------------------------------------------------------------------------------------------------
+tone  0.001   0    | yes     5      409      9.8     no    | 0.19      1.00,0.41,0.52,0.40,0.41 | 2 / 0 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=2 kl_scale_tc=1.273 taur_re=5 taur_tc=5 thal_footprint=10
+tone  0.001   1    | yes     7      599      10.0    no    | 0.22      1.00,0.40,0.53,0.43,0.48,0.34 | 2 / 0 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=2 kl_scale_tc=1.273 taur_re=5 taur_tc=5 thal_footprint=10
+tone  0.001   2    | yes     6      509      9.8     no    | 0.17      1.00,0.41,0.50,0.38,0.38,0.25 | 2 / 0 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=2 kl_scale_tc=1.273 taur_re=5 taur_tc=5 thal_footprint=10
+
+RE volley intervals after the kick (ms, first 8), per run:
+  tone  g_gap=0.001  depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=2 kl_scale_tc=1.273 taur_re=5 taur_tc=5 thal_footprint=10 seed 0: 11 volleys, IVI [137, 92, 85, 95, 3589, 127, 74, 77]
+  tone  g_gap=0.001  depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=2 kl_scale_tc=1.273 taur_re=5 taur_tc=5 thal_footprint=10 seed 1: 14 volleys, IVI [140, 92, 85, 99, 82, 101, 3401, 125]
+  tone  g_gap=0.001  depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=2 kl_scale_tc=1.273 taur_re=5 taur_tc=5 thal_footprint=10 seed 2: 12 volleys, IVI [145, 91, 89, 103, 81, 3491, 130, 77]
+
+per (kick, g_gap), over seeds: evoked / median cycles / max cycles / runs with >= 6 cycles / median RE first-spike SD / median RE volleys after kick and their median interval
+  tone  g_gap=0.001   depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=2 kl_scale_tc=1.273 taur_re=5 taur_tc=5 thal_footprint=10 kick 1 -> cycles [5, 7, 6] | kick 2 at 7000 ms -> cycles [6, 7, 6]
+  tone  g_gap=0.001   depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=2 kl_scale_tc=1.273 taur_re=5 taur_tc=5 thal_footprint=10 evoked 3/3, cycles median 6 max 7, >=6: 2/3, RE SD 0.19 ms, volleys 12, IVI 90 ms
