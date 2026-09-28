@@ -295,7 +295,23 @@ def _thal_lfp(npz, fs=1000.0):
     return out - out[bins >= min(1000.0, tstop / 4)].mean(), bins
 
 
-def plot_train_reconstruction(cases, out_png, window, lfp="cortex", title=None):
+def _ring_raster(ax, npz, window):
+    """TC (top, blue) and RE (bottom, red) spikes, y = position on the ring
+    (gid order), so activity spreading along the ring shows as slanted bands."""
+    t, g, R = npz["times"], npz["gids"], npz["ranges"].item()
+    for k, (pop, col, y0) in enumerate([("tc", A.BLUE, 1.05), ("re", A.RED, 0.0)]):
+        lo, hi = R[pop]
+        m = (g >= lo) & (g < hi) & (t >= window[0]) & (t < window[1])
+        ax.plot(t[m] / 1000.0, y0 + (g[m] - lo + 0.5) / (hi - lo), "|", ms=1.6,
+                color=col, alpha=0.6, mew=0.5)
+    ax.set_ylim(-0.02, 2.07)
+    ax.set_yticks([0.5, 1.55])
+    ax.set_yticklabels(["RE", "TC"], fontsize=8)
+    ax.set_ylabel("ring pos.", fontsize=8)
+
+
+def plot_train_reconstruction(cases, out_png, window, lfp="cortex", title=None,
+                              raster=False):
     """Literature-style SO-band + 10-15 Hz reconstruction (ctx_analyze's
     format) per case, shared y-scales, with BOTH event definitions:
     grey shading = band-pass events (ctx_analyze._detect_spindles), markers
@@ -327,12 +343,15 @@ def plot_train_reconstruction(cases, out_png, window, lfp="cortex", title=None):
     w0 = lambda b: (b >= window[0]) & (b < window[1])
     rmax = max(np.abs(c[3][w0(c[2])]).max() for c in comp) or 1.0
     smax = max(np.abs(c[4][w0(c[2])]).max() for c in comp) or 1.0
-    fig, axes = plt.subplots(2 * len(comp), 1, sharex=True,
-                             figsize=(14, 2.25 * 2 * len(comp) + 0.9))
+    per = 3 if raster else 2
+    fig, axes = plt.subplots(per * len(comp), 1, sharex=True,
+                             figsize=(14, 2.25 * per * len(comp) + 0.9))
     for i, (label, color, bins, rec, sp, st, en, trains, stim) in enumerate(comp):
         w = w0(bins)
         ts = bins[w] / 1000.0
-        a1, a2 = axes[2 * i], axes[2 * i + 1]
+        a1, a2 = axes[per * i], axes[per * i + 1]
+        if raster:
+            _ring_raster(axes[per * i + 2], cases[i][1], window)
         a1.plot(ts, rec[w], color=color, lw=0.8)
         a1.set_ylim(-rmax * 1.1, rmax * 1.35)
         a1.set_ylabel("raw\n(SO+spindle)", fontsize=8)
@@ -361,7 +380,7 @@ def plot_train_reconstruction(cases, out_png, window, lfp="cortex", title=None):
                         va="center")
         for t in stim:
             if window[0] <= t < window[1]:
-                for ax in (a1, a2):
+                for ax in axes[per * i:per * i + per]:
                     ax.axvline(t / 1000.0, color=A.BLUE, lw=1.2, alpha=0.8)
     axes[-1].set_xlabel("time (s)")
     axes[-1].set_xlim(window[0] / 1000.0, window[1] / 1000.0)
@@ -412,6 +431,8 @@ def main(argv=None):
                          "per run with band-pass events AND spike-based trains "
                          "(uses --window-start/--window-len, --lfp)")
     ap.add_argument("--lfp", choices=["cortex", "thal"], default="cortex")
+    ap.add_argument("--raster", action="store_true",
+                    help="--recon: add a TC/RE raster sorted by ring position")
     ap.add_argument("--title", default=None)
     ap.add_argument("--self-test", action="store_true",
                     help="check the train measure on a synthetic spike train")
@@ -433,7 +454,7 @@ def main(argv=None):
         cols = ["#b03a2e", "0.3", "#1f618d", "#7d3c98", "#117a65", "#b9770e"]
         plot_train_reconstruction([(l, n, cols[i % len(cols)]) for i, (l, n) in enumerate(cases)],
                                   a.recon, (a.window_start, a.window_start + a.window_len),
-                                  lfp=a.lfp, title=a.title)
+                                  lfp=a.lfp, title=a.title, raster=a.raster)
         return 0
     if a.trains:
         for label, npz in cases:

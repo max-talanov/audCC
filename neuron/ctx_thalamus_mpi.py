@@ -85,7 +85,8 @@ class ParallelCorticoThalamicNet:
                  g_tc_l4=0.02, g_l6_tc=0.03, g_l6_re=0.03,
                  conv=100, gap_deg=6, gap_short=2, g_l5_gap=0.02,
                  het=0.05, delay_jitter=0.0, state=None, het_seed=0,
-                 kl_scale_tc=None, kl_scale_re=None):
+                 kl_scale_tc=None, kl_scale_re=None, thal_footprint=None,
+                 ek_tc=None, ek_re=None, taur_re=None):
         self.pc = h.ParallelContext()
         self.rank = int(self.pc.id())
         self.nhost = int(self.pc.nhost())
@@ -133,6 +134,24 @@ class ParallelCorticoThalamicNet:
         if state is None and (kl_scale_tc is not None or kl_scale_re is not None):
             state = "nrem"
         self.state = state
+        # thal_footprint: None (default) = the production random / all-to-all
+        # RE <-> TC wiring. An int F = local, topographic wiring on a ring
+        # (PLAN-spindels.md Stage 1 lever 2): each TC hears from its F nearest
+        # RE cells, each RE from the TC cells covering the same stretch of
+        # ring (~F * n_tc / n_re, capped at conv). Total conductance per cell
+        # is unchanged (g / k per connection).
+        self.thal_footprint = thal_footprint
+        # ek_tc / ek_re: K+ reversal (mV) for TC / RE. None keeps NEURON's
+        # default ek = -77 mV, which nothing in this model overrides -- above
+        # RE's -81.5 mV rest, so RE's SK2 "AHP" and hh2 K+ current depolarise
+        # it after a burst (PLAN-spindels.md Stage 1, RE recovery). Destexhe's
+        # thalamic models use about -95 to -100 mV. Separate for TC because
+        # ek_tc = -95 turns the least hyperpolarised TC cells (heterogeneous
+        # e_pas) into ~15-19 Hz pacemakers with no input.
+        # taur_re: RE submembrane Ca2+ pool clearance (cad taur, default 80
+        # ms; Destexhe's cadecay uses ~5 ms). Slow clearance holds SK2
+        # saturated for ~200 ms after a burst, blocking the next burst.
+        self.ek_tc, self.ek_re, self.taur_re = ek_tc, ek_re, taur_re
         # het_seed: 0 (default) = the production per-cell jitter; other values
         # draw a different, equally deterministic set of cells (seeds for
         # thal_ring_test.py, PLAN-spindels.md Stage 1).
@@ -228,11 +247,17 @@ class ParallelCorticoThalamicNet:
             c = T.TCCell(gsk=0.0, gh=self.gh_tc)
             c.soma.e_pas = self._jitter(-80.0, gid, 1)
             c.soma.gcabar_it *= self._jitter(1.0, gid, 2)
+            if self.ek_tc is not None:
+                c.soma.ek = self.ek_tc
             return c
         if pop == "re":
             c = T.RECell(gsk=self.gsk_re)
             c.soma.e_pas = self._jitter(-82.0, gid, 1)
             c.soma.gcabar_it2 *= self._jitter(1.0, gid, 2)
+            if self.ek_re is not None:
+                c.soma.ek = self.ek_re
+            if self.taur_re is not None and c.soma.has_membrane("cad"):
+                c.soma.taur_cad = self.taur_re
             return c
         if pop.endswith("i"):
             return C.FSCell(e_pas=self._jitter(-68.0, gid, 1))
@@ -299,20 +324,47 @@ class ParallelCorticoThalamicNet:
         nc.weight[0], nc.delay = weight, delay
         self.ncs.append(nc)
 
+    def ring_pos(self, gid):
+        """Position of gid on its population's ring, in [0, 1): cells are
+        placed in gid order, the same order RE<->RE neighbour inhibition and
+        the gap-junction ring already use."""
+        for pop, (lo, hi) in self.ranges.items():
+            if lo <= gid < hi:
+                return (gid - lo + 0.5) / (hi - lo)
+        raise KeyError(gid)
+
+    def _draw_local(self, dst_gid, plo, phi, k):
+        """The k presynaptic cells nearest to dst_gid on the ring
+        (circular distance, ties by index): deterministic, no RNG."""
+        n = phi - plo
+        x = self.ring_pos(dst_gid)
+        xs = (np.arange(n) + 0.5) / n
+        d = np.abs(xs - x)
+        d = np.minimum(d, 1.0 - d)
+        return plo + np.lexsort((np.arange(n), d))[:k]
+
     def _project(self, key, pre_pop, post_pop, e, tau1, tau2, g, delay=1.0,
-                 seed_offset=0):
+                 seed_offset=0, width=None):
         """Fixed-convergence excitatory/inhibitory projection, cells this
-        rank owns as TARGET only (NEURON connects TO a local gid)."""
+        rank owns as TARGET only (NEURON connects TO a local gid).
+
+        width: None = random sources (_draw). A float = local wiring: the
+        sources are the round(width * n_pre) cells nearest to the target on
+        the ring (at least 1, at most conv)."""
         plo, phi = self.ranges[pre_pop]
         qlo, qhi = self.ranges[post_pop]
         k = max(1, min(self.conv, phi - plo))
+        if width is not None:
+            k = max(1, min(self.conv, phi - plo, int(round(width * (phi - plo)))))
         for gid in range(qlo, qhi):
             if int(self.pc.gid_exists(gid)) == 0:
                 continue
             syn = h.Exp2Syn(self._target_sec(gid)(0.5))
             syn.e, syn.tau1, syn.tau2 = e, tau1, tau2
             self.syns[(key, gid)] = syn
-            for src in self._draw(gid + seed_offset, plo, phi, k):
+            srcs = (self._draw(gid + seed_offset, plo, phi, k) if width is None
+                    else self._draw_local(gid, plo, phi, k))
+            for src in srcs:
                 self._connect(src, syn, g / k, delay, dst_gid=gid)
 
     # -- intrathalamic wiring (params matched to ctx_thalamus_network.py) --
@@ -322,10 +374,18 @@ class ParallelCorticoThalamicNet:
         # for RE/TC multi-cycle ringing (a longer IPSP -> a longer, possibly
         # more effective de-inactivation window before rebound) now that
         # gh_tc was ruled out as that lever (see --sweep-gh-tc).
-        self._project("gabaa", "re", "tc", -85.0, 1.0, tau2, g, seed_offset=0)
+        self._project("gabaa", "re", "tc", -85.0, 1.0, tau2, g, seed_offset=0,
+                      width=self._thal_width())
 
     def _wire_tc_re(self, g):
-        self._project("ampa", "tc", "re", 0.0, 0.5, 2.0, g, seed_offset=1)
+        self._project("ampa", "tc", "re", 0.0, 0.5, 2.0, g, seed_offset=1,
+                      width=self._thal_width())
+
+    def _thal_width(self):
+        """Ring width of the local RE <-> TC footprint (None = not local)."""
+        if self.thal_footprint is None:
+            return None
+        return float(self.thal_footprint) / (self.ranges["re"][1] - self.ranges["re"][0])
 
     def _wire_re_re_local(self, g, g_sd=0.0):
         """Nearest-neighbour lateral inhibition (|i-j|<=2), fixed degree --
@@ -837,6 +897,10 @@ def main():
                     help="RE<->RE gap-junction conductance (uS). 0.03 is ~30x "
                          "too strong (Edu-questions.md Q7); PLAN-spindels.md "
                          "Stage 1 sweeps it down (thal_ring_test.py).")
+    ap.add_argument("--thal-footprint", type=int, default=None,
+                    help="local, topographic RE<->TC wiring: each TC hears "
+                         "from its F nearest RE cells on a ring (PLAN-spindels.md "
+                         "Stage 1 lever 2). Unset = production random wiring.")
     ap.add_argument("--state", choices=["nrem", "wake"], default=None,
                     help="brain state (PLAN-auditory-input.md D4). Unset keeps "
                          "the legacy single pas leak; 'nrem' splits it into "
@@ -1106,7 +1170,7 @@ def main():
                                       g_l5_rec=a.g_l5_rec, tau2_l5_rec=a.tau2_l5_rec,
                                       l5_rec_mech=a.l5_rec_mech, mg_l5_rec=a.mg_l5_rec,
                                       taur_l5e_rs=a.taur_l5e_rs, state=a.state,
-                                      g_gap=a.g_gap)
+                                      g_gap=a.g_gap, thal_footprint=a.thal_footprint)
     aud = AI.AuditoryInput(net, a.stim, a.tstop) if a.stim else None
     wall = net.run(tstop=a.tstop)
     t, g = net.gather()

@@ -1,0 +1,69 @@
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+kick  g_gap   seed | evoked  cycles dur_ms   Hz      wax   | RE_SD_ms  TC part per cycle      | trains after kick / pre-kick spikes
+----------------------------------------------------------------------------------------------------------------------
+l6    0.001   0    | yes     1      0        -       no    | 0.22      1.00                   | 1 / 812 ek_thal=-95 g_tc_re=0.011 taur_re=80
+l6    0.001   1    | yes     1      0        -       no    | 0.22      1.00                   | 1 / 646 ek_thal=-95 g_tc_re=0.011 taur_re=80
+l6    0.001   0    | yes     1      0        -       no    | 0.15      1.00                   | 1 / 812 ek_thal=-95 g_tc_re=0.03 taur_re=80
+l6    0.001   1    | yes     1      0        -       no    | 0.17      1.00                   | 1 / 646 ek_thal=-95 g_tc_re=0.03 taur_re=80
+l6    0.001   0    | yes     1      0        -       no    | 0.16      1.00                   | 1 / 812 ek_thal=-95 g_tc_re=0.06 taur_re=80
+l6    0.001   1    | yes     1      0        -       no    | 0.19      1.00                   | 1 / 646 ek_thal=-95 g_tc_re=0.06 taur_re=80
+l6    0.001   0    | yes     1      0        -       no    | 0.22      1.00                   | 1 / 812 ek_thal=-95 g_tc_re=0.011 taur_re=20
+l6    0.001   1    | yes     1      0        -       no    | 0.22      1.00                   | 1 / 646 ek_thal=-95 g_tc_re=0.011 taur_re=20
+l6    0.001   0    | yes     1      0        -       no    | 0.16      1.00                   | 1 / 812 ek_thal=-95 g_tc_re=0.03 taur_re=20
+l6    0.001   1    | yes     1      0        -       no    | 0.17      1.00                   | 1 / 646 ek_thal=-95 g_tc_re=0.03 taur_re=20
+l6    0.001   0    | yes     4      291      10.3    no    | 0.16      1.00,0.41,0.41,0.36    | 1 / 812 ek_thal=-95 g_tc_re=0.06 taur_re=20
+l6    0.001   1    | yes     4      291      10.3    no    | 0.20      1.00,0.34,0.42,0.40    | 1 / 646 ek_thal=-95 g_tc_re=0.06 taur_re=20
+l6    0.001   0    | yes     1      0        -       no    | 0.22      1.00                   | 1 / 812 ek_thal=-95 g_tc_re=0.011 taur_re=5
+l6    0.001   1    | yes     1      0        -       no    | 0.22      1.00                   | 1 / 646 ek_thal=-95 g_tc_re=0.011 taur_re=5
+l6    0.001   0    | yes     1      0        -       no    | 0.16      1.00                   | 1 / 812 ek_thal=-95 g_tc_re=0.03 taur_re=5
+l6    0.001   1    | yes     1      0        -       no    | 0.17      1.00                   | 1 / 646 ek_thal=-95 g_tc_re=0.03 taur_re=5
+l6    0.001   0    | yes     4      262      11.5    no    | 0.16      1.00,0.41,0.41,0.36    | 1 / 812 ek_thal=-95 g_tc_re=0.06 taur_re=5
+l6    0.001   1    | yes     4      270      11.1    no    | 0.20      1.00,0.40,0.39,0.37    | 1 / 646 ek_thal=-95 g_tc_re=0.06 taur_re=5
+
+RE volley intervals after the kick (ms, first 8), per run:
+  l6    g_gap=0.001  ek_thal=-95 g_tc_re=0.011 taur_re=80     seed 0:  1 volleys, IVI []
+  l6    g_gap=0.001  ek_thal=-95 g_tc_re=0.011 taur_re=80     seed 1:  1 volleys, IVI []
+  l6    g_gap=0.001  ek_thal=-95 g_tc_re=0.03 taur_re=80      seed 0:  1 volleys, IVI []
+  l6    g_gap=0.001  ek_thal=-95 g_tc_re=0.03 taur_re=80      seed 1:  1 volleys, IVI []
+  l6    g_gap=0.001  ek_thal=-95 g_tc_re=0.06 taur_re=80      seed 0:  1 volleys, IVI []
+  l6    g_gap=0.001  ek_thal=-95 g_tc_re=0.06 taur_re=80      seed 1:  1 volleys, IVI []
+  l6    g_gap=0.001  ek_thal=-95 g_tc_re=0.011 taur_re=20     seed 0:  1 volleys, IVI []
+  l6    g_gap=0.001  ek_thal=-95 g_tc_re=0.011 taur_re=20     seed 1:  1 volleys, IVI []
+  l6    g_gap=0.001  ek_thal=-95 g_tc_re=0.03 taur_re=20      seed 0:  1 volleys, IVI []
+  l6    g_gap=0.001  ek_thal=-95 g_tc_re=0.03 taur_re=20      seed 1:  1 volleys, IVI []
+  l6    g_gap=0.001  ek_thal=-95 g_tc_re=0.06 taur_re=20      seed 0:  4 volleys, IVI [113, 86, 92]
+  l6    g_gap=0.001  ek_thal=-95 g_tc_re=0.06 taur_re=20      seed 1:  4 volleys, IVI [119, 84, 88]
+  l6    g_gap=0.001  ek_thal=-95 g_tc_re=0.011 taur_re=5      seed 0:  1 volleys, IVI []
+  l6    g_gap=0.001  ek_thal=-95 g_tc_re=0.011 taur_re=5      seed 1:  1 volleys, IVI []
+  l6    g_gap=0.001  ek_thal=-95 g_tc_re=0.03 taur_re=5       seed 0:  1 volleys, IVI []
+  l6    g_gap=0.001  ek_thal=-95 g_tc_re=0.03 taur_re=5       seed 1:  1 volleys, IVI []
+  l6    g_gap=0.001  ek_thal=-95 g_tc_re=0.06 taur_re=5       seed 0:  4 volleys, IVI [103, 89, 70]
+  l6    g_gap=0.001  ek_thal=-95 g_tc_re=0.06 taur_re=5       seed 1:  4 volleys, IVI [105, 83, 82]
+
+per (kick, g_gap), over seeds: evoked / median cycles / max cycles / runs with >= 6 cycles / median RE first-spike SD / median RE volleys after kick and their median interval
+  l6    g_gap=0.001   ek_thal=-95 g_tc_re=0.011 taur_re=80     evoked 2/2, cycles median 1 max 1, >=6: 0/2, RE SD 0.22 ms, volleys 1, IVI - ms
+  l6    g_gap=0.001   ek_thal=-95 g_tc_re=0.03 taur_re=80      evoked 2/2, cycles median 1 max 1, >=6: 0/2, RE SD 0.16 ms, volleys 1, IVI - ms
+  l6    g_gap=0.001   ek_thal=-95 g_tc_re=0.06 taur_re=80      evoked 2/2, cycles median 1 max 1, >=6: 0/2, RE SD 0.17 ms, volleys 1, IVI - ms
+  l6    g_gap=0.001   ek_thal=-95 g_tc_re=0.011 taur_re=20     evoked 2/2, cycles median 1 max 1, >=6: 0/2, RE SD 0.22 ms, volleys 1, IVI - ms
+  l6    g_gap=0.001   ek_thal=-95 g_tc_re=0.03 taur_re=20      evoked 2/2, cycles median 1 max 1, >=6: 0/2, RE SD 0.16 ms, volleys 1, IVI - ms
+  l6    g_gap=0.001   ek_thal=-95 g_tc_re=0.06 taur_re=20      evoked 2/2, cycles median 4 max 4, >=6: 0/2, RE SD 0.18 ms, volleys 4, IVI 90 ms
+  l6    g_gap=0.001   ek_thal=-95 g_tc_re=0.011 taur_re=5      evoked 2/2, cycles median 1 max 1, >=6: 0/2, RE SD 0.22 ms, volleys 1, IVI - ms
+  l6    g_gap=0.001   ek_thal=-95 g_tc_re=0.03 taur_re=5       evoked 2/2, cycles median 1 max 1, >=6: 0/2, RE SD 0.16 ms, volleys 1, IVI - ms
+  l6    g_gap=0.001   ek_thal=-95 g_tc_re=0.06 taur_re=5       evoked 2/2, cycles median 4 max 4, >=6: 0/2, RE SD 0.18 ms, volleys 4, IVI 86 ms

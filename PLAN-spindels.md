@@ -1,7 +1,8 @@
 # Plan: make the thalamus produce real sleep spindles
 
-Status: **Stage 0 done; Stage 1 started (lever 1 tested, negative) —
-2026-09-24.** See "Results so far" at the end of Stage 1. Background and evidence:
+Status: **Stage 0 done. Stage 1: the isolated thalamus now rings
+(2026-09-28) — 4 of 5 "done when" criteria met; refractoriness missing.**
+See "Results so far" and "RE recovery" in Stage 1. Background and evidence:
 `Edu-questions.md` question 5, and the history in `neuron/README.md`.
 
 ## Goal and success criteria
@@ -119,7 +120,7 @@ Then try the levers **one at a time**, keeping each that helps:
        **Also change it in production:** `g_gap` in `ctx_thalamus_mpi.py`
        (constructor default 0.03). Keep the old value reachable by flag so
        earlier runs can be reproduced.
-2. [ ] **Local, topographic RE ↔ TC wiring** instead of all-to-all. Cells on a
+2. [x] **Local, topographic RE ↔ TC wiring** instead of all-to-all. Cells on a
        line or ring; each TC gets input from the ~10–20 nearest RE cells, each
        RE from nearby TC cells. Sweep the footprint (5, 10, 20, 40, all).
        Expected effect: phase dispersion, TC firing every 2nd–3rd cycle.
@@ -222,6 +223,70 @@ evidence now suggests:
    known GABA_B / absence rhythm, so it is expected to push the wrong way.
 If these fail too, the risk named below applies: the single-compartment RE
 cell may be the limit (dendritic Ca_v3.3).
+
+### Lever 2 (local wiring) and RE recovery: the thalamus rings (2026-09-28)
+
+Raw output: `res/2026-09-28/ring_*_sweep.txt`; figures
+`out/stage1_local_wiring_lfp.png`, `out/stage1_ringing_thalamus_lfp.png`,
+`out/stage1_localkick_kick2_lfp.png`. New options, all defaulting to the
+production behaviour: `thal_footprint` (`--thal-footprint`: each TC hears
+its F nearest RE on a ring, each RE the TC cells covering the same stretch),
+`ek_tc` / `ek_re`, `taur_re`; `thal_ring_test.py` gained `--kick-frac`
+(local kick) and `--kick2-t` (second kick).
+
+**Lever 2 alone: negative.** F = 5, 10, 20, 40 × global or local (20% of
+ring) kick, 3 seeds: 1 RE volley in all 27 runs. With a local kick the TC
+rebound stays in the kicked patch and nothing spreads; with random wiring
+the kicked RE patch inhibits TC around the whole ring, which all rebounds,
+but RE never fires again.
+
+**The cause: RE cannot burst again for > 200 ms.** Single-cell test (a
+second AMPA input Δ ms after a burst): a rested RE cell bursts at 0.02 µS;
+after a burst it does not burst at Δ = 80–200 ms even at 0.06 µS. Three
+reasons, each measured:
+1. **E_K was never set: every K⁺ current in the model uses NEURON's default
+   ek = −77 mV.** For RE (rest −81.5 mV) SK2 and hh2 K⁺ therefore
+   *depolarise* after a burst: RE sits at −77 mV for ~200 ms and its I_T2
+   recovers slowly (h 0.27 → 0.37). Destexhe's thalamic models use −95 to
+   −100 mV. (Cortex, rest −70 mV, is less affected; not changed here.)
+2. **SK2 stays saturated for ~200 ms** (g = gkbar, 20× the leak) because
+   the Ca²⁺ pool clears with τ = 80 ms (`cad` default; Destexhe's cadecay
+   uses ~5 ms) and peaks 9× above the SK2 K_d. With ek −95 and τ 20 ms
+   RE re-bursts at 100–120 ms.
+3. **TC → RE is too weak to re-trigger RE even if TC were synchronous:**
+   0.011 µS total, below the ~0.02 µS a rested RE cell needs. Mushtaq 2024
+   Table 3 has TC → RE as the *strongest* thalamic synapse.
+
+**With the three RE fixes the kick evokes a spindle-like train** (isolated
+MN5 thalamus, g_gap 0.001, 5 seeds). `ek_re = −95`, `taur_re = 5`,
+`g_tc_re = 0.06`, local wiring:
+
+| setting | cycles | duration | freq | TC part./cycle | waxing/waning |
+|---|---|---|---|---|---|
+| global kick, F 5 | 7–10 (5/5 ≥ 6) | 0.58–0.87 s | 10.3–10.6 Hz | 32–49% | no (starts at 100%) |
+| global kick, F 10 | 8–11 (5/5) | 0.68–1.01 s | 9.9–10.3 Hz | 34–50% | no |
+| global kick, F 20 | 11–13 (5/5) | 0.98–1.16 s | 9.7–10.4 Hz | 33–49% | no |
+| local kick (20%), F 10 | 7–8 (5/5) | 0.59–0.72 s | 9.7–10.2 Hz | | **5/5** |
+| local kick (20%), F 20 | 8–11 (5/5) | 0.70–0.98 s | 9.7–10.2 Hz | | **5/5** (RE 0.37 → 0.63 → 0.15) |
+
+The network is silent before the kick, trains stop on their own, and with
+a local kick the activity spreads along the ring (propagating waves,
+Destexhe et al. 1996). Controls: `ek` −95 on TC as well turns ~18% of TC
+cells into 15–19 Hz pacemakers with no input, so it is applied to RE only;
+`taur_re` 20 ms or `g_tc_re` 0.09 ring for the whole 3 s (30+ cycles) and
+sometimes start before the kick. Random wiring with the fixes (and ek −95
+on both) gave 4 cycles at ~11 Hz.
+
+**Against the "done when":** ≥ 6 cycles on ≥ 4/5 seeds ✅ (F ≥ 10, also with
+a local kick); ≥ 0.5 s ✅; growing-then-fading envelope ✅ with a local
+start; 10–15 Hz ⚠️ ~10 Hz, the bottom edge (9.7–10.6); **refractoriness ❌**:
+a second kick at 2.5 s (~0.7 s after the first spindle ends) evokes a
+full-size second spindle on 5/5 seeds.
+
+**Next:** lever 4, Ca²⁺-dependent I_h (`gh_tc`) at physiological levels, for
+refractoriness; the README found I_h also raises the loop frequency, which
+may move ~10 Hz into the band. Then Stage 2 with these settings: none of
+them is in production yet (all behind options).
 
 **Done when:** a single kick produces, on ≥ 4 of 5 seeds, a train of ≥ 6
 cycles at 10–15 Hz lasting ≥ 0.5 s with a growing-then-fading envelope, and a

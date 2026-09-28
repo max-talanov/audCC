@@ -1,0 +1,86 @@
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+kick  g_gap   seed | evoked  cycles dur_ms   Hz      wax   | RE_SD_ms  TC part per cycle      | trains after kick / pre-kick spikes
+----------------------------------------------------------------------------------------------------------------------
+l6    0.001   0    | yes     1      0        -       no    | 0.22      1.00                   | 1 / 69 thal_footprint=5
+l6    0.001   1    | yes     1      0        -       no    | 0.21      1.00                   | 1 / 68 thal_footprint=5
+l6    0.001   2    | yes     1      0        -       no    | 0.22      1.00                   | 1 / 63 thal_footprint=5
+l6    0.001   0    | yes     1      0        -       no    | 0.31      0.20                   | 1 / 69 thal_footprint=5 kick_frac=0.2
+l6    0.001   1    | yes     1      0        -       no    | 0.30      0.20                   | 1 / 68 thal_footprint=5 kick_frac=0.2
+l6    0.001   2    | yes     1      0        -       no    | 0.27      0.20                   | 1 / 63 thal_footprint=5 kick_frac=0.2
+l6    0.001   0    | yes     1      0        -       no    | 0.21      1.00                   | 1 / 69 thal_footprint=10
+l6    0.001   1    | yes     1      0        -       no    | 0.21      1.00                   | 1 / 68 thal_footprint=10
+l6    0.001   2    | yes     1      0        -       no    | 0.22      1.00                   | 1 / 63 thal_footprint=10
+l6    0.001   0    | yes     1      0        -       no    | 0.33      0.20                   | 1 / 69 thal_footprint=10 kick_frac=0.2
+l6    0.001   1    | yes     1      0        -       no    | 0.32      0.20                   | 1 / 68 thal_footprint=10 kick_frac=0.2
+l6    0.001   2    | yes     1      0        -       no    | 0.31      0.20                   | 1 / 63 thal_footprint=10 kick_frac=0.2
+l6    0.001   0    | yes     1      0        -       no    | 0.21      1.00                   | 1 / 69 thal_footprint=20
+l6    0.001   1    | yes     1      0        -       no    | 0.21      1.00                   | 1 / 68 thal_footprint=20
+l6    0.001   2    | yes     1      0        -       no    | 0.23      1.00                   | 1 / 63 thal_footprint=20
+l6    0.001   0    | yes     1      0        -       no    | 0.35      0.20                   | 1 / 69 thal_footprint=20 kick_frac=0.2
+l6    0.001   1    | yes     1      0        -       no    | 0.32      0.20                   | 1 / 68 thal_footprint=20 kick_frac=0.2
+l6    0.001   2    | yes     1      0        -       no    | 0.32      0.20                   | 1 / 63 thal_footprint=20 kick_frac=0.2
+l6    0.001   0    | yes     1      0        -       no    | 0.21      1.00                   | 1 / 69 thal_footprint=40
+l6    0.001   1    | yes     1      0        -       no    | 0.21      1.00                   | 1 / 68 thal_footprint=40
+l6    0.001   2    | yes     1      0        -       no    | 0.22      1.00                   | 1 / 63 thal_footprint=40
+l6    0.001   0    | yes     1      0        -       no    | 0.33      0.20                   | 1 / 69 thal_footprint=40 kick_frac=0.2
+l6    0.001   1    | yes     1      0        -       no    | 5.47      0.20                   | 1 / 68 thal_footprint=40 kick_frac=0.2
+l6    0.001   2    | yes     1      0        -       no    | 0.30      0.20                   | 1 / 63 thal_footprint=40 kick_frac=0.2
+
+RE volley intervals after the kick (ms, first 8), per run:
+  l6    g_gap=0.001  thal_footprint=5                         seed 0:  1 volleys, IVI []
+  l6    g_gap=0.001  thal_footprint=5                         seed 1:  1 volleys, IVI []
+  l6    g_gap=0.001  thal_footprint=5                         seed 2:  1 volleys, IVI []
+  l6    g_gap=0.001  thal_footprint=5 kick_frac=0.2           seed 0:  1 volleys, IVI []
+  l6    g_gap=0.001  thal_footprint=5 kick_frac=0.2           seed 1:  1 volleys, IVI []
+  l6    g_gap=0.001  thal_footprint=5 kick_frac=0.2           seed 2:  1 volleys, IVI []
+  l6    g_gap=0.001  thal_footprint=10                        seed 0:  1 volleys, IVI []
+  l6    g_gap=0.001  thal_footprint=10                        seed 1:  1 volleys, IVI []
+  l6    g_gap=0.001  thal_footprint=10                        seed 2:  1 volleys, IVI []
+  l6    g_gap=0.001  thal_footprint=10 kick_frac=0.2          seed 0:  1 volleys, IVI []
+  l6    g_gap=0.001  thal_footprint=10 kick_frac=0.2          seed 1:  1 volleys, IVI []
+  l6    g_gap=0.001  thal_footprint=10 kick_frac=0.2          seed 2:  1 volleys, IVI []
+  l6    g_gap=0.001  thal_footprint=20                        seed 0:  1 volleys, IVI []
+  l6    g_gap=0.001  thal_footprint=20                        seed 1:  1 volleys, IVI []
+  l6    g_gap=0.001  thal_footprint=20                        seed 2:  1 volleys, IVI []
+  l6    g_gap=0.001  thal_footprint=20 kick_frac=0.2          seed 0:  1 volleys, IVI []
+  l6    g_gap=0.001  thal_footprint=20 kick_frac=0.2          seed 1:  1 volleys, IVI []
+  l6    g_gap=0.001  thal_footprint=20 kick_frac=0.2          seed 2:  1 volleys, IVI []
+  l6    g_gap=0.001  thal_footprint=40                        seed 0:  1 volleys, IVI []
+  l6    g_gap=0.001  thal_footprint=40                        seed 1:  1 volleys, IVI []
+  l6    g_gap=0.001  thal_footprint=40                        seed 2:  1 volleys, IVI []
+  l6    g_gap=0.001  thal_footprint=40 kick_frac=0.2          seed 0:  1 volleys, IVI []
+  l6    g_gap=0.001  thal_footprint=40 kick_frac=0.2          seed 1:  1 volleys, IVI []
+  l6    g_gap=0.001  thal_footprint=40 kick_frac=0.2          seed 2:  1 volleys, IVI []
+
+per (kick, g_gap), over seeds: evoked / median cycles / max cycles / runs with >= 6 cycles / median RE first-spike SD / median RE volleys after kick and their median interval
+  l6    g_gap=0.001   thal_footprint=5                         evoked 3/3, cycles median 1 max 1, >=6: 0/3, RE SD 0.22 ms, volleys 1, IVI - ms
+  l6    g_gap=0.001   thal_footprint=5 kick_frac=0.2           evoked 3/3, cycles median 1 max 1, >=6: 0/3, RE SD 0.30 ms, volleys 1, IVI - ms
+  l6    g_gap=0.001   thal_footprint=10                        evoked 3/3, cycles median 1 max 1, >=6: 0/3, RE SD 0.21 ms, volleys 1, IVI - ms
+  l6    g_gap=0.001   thal_footprint=10 kick_frac=0.2          evoked 3/3, cycles median 1 max 1, >=6: 0/3, RE SD 0.32 ms, volleys 1, IVI - ms
+  l6    g_gap=0.001   thal_footprint=20                        evoked 3/3, cycles median 1 max 1, >=6: 0/3, RE SD 0.21 ms, volleys 1, IVI - ms
+  l6    g_gap=0.001   thal_footprint=20 kick_frac=0.2          evoked 3/3, cycles median 1 max 1, >=6: 0/3, RE SD 0.32 ms, volleys 1, IVI - ms
+  l6    g_gap=0.001   thal_footprint=40                        evoked 3/3, cycles median 1 max 1, >=6: 0/3, RE SD 0.21 ms, volleys 1, IVI - ms
+  l6    g_gap=0.001   thal_footprint=40 kick_frac=0.2          evoked 3/3, cycles median 1 max 1, >=6: 0/3, RE SD 0.33 ms, volleys 1, IVI - ms

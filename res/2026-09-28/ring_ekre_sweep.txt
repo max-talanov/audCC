@@ -1,0 +1,198 @@
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+kick  g_gap   seed | evoked  cycles dur_ms   Hz      wax   | RE_SD_ms  TC part per cycle      | trains after kick / pre-kick spikes
+----------------------------------------------------------------------------------------------------------------------
+l6    0.001   0    | yes     16     1512     9.9     no    | 0.10      1.00,0.41,0.41,0.35,0.35,0.32 | 4 / 69 ek_re=-95 g_tc_re=0.06 taur_re=20 thal_footprint=5
+l6    0.001   1    | yes     23     2199     10.0    no    | 0.10      1.00,0.38,0.43,0.34,0.35,0.30 | 1 / 68 ek_re=-95 g_tc_re=0.06 taur_re=20 thal_footprint=5
+l6    0.001   2    | yes     17     1675     9.6     no    | 0.11      1.00,0.38,0.38,0.34,0.28,0.25 | 1 / 63 ek_re=-95 g_tc_re=0.06 taur_re=20 thal_footprint=5
+l6    0.001   3    | yes     15     1435     9.8     no    | 0.10      1.00,0.40,0.41,0.35,0.36,0.26 | 1 / 50 ek_re=-95 g_tc_re=0.06 taur_re=20 thal_footprint=5
+l6    0.001   4    | yes     14     1279     10.2    no    | 0.11      1.00,0.41,0.43,0.35,0.40,0.34 | 1 / 64 ek_re=-95 g_tc_re=0.06 taur_re=20 thal_footprint=5
+l6    0.001   0    | yes     29     2693     10.4    no    | 0.09      1.00,0.41,0.43,0.40,0.43,0.39 | 2 / 69 ek_re=-95 g_tc_re=0.06 taur_re=20 thal_footprint=10
+l6    0.001   1    | yes     30     2945     9.8     no    | 0.09      1.00,0.40,0.45,0.39,0.46,0.40 | 1 / 68 ek_re=-95 g_tc_re=0.06 taur_re=20 thal_footprint=10
+l6    0.001   2    | yes     23     2325     9.5     no    | 0.10      1.00,0.39,0.42,0.36,0.34,0.30 | 2 / 63 ek_re=-95 g_tc_re=0.06 taur_re=20 thal_footprint=10
+l6    0.001   3    | yes     31     2986     10.0    no    | 0.09      1.00,0.40,0.41,0.40,0.40,0.37 | 1 / 50 ek_re=-95 g_tc_re=0.06 taur_re=20 thal_footprint=10
+l6    0.001   4    | yes     30     2917     9.9     no    | 0.10      1.00,0.41,0.44,0.39,0.46,0.39 | 1 / 64 ek_re=-95 g_tc_re=0.06 taur_re=20 thal_footprint=10
+l6    0.001   0    | yes     21     2042     9.8     no    | 0.09      1.00,0.40,0.45,0.41,0.46,0.40 | 3 / 69 ek_re=-95 g_tc_re=0.06 taur_re=20 thal_footprint=20
+l6    0.001   1    | yes     30     2913     10.0    no    | 0.09      1.00,0.39,0.48,0.39,0.47,0.38 | 1 / 68 ek_re=-95 g_tc_re=0.06 taur_re=20 thal_footprint=20
+l6    0.001   2    | yes     29     2898     9.7     no    | 0.09      1.00,0.40,0.43,0.39,0.44,0.36 | 1 / 63 ek_re=-95 g_tc_re=0.06 taur_re=20 thal_footprint=20
+l6    0.001   3    | yes     30     2942     9.9     no    | 0.09      1.00,0.39,0.44,0.40,0.44,0.40 | 1 / 50 ek_re=-95 g_tc_re=0.06 taur_re=20 thal_footprint=20
+l6    0.001   4    | yes     29     2862     9.8     no    | 0.10      1.00,0.41,0.48,0.40,0.48,0.39 | 1 / 64 ek_re=-95 g_tc_re=0.06 taur_re=20 thal_footprint=20
+l6    0.001   0    | yes     34     2986     11.1    no    | 2.82      1.00,0.35,0.43,0.34,0.41,0.34 | 1 / 306 ek_re=-95 g_tc_re=0.09 taur_re=20 thal_footprint=5
+l6    0.001   1    | yes     34     2974     11.1    no    | 0.38      1.00,0.34,0.43,0.31,0.36,0.25 | 1 / 351 ek_re=-95 g_tc_re=0.09 taur_re=20 thal_footprint=5
+l6    0.001   2    | yes     34     2994     11.0    no    | 0.10      1.00,0.33,0.38,0.29,0.32,0.30 | 1 / 63 ek_re=-95 g_tc_re=0.09 taur_re=20 thal_footprint=5
+l6    0.001   3    | yes     33     2991     10.7    no    | 0.09      1.00,0.34,0.45,0.32,0.42,0.30 | 1 / 50 ek_re=-95 g_tc_re=0.09 taur_re=20 thal_footprint=5
+l6    0.001   4    | yes     33     2942     10.9    no    | 0.10      1.00,0.33,0.46,0.33,0.41,0.32 | 1 / 64 ek_re=-95 g_tc_re=0.09 taur_re=20 thal_footprint=5
+l6    0.001   0    | yes     33     2951     10.8    no    | 0.07      1.00,0.35,0.46,0.35,0.45,0.35 | 1 / 69 ek_re=-95 g_tc_re=0.09 taur_re=20 thal_footprint=10
+l6    0.001   1    | yes     33     2953     10.8    no    | 0.08      1.00,0.33,0.46,0.35,0.43,0.34 | 1 / 78 ek_re=-95 g_tc_re=0.09 taur_re=20 thal_footprint=10
+l6    0.001   2    | yes     32     2994     10.4    no    | 0.09      1.00,0.33,0.44,0.32,0.38,0.29 | 1 / 63 ek_re=-95 g_tc_re=0.09 taur_re=20 thal_footprint=10
+l6    0.001   3    | yes     33     2926     10.9    no    | 0.08      1.00,0.34,0.45,0.34,0.43,0.35 | 1 / 50 ek_re=-95 g_tc_re=0.09 taur_re=20 thal_footprint=10
+l6    0.001   4    | yes     32     2950     10.5    no    | 0.09      1.00,0.33,0.48,0.34,0.45,0.33 | 1 / 64 ek_re=-95 g_tc_re=0.09 taur_re=20 thal_footprint=10
+l6    0.001   0    | yes     33     2917     11.0    no    | 0.07      1.00,0.35,0.47,0.35,0.46,0.35 | 1 / 69 ek_re=-95 g_tc_re=0.09 taur_re=20 thal_footprint=20
+l6    0.001   1    | yes     33     2975     10.8    no    | 0.07      1.00,0.34,0.46,0.35,0.46,0.34 | 1 / 68 ek_re=-95 g_tc_re=0.09 taur_re=20 thal_footprint=20
+l6    0.001   2    | yes     33     2994     10.7    no    | 0.08      1.00,0.33,0.44,0.33,0.42,0.34 | 1 / 63 ek_re=-95 g_tc_re=0.09 taur_re=20 thal_footprint=20
+l6    0.001   3    | yes     33     2959     10.8    no    | 0.08      1.00,0.34,0.47,0.34,0.45,0.34 | 1 / 50 ek_re=-95 g_tc_re=0.09 taur_re=20 thal_footprint=20
+l6    0.001   4    | yes     33     2994     10.7    no    | 0.08      1.00,0.34,0.48,0.34,0.47,0.33 | 1 / 64 ek_re=-95 g_tc_re=0.09 taur_re=20 thal_footprint=20
+l6    0.001   0    | yes     9      754      10.6    no    | 0.10      1.00,0.35,0.45,0.36,0.42,0.33 | 1 / 69 ek_re=-95 g_tc_re=0.06 taur_re=5 thal_footprint=5
+l6    0.001   1    | yes     9      764      10.5    no    | 0.10      1.00,0.34,0.47,0.32,0.36,0.28 | 1 / 68 ek_re=-95 g_tc_re=0.06 taur_re=5 thal_footprint=5
+l6    0.001   2    | yes     7      582      10.3    no    | 0.11      1.00,0.33,0.40,0.32,0.34,0.21 | 1 / 63 ek_re=-95 g_tc_re=0.06 taur_re=5 thal_footprint=5
+l6    0.001   3    | yes     9      770      10.4    no    | 0.10      1.00,0.34,0.48,0.33,0.40,0.32 | 1 / 50 ek_re=-95 g_tc_re=0.06 taur_re=5 thal_footprint=5
+l6    0.001   4    | yes     10     870      10.3    no    | 0.11      1.00,0.32,0.49,0.34,0.46,0.34 | 1 / 64 ek_re=-95 g_tc_re=0.06 taur_re=5 thal_footprint=5
+l6    0.001   0    | yes     11     969      10.3    no    | 0.09      1.00,0.35,0.47,0.37,0.46,0.36 | 1 / 69 ek_re=-95 g_tc_re=0.06 taur_re=5 thal_footprint=10
+l6    0.001   1    | yes     11     1012     9.9     no    | 0.09      1.00,0.34,0.48,0.35,0.44,0.35 | 1 / 68 ek_re=-95 g_tc_re=0.06 taur_re=5 thal_footprint=10
+l6    0.001   2    | yes     8      680      10.3    no    | 0.10      1.00,0.32,0.45,0.34,0.41,0.25 | 1 / 63 ek_re=-95 g_tc_re=0.06 taur_re=5 thal_footprint=10
+l6    0.001   3    | yes     11     986      10.1    no    | 0.09      1.00,0.34,0.49,0.35,0.45,0.36 | 1 / 50 ek_re=-95 g_tc_re=0.06 taur_re=5 thal_footprint=10
+l6    0.001   4    | yes     11     1005     10.0    no    | 0.10      1.00,0.34,0.50,0.35,0.48,0.35 | 1 / 64 ek_re=-95 g_tc_re=0.06 taur_re=5 thal_footprint=10
+l6    0.001   0    | yes     13     1159     10.4    no    | 0.09      1.00,0.34,0.49,0.37,0.48,0.36 | 1 / 69 ek_re=-95 g_tc_re=0.06 taur_re=5 thal_footprint=20
+l6    0.001   1    | yes     11     1002     10.0    no    | 0.09      1.00,0.34,0.48,0.35,0.47,0.37 | 1 / 68 ek_re=-95 g_tc_re=0.06 taur_re=5 thal_footprint=20
+l6    0.001   2    | yes     11     1033     9.7     no    | 0.09      1.00,0.33,0.48,0.34,0.46,0.34 | 1 / 63 ek_re=-95 g_tc_re=0.06 taur_re=5 thal_footprint=20
+l6    0.001   3    | yes     11     975      10.3    no    | 0.09      1.00,0.33,0.49,0.34,0.46,0.34 | 1 / 50 ek_re=-95 g_tc_re=0.06 taur_re=5 thal_footprint=20
+l6    0.001   4    | yes     12     1107     9.9     no    | 0.10      1.00,0.33,0.49,0.35,0.48,0.35 | 1 / 64 ek_re=-95 g_tc_re=0.06 taur_re=5 thal_footprint=20
+l6    0.001   0    | yes     34     2962     11.1    no    | 0.08      1.00,0.33,0.44,0.33,0.41,0.31 | 1 / 153 ek_re=-95 g_tc_re=0.09 taur_re=5 thal_footprint=5
+l6    0.001   1    | yes     29     2606     10.7    no    | 0.09      1.00,0.31,0.45,0.29,0.35,0.26 | 2 / 148 ek_re=-95 g_tc_re=0.09 taur_re=5 thal_footprint=5
+l6    0.001   2    | yes     21     1820     11.0    no    | 0.10      1.00,0.29,0.38,0.25,0.30,0.25 | 2 / 63 ek_re=-95 g_tc_re=0.09 taur_re=5 thal_footprint=5
+l6    0.001   3    | yes     18     1618     10.5    no    | 0.09      1.00,0.32,0.45,0.31,0.40,0.30 | 1 / 50 ek_re=-95 g_tc_re=0.09 taur_re=5 thal_footprint=5
+l6    0.001   4    | yes     34     2965     11.1    no    | 0.10      1.00,0.31,0.46,0.31,0.44,0.32 | 1 / 64 ek_re=-95 g_tc_re=0.09 taur_re=5 thal_footprint=5
+l6    0.001   0    | yes     34     2948     11.2    no    | 0.07      1.00,0.33,0.47,0.33,0.46,0.33 | 1 / 69 ek_re=-95 g_tc_re=0.09 taur_re=5 thal_footprint=10
+l6    0.001   1    | yes     34     2991     11.0    no    | 0.08      1.00,0.31,0.45,0.30,0.41,0.29 | 1 / 78 ek_re=-95 g_tc_re=0.09 taur_re=5 thal_footprint=10
+l6    0.001   2    | yes     15     1306     10.7    no    | 0.09      1.00,0.29,0.42,0.30,0.39,0.29 | 2 / 63 ek_re=-95 g_tc_re=0.09 taur_re=5 thal_footprint=10
+l6    0.001   3    | yes     19     1661     10.8    no    | 0.08      1.00,0.32,0.46,0.32,0.43,0.32 | 1 / 50 ek_re=-95 g_tc_re=0.09 taur_re=5 thal_footprint=10
+l6    0.001   4    | yes     31     2926     10.3    no    | 0.09      1.00,0.30,0.45,0.30,0.44,0.31 | 1 / 64 ek_re=-95 g_tc_re=0.09 taur_re=5 thal_footprint=10
+l6    0.001   0    | yes     33     2909     11.0    no    | 0.07      1.00,0.33,0.47,0.32,0.45,0.34 | 1 / 69 ek_re=-95 g_tc_re=0.09 taur_re=5 thal_footprint=20
+l6    0.001   1    | yes     23     2073     10.6    no    | 0.07      1.00,0.31,0.45,0.32,0.44,0.32 | 1 / 68 ek_re=-95 g_tc_re=0.09 taur_re=5 thal_footprint=20
+l6    0.001   2    | yes     30     2821     10.3    no    | 0.08      1.00,0.30,0.43,0.30,0.42,0.30 | 1 / 63 ek_re=-95 g_tc_re=0.09 taur_re=5 thal_footprint=20
+l6    0.001   3    | yes     32     2903     10.7    no    | 0.08      1.00,0.32,0.44,0.32,0.44,0.32 | 1 / 50 ek_re=-95 g_tc_re=0.09 taur_re=5 thal_footprint=20
+l6    0.001   4    | yes     32     2909     10.7    no    | 0.08      1.00,0.30,0.48,0.31,0.45,0.32 | 1 / 64 ek_re=-95 g_tc_re=0.09 taur_re=5 thal_footprint=20
+
+RE volley intervals after the kick (ms, first 8), per run:
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.06 taur_re=20 thal_footprint=5 seed 0: 22 volleys, IVI [104, 96, 102, 96, 96, 101, 100, 103]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.06 taur_re=20 thal_footprint=5 seed 1: 23 volleys, IVI [104, 97, 100, 104, 100, 94, 98, 99]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.06 taur_re=20 thal_footprint=5 seed 2: 17 volleys, IVI [108, 93, 104, 95, 105, 102, 104, 102]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.06 taur_re=20 thal_footprint=5 seed 3: 15 volleys, IVI [104, 101, 100, 103, 107, 88, 100, 104]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.06 taur_re=20 thal_footprint=5 seed 4: 14 volleys, IVI [109, 98, 96, 103, 102, 100, 79, 100]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.06 taur_re=20 thal_footprint=10 seed 0: 30 volleys, IVI [107, 96, 97, 101, 98, 99, 104, 100]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.06 taur_re=20 thal_footprint=10 seed 1: 30 volleys, IVI [105, 102, 96, 102, 100, 100, 97, 101]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.06 taur_re=20 thal_footprint=10 seed 2: 24 volleys, IVI [105, 99, 98, 99, 104, 100, 99, 108]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.06 taur_re=20 thal_footprint=10 seed 3: 31 volleys, IVI [108, 100, 100, 92, 103, 96, 104, 95]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.06 taur_re=20 thal_footprint=10 seed 4: 30 volleys, IVI [106, 101, 99, 105, 99, 102, 99, 102]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.06 taur_re=20 thal_footprint=20 seed 0: 23 volleys, IVI [103, 101, 97, 99, 98, 98, 98, 101]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.06 taur_re=20 thal_footprint=20 seed 1: 30 volleys, IVI [105, 101, 98, 98, 99, 103, 100, 100]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.06 taur_re=20 thal_footprint=20 seed 2: 29 volleys, IVI [109, 99, 102, 102, 102, 104, 100, 103]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.06 taur_re=20 thal_footprint=20 seed 3: 30 volleys, IVI [107, 99, 98, 95, 102, 99, 96, 99]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.06 taur_re=20 thal_footprint=20 seed 4: 29 volleys, IVI [105, 103, 100, 101, 99, 101, 100, 101]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.09 taur_re=20 thal_footprint=5 seed 0: 34 volleys, IVI [98, 91, 91, 90, 90, 89, 91, 91]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.09 taur_re=20 thal_footprint=5 seed 1: 34 volleys, IVI [99, 94, 89, 93, 86, 94, 88, 92]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.09 taur_re=20 thal_footprint=5 seed 2: 34 volleys, IVI [100, 90, 90, 94, 106, 67, 93, 111]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.09 taur_re=20 thal_footprint=5 seed 3: 33 volleys, IVI [101, 93, 94, 93, 94, 95, 97, 94]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.09 taur_re=20 thal_footprint=5 seed 4: 33 volleys, IVI [101, 95, 91, 94, 96, 97, 93, 97]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.09 taur_re=20 thal_footprint=10 seed 0: 33 volleys, IVI [99, 90, 93, 93, 89, 92, 90, 92]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.09 taur_re=20 thal_footprint=10 seed 1: 33 volleys, IVI [101, 94, 90, 92, 94, 88, 94, 92]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.09 taur_re=20 thal_footprint=10 seed 2: 32 volleys, IVI [101, 96, 95, 91, 94, 93, 94, 102]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.09 taur_re=20 thal_footprint=10 seed 3: 33 volleys, IVI [101, 94, 94, 96, 93, 80, 92, 92]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.09 taur_re=20 thal_footprint=10 seed 4: 32 volleys, IVI [102, 95, 93, 93, 97, 95, 92, 95]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.09 taur_re=20 thal_footprint=20 seed 0: 33 volleys, IVI [100, 90, 92, 90, 94, 89, 93, 90]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.09 taur_re=20 thal_footprint=20 seed 1: 33 volleys, IVI [100, 95, 91, 93, 92, 92, 93, 92]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.09 taur_re=20 thal_footprint=20 seed 2: 33 volleys, IVI [104, 93, 94, 93, 94, 94, 94, 93]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.09 taur_re=20 thal_footprint=20 seed 3: 33 volleys, IVI [101, 93, 93, 92, 93, 90, 95, 89]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.09 taur_re=20 thal_footprint=20 seed 4: 33 volleys, IVI [102, 92, 95, 93, 94, 95, 93, 94]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.06 taur_re=5 thal_footprint=5 seed 0:  9 volleys, IVI [97, 92, 94, 93, 91, 101, 93, 93]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.06 taur_re=5 thal_footprint=5 seed 1:  9 volleys, IVI [100, 94, 89, 94, 98, 88, 98, 103]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.06 taur_re=5 thal_footprint=5 seed 2:  7 volleys, IVI [99, 91, 93, 98, 88, 113]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.06 taur_re=5 thal_footprint=5 seed 3:  9 volleys, IVI [98, 94, 94, 95, 100, 93, 95, 101]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.06 taur_re=5 thal_footprint=5 seed 4: 10 volleys, IVI [99, 94, 99, 96, 102, 102, 70, 103]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.06 taur_re=5 thal_footprint=10 seed 0: 11 volleys, IVI [96, 94, 95, 95, 94, 95, 92, 102]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.06 taur_re=5 thal_footprint=10 seed 1: 11 volleys, IVI [99, 95, 95, 93, 97, 97, 92, 123]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.06 taur_re=5 thal_footprint=10 seed 2:  8 volleys, IVI [98, 97, 99, 96, 87, 105, 98]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.06 taur_re=5 thal_footprint=10 seed 3: 11 volleys, IVI [98, 96, 96, 95, 101, 84, 101, 101]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.06 taur_re=5 thal_footprint=10 seed 4: 11 volleys, IVI [99, 97, 99, 94, 96, 100, 97, 108]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.06 taur_re=5 thal_footprint=20 seed 0: 13 volleys, IVI [99, 89, 94, 94, 94, 97, 95, 98]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.06 taur_re=5 thal_footprint=20 seed 1: 11 volleys, IVI [101, 94, 95, 95, 92, 98, 96, 108]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.06 taur_re=5 thal_footprint=20 seed 2: 11 volleys, IVI [100, 95, 97, 99, 95, 104, 97, 114]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.06 taur_re=5 thal_footprint=20 seed 3: 11 volleys, IVI [98, 94, 96, 95, 90, 97, 97, 99]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.06 taur_re=5 thal_footprint=20 seed 4: 12 volleys, IVI [97, 96, 98, 96, 97, 98, 100, 100]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.09 taur_re=5 thal_footprint=5 seed 0: 34 volleys, IVI [95, 86, 88, 86, 88, 89, 91, 88]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.09 taur_re=5 thal_footprint=5 seed 1: 30 volleys, IVI [96, 91, 84, 87, 90, 86, 86, 91]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.09 taur_re=5 thal_footprint=5 seed 2: 22 volleys, IVI [98, 86, 89, 88, 89, 97, 87, 97]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.09 taur_re=5 thal_footprint=5 seed 3: 18 volleys, IVI [96, 91, 88, 91, 91, 95, 90, 92]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.09 taur_re=5 thal_footprint=5 seed 4: 34 volleys, IVI [98, 90, 91, 89, 92, 93, 89, 98]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.09 taur_re=5 thal_footprint=10 seed 0: 34 volleys, IVI [97, 87, 87, 87, 89, 89, 89, 94]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.09 taur_re=5 thal_footprint=10 seed 1: 34 volleys, IVI [97, 88, 88, 89, 90, 89, 90, 89]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.09 taur_re=5 thal_footprint=10 seed 2: 16 volleys, IVI [97, 89, 92, 88, 93, 89, 96, 93]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.09 taur_re=5 thal_footprint=10 seed 3: 19 volleys, IVI [95, 91, 92, 91, 93, 82, 102, 79]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.09 taur_re=5 thal_footprint=10 seed 4: 31 volleys, IVI [97, 89, 94, 89, 92, 92, 92, 94]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.09 taur_re=5 thal_footprint=20 seed 0: 33 volleys, IVI [98, 86, 86, 89, 89, 89, 90, 90]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.09 taur_re=5 thal_footprint=20 seed 1: 23 volleys, IVI [96, 90, 91, 89, 89, 89, 92, 89]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.09 taur_re=5 thal_footprint=20 seed 2: 30 volleys, IVI [96, 90, 90, 90, 91, 93, 90, 93]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.09 taur_re=5 thal_footprint=20 seed 3: 32 volleys, IVI [95, 91, 89, 90, 90, 90, 92, 88]
+  l6    g_gap=0.001  ek_re=-95 g_tc_re=0.09 taur_re=5 thal_footprint=20 seed 4: 32 volleys, IVI [97, 89, 90, 92, 89, 94, 93, 90]
+
+per (kick, g_gap), over seeds: evoked / median cycles / max cycles / runs with >= 6 cycles / median RE first-spike SD / median RE volleys after kick and their median interval
+  l6    g_gap=0.001   ek_re=-95 g_tc_re=0.06 taur_re=20 thal_footprint=5 evoked 5/5, cycles median 16 max 23, >=6: 5/5, RE SD 0.10 ms, volleys 17, IVI 101 ms
+  l6    g_gap=0.001   ek_re=-95 g_tc_re=0.06 taur_re=20 thal_footprint=10 evoked 5/5, cycles median 30 max 31, >=6: 5/5, RE SD 0.09 ms, volleys 30, IVI 101 ms
+  l6    g_gap=0.001   ek_re=-95 g_tc_re=0.06 taur_re=20 thal_footprint=20 evoked 5/5, cycles median 29 max 30, >=6: 5/5, RE SD 0.09 ms, volleys 29, IVI 102 ms
+  l6    g_gap=0.001   ek_re=-95 g_tc_re=0.09 taur_re=20 thal_footprint=5 evoked 5/5, cycles median 34 max 34, >=6: 5/5, RE SD 0.10 ms, volleys 34, IVI 91 ms
+  l6    g_gap=0.001   ek_re=-95 g_tc_re=0.09 taur_re=20 thal_footprint=10 evoked 5/5, cycles median 33 max 33, >=6: 5/5, RE SD 0.08 ms, volleys 33, IVI 92 ms
+  l6    g_gap=0.001   ek_re=-95 g_tc_re=0.09 taur_re=20 thal_footprint=20 evoked 5/5, cycles median 33 max 33, >=6: 5/5, RE SD 0.08 ms, volleys 33, IVI 93 ms
+  l6    g_gap=0.001   ek_re=-95 g_tc_re=0.06 taur_re=5 thal_footprint=5 evoked 5/5, cycles median 9 max 10, >=6: 5/5, RE SD 0.10 ms, volleys 9, IVI 96 ms
+  l6    g_gap=0.001   ek_re=-95 g_tc_re=0.06 taur_re=5 thal_footprint=10 evoked 5/5, cycles median 11 max 11, >=6: 5/5, RE SD 0.09 ms, volleys 11, IVI 98 ms
+  l6    g_gap=0.001   ek_re=-95 g_tc_re=0.06 taur_re=5 thal_footprint=20 evoked 5/5, cycles median 11 max 13, >=6: 5/5, RE SD 0.09 ms, volleys 11, IVI 97 ms
+  l6    g_gap=0.001   ek_re=-95 g_tc_re=0.09 taur_re=5 thal_footprint=5 evoked 5/5, cycles median 29 max 34, >=6: 5/5, RE SD 0.09 ms, volleys 30, IVI 91 ms
+  l6    g_gap=0.001   ek_re=-95 g_tc_re=0.09 taur_re=5 thal_footprint=10 evoked 5/5, cycles median 31 max 34, >=6: 5/5, RE SD 0.08 ms, volleys 31, IVI 92 ms
+  l6    g_gap=0.001   ek_re=-95 g_tc_re=0.09 taur_re=5 thal_footprint=20 evoked 5/5, cycles median 32 max 33, >=6: 5/5, RE SD 0.08 ms, volleys 32, IVI 92 ms
