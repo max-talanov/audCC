@@ -40,12 +40,50 @@ def up_onsets(t, g, R, tstop, skip):
     return b[pk]
 
 
-def report(label, npz, skip=2000.0):
+def analyse(npz, skip=2000.0):
     t, g, R, tstop = npz["times"], npz["gids"], npz["ranges"].item(), float(npz["tstop"])
-    span = (tstop - skip) / 1000.0
     ups = up_onsets(t, g, R, tstop, skip)
+    trains = V.volley_trains(V.re_volleys(t, g, R, tstop, skip_ms=skip))
+    return ups, trains, (tstop - skip) / 1000.0
+
+
+def carries(ups, trains, k=6):
+    """Per UP state: does a train with >= k cycles start in -50 .. +300 ms?"""
+    return np.array([any(u - 50 <= tr["t0"] <= u + 300 and tr["cycles"] >= k for tr in trains)
+                     for u in ups], bool)
+
+
+def criteria(runs):
+    """Stage 1 criteria and refractoriness over one or more analysed runs."""
+    sp = [tr for _, trains, _ in runs for tr in trains if tr["cycles"] >= 6]
+    isi, after_yes, after_no = [], [], []
+    for ups, trains, _ in runs:
+        st = np.array([tr["t0"] for tr in trains if tr["cycles"] >= 6])
+        isi += list(np.diff(st))
+        c = carries(ups, trains)
+        after_yes += list(c[1:][c[:-1]])
+        after_no += list(c[1:][~c[:-1]])
+    if not sp:
+        print("  Stage 1 criteria: no spindles")
+        return
+    f = np.array([x["freq"] for x in sp])
+    d = np.array([x["duration"] for x in sp])
+    tcp = np.concatenate([x["tc_part"] for x in sp])
+    print("  Stage 1 criteria over %d spindles: 10-15 Hz %.0f%%, >= 0.5 s %.0f%% (median %.0f ms), "
+          "waxing/waning %.0f%%, TC participation per cycle median %.0f%%"
+          % (len(sp), 100 * np.mean((f >= 10) & (f <= 15)), 100 * np.mean(d >= 500), np.median(d),
+             100 * np.mean([x["wax_wane"] for x in sp]), 100 * np.median(tcp)))
+    print("  refractoriness: spindle-to-spindle interval median %s, min %s; P(spindle | previous UP "
+          "had one) %s vs P(spindle | previous UP had none) %s"
+          % ("%.2f s" % (np.median(isi) / 1000) if isi else "-",
+             "%.2f s" % (np.min(isi) / 1000) if isi else "-",
+             "%.0f%% (n=%d)" % (100 * np.mean(after_yes), len(after_yes)) if after_yes else "-",
+             "%.0f%% (n=%d)" % (100 * np.mean(after_no), len(after_no)) if after_no else "-"))
+
+
+def report(label, npz, skip=2000.0):
+    ups, trains, span = analyse(npz, skip)
     iui = np.diff(ups)
-    trains = [tr for tr in V.volley_trains(V.re_volleys(t, g, R, tstop, skip_ms=skip))]
     cyc = np.array([tr["cycles"] for tr in trains]) if trains else np.zeros(0, int)
     sp = [tr for tr in trains if tr["cycles"] >= 6]
     multi = [tr for tr in trains if tr["cycles"] >= 2]
@@ -81,6 +119,8 @@ def report(label, npz, skip=2000.0):
           % (100 * np.mean([in_up(tr) for tr in trains]),
              "%.0f%%" % (100 * np.mean([in_up(tr) for tr in sp])) if sp else "-",
              100 * carried(2), 100 * carried(6)))
+    criteria([(ups, trains, span)])
+    return ups, trains, span
 
 
 def main():
@@ -88,10 +128,20 @@ def main():
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("runs", nargs="+", help='"label=path.npz" pairs')
     ap.add_argument("--skip", type=float, default=2000.0)
+    ap.add_argument("--pool", action="store_true")
     a = ap.parse_args()
+    runs = []
     for pair in a.runs:
         label, path = pair.split("=", 1)
-        report(label, np.load(path, allow_pickle=True), a.skip)
+        runs.append(report(label, np.load(path, allow_pickle=True), a.skip))
+    if a.pool and len(runs) > 1:
+        ups = sum(len(u) for u, _, _ in runs)
+        span = sum(s for _, _, s in runs)
+        c6 = np.concatenate([carries(u, tr) for u, tr, _ in runs if len(u)])
+        print("\n== pooled over %d runs (%.0f s)" % (len(runs), span))
+        print("  SO %.2f Hz (per run %s)" % (ups / span, ", ".join("%.2f" % (len(u) / s) for u, _, s in runs)))
+        print("  UP states carrying a >= 6-cycle train: %.0f%% of %d" % (100 * c6.mean(), len(c6)))
+        criteria(runs)
 
 
 if __name__ == "__main__":

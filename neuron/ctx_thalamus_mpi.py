@@ -87,7 +87,8 @@ class ParallelCorticoThalamicNet:
                  het=0.05, delay_jitter=0.0, state=None, het_seed=0,
                  kl_scale_tc=None, kl_scale_re=None, thal_footprint=None,
                  ek_tc=None, ek_re=None, taur_re=None, depth_tc=None,
-                 taur_tc=None, ginc_tc=None, taur_l5_ib=None):
+                 taur_tc=None, ginc_tc=None, taur_l5_ib=None,
+                 l6_delay_spread=0.0):
         self.pc = h.ParallelContext()
         self.rank = int(self.pc.id())
         self.nhost = int(self.pc.nhost())
@@ -172,6 +173,12 @@ class ParallelCorticoThalamicNet:
         # slow recovery variable of the L5 relaxation oscillator that paces
         # the slow oscillation (PLAN-spindels.md Stage 2: slow the SO < 1 Hz).
         self.taur_l5_ib = taur_l5_ib
+        # l6_delay_spread: extra L6 -> TC / RE delay, uniform in [0, spread]
+        # ms per connection (default 0). The reduced cortex's UP onset is a
+        # population spike (all L6E within ~2 ms), which recruits the whole
+        # thalamus in the first cycle; spreading the arrival lets a spindle
+        # build up (PLAN-spindels.md Stage 2).
+        self.l6_delay_spread = l6_delay_spread
         # het_seed: 0 (default) = the production per-cell jitter; other values
         # draw a different, equally deterministic set of cells (seeds for
         # thal_ring_test.py, PLAN-spindels.md Stage 1).
@@ -371,7 +378,7 @@ class ParallelCorticoThalamicNet:
         return plo + np.lexsort((np.arange(n), d))[:k]
 
     def _project(self, key, pre_pop, post_pop, e, tau1, tau2, g, delay=1.0,
-                 seed_offset=0, width=None):
+                 seed_offset=0, width=None, delay_spread=0.0):
         """Fixed-convergence excitatory/inhibitory projection, cells this
         rank owns as TARGET only (NEURON connects TO a local gid).
 
@@ -392,7 +399,11 @@ class ParallelCorticoThalamicNet:
             srcs = (self._draw(gid + seed_offset, plo, phi, k) if width is None
                     else self._draw_local(gid, plo, phi, k))
             for src in srcs:
-                self._connect(src, syn, g / k, delay, dst_gid=gid)
+                d = delay
+                if delay_spread > 0:
+                    r = np.random.default_rng(70_000_003 + int(src) * 97 + gid)
+                    d = delay + r.uniform(0.0, delay_spread)
+                self._connect(src, syn, g / k, d, dst_gid=gid)
 
     # -- intrathalamic wiring (params matched to ctx_thalamus_network.py) --
     def _wire_re_tc(self, g, tau2=8.0):
@@ -580,8 +591,9 @@ class ParallelCorticoThalamicNet:
         self._project("tc_l4", "tc", "l4e", 0.0, 0.5, 2.0, g, seed_offset=30)
 
     def _wire_corticothalamic(self, g_tc, g_re):
-        self._project("l6_tc", "l6e", "tc", 0.0, 0.5, 2.0, g_tc, seed_offset=31)
-        self._project("l6_re", "l6e", "re", 0.0, 0.5, 2.0, g_re, seed_offset=32)
+        sp = self.l6_delay_spread
+        self._project("l6_tc", "l6e", "tc", 0.0, 0.5, 2.0, g_tc, seed_offset=31, delay_spread=sp)
+        self._project("l6_re", "l6e", "re", 0.0, 0.5, 2.0, g_re, seed_offset=32, delay_spread=sp)
 
     # -------------------------------------------------------------------- run
     def run(self, tstop=12000.0, celsius=36.0, dt=0.025):
@@ -941,8 +953,13 @@ def main():
             ("--depth-tc", float, "TC Ca2+ pool depth (um), Stage 1: 1"),
             ("--taur-tc", float, "TC Ca2+ pool clearance (ms), Stage 1: 5"),
             ("--ginc-tc", float, "locked-open I_h conductance ratio, Stage 1: 8"),
-            ("--taur-l5-ib", float, "L5 IB Ca2+ pool clearance (ms, default 500): SO period")]:
+            ("--taur-l5-ib", float, "L5 IB Ca2+ pool clearance (ms, default 500): SO period"),
+            ("--l6-delay-spread", float, "extra L6->TC/RE delay, uniform 0..X ms (default 0)")]:
         stage1.add_argument(name, type=typ, default=None, help=hlp)
+    ap.add_argument("--het-seed", type=int, default=0,
+                    help="which deterministic set of per-cell parameter "
+                         "jitters to draw (0 = production); the seed for "
+                         "repeat runs (wiring stays the same).")
     ap.add_argument("--thal-footprint", type=int, default=None,
                     help="local, topographic RE<->TC wiring: each TC hears "
                          "from its F nearest RE cells on a ring (PLAN-spindels.md "
@@ -1213,7 +1230,7 @@ def main():
             sizes[k] = max(1, int(round(DEFAULT_SIZES[k] * a.thal_scale)))
     extra = {k: getattr(a, k) for k in ("g_tc_re", "g_l6_tc", "g_l6_re", "ek_tc", "ek_re",
                                          "taur_re", "kl_scale_tc", "kl_scale_re", "depth_tc",
-                                         "taur_tc", "ginc_tc", "taur_l5_ib")
+                                         "taur_tc", "ginc_tc", "taur_l5_ib", "l6_delay_spread")
              if getattr(a, k) is not None}
     net = ParallelCorticoThalamicNet(sizes=sizes, conv=a.conv, het=a.het,
                                       delay_jitter=a.delay_jitter,
@@ -1224,7 +1241,7 @@ def main():
                                       l5_rec_mech=a.l5_rec_mech, mg_l5_rec=a.mg_l5_rec,
                                       taur_l5e_rs=a.taur_l5e_rs, state=a.state,
                                       g_gap=a.g_gap, thal_footprint=a.thal_footprint,
-                                      **extra)
+                                      het_seed=a.het_seed, **extra)
     aud = AI.AuditoryInput(net, a.stim, a.tstop) if a.stim else None
     wall = net.run(tstop=a.tstop)
     t, g = net.gather()

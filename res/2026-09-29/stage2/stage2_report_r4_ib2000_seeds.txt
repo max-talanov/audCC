@@ -1,0 +1,51 @@
+
+== ib2000 s0
+  SO: 15 UP states (0.83 Hz), interval median 532 ms, CV 0.85
+  RE trains: 8 (26.7/min); cycles median 6, max 8; histogram 4:2 5:2 6:3 8:1
+  multi-cycle trains: freq median 10.9 Hz, duration median 395 ms
+  spindle-like (>= 6 cycles): 4 (13.3/min), 10.8-12.9 Hz, 388-638 ms
+  nesting: trains starting in an UP state 100% (>= 6 cycles: 100%); UP states carrying a >= 2-cycle train 53%, a >= 6-cycle train 27%
+  Stage 1 criteria over 4 spindles: 10-15 Hz 100%, >= 0.5 s 25% (median 460 ms), waxing/waning 50%, TC participation per cycle median 64%
+  refractoriness: spindle-to-spindle interval median 5.90 s, min 2.95 s; P(spindle | previous UP had one) 0% (n=4) vs P(spindle | previous UP had none) 30% (n=10)
+
+== ib2000 s1
+  SO: 17 UP states (0.94 Hz), interval median 605 ms, CV 0.77
+  RE trains: 8 (26.7/min); cycles median 7, max 9; histogram 4:3 7:3 8:1 9:1
+  multi-cycle trains: freq median 11.4 Hz, duration median 554 ms
+  spindle-like (>= 6 cycles): 5 (16.7/min), 10.0-11.9 Hz, 544-671 ms
+  nesting: trains starting in an UP state 88% (>= 6 cycles: 100%); UP states carrying a >= 2-cycle train 41%, a >= 6-cycle train 29%
+  Stage 1 criteria over 5 spindles: 10-15 Hz 100%, >= 0.5 s 100% (median 600 ms), waxing/waning 0%, TC participation per cycle median 69%
+  refractoriness: spindle-to-spindle interval median 3.01 s, min 2.94 s; P(spindle | previous UP had one) 0% (n=5) vs P(spindle | previous UP had none) 45% (n=11)
+
+== ib2000 s2
+  SO: 20 UP states (1.11 Hz), interval median 632 ms, CV 0.77
+  RE trains: 11 (36.7/min); cycles median 7, max 8; histogram 1:1 4:1 5:1 6:2 7:2 8:4
+  multi-cycle trains: freq median 11.5 Hz, duration median 562 ms
+  spindle-like (>= 6 cycles): 8 (26.7/min), 8.8-12.5 Hz, 426-694 ms
+  nesting: trains starting in an UP state 91% (>= 6 cycles: 100%); UP states carrying a >= 2-cycle train 45%, a >= 6-cycle train 40%
+  Stage 1 criteria over 8 spindles: 10-15 Hz 88%, >= 0.5 s 88% (median 577 ms), waxing/waning 12%, TC participation per cycle median 62%
+  refractoriness: spindle-to-spindle interval median 1.29 s, min 0.75 s; P(spindle | previous UP had one) 50% (n=8) vs P(spindle | previous UP had none) 36% (n=11)
+
+== ib2000 s3
+  SO: 14 UP states (0.78 Hz), interval median 770 ms, CV 0.72
+  RE trains: 9 (30.0/min); cycles median 7, max 8; histogram 3:2 7:6 8:1
+  multi-cycle trains: freq median 10.8 Hz, duration median 553 ms
+  spindle-like (>= 6 cycles): 7 (23.3/min), 9.5-11.6 Hz, 519-642 ms
+  nesting: trains starting in an UP state 89% (>= 6 cycles: 100%); UP states carrying a >= 2-cycle train 57%, a >= 6-cycle train 50%
+  Stage 1 criteria over 7 spindles: 10-15 Hz 57%, >= 0.5 s 100% (median 623 ms), waxing/waning 0%, TC participation per cycle median 73%
+  refractoriness: spindle-to-spindle interval median 2.79 s, min 2.18 s; P(spindle | previous UP had one) 17% (n=6) vs P(spindle | previous UP had none) 71% (n=7)
+
+== ib2000 s4
+  SO: 16 UP states (0.89 Hz), interval median 882 ms, CV 0.60
+  RE trains: 12 (40.0/min); cycles median 6, max 8; histogram 3:1 5:3 6:2 7:4 8:2
+  multi-cycle trains: freq median 10.4 Hz, duration median 534 ms
+  spindle-like (>= 6 cycles): 8 (26.7/min), 10.0-11.9 Hz, 426-601 ms
+  nesting: trains starting in an UP state 92% (>= 6 cycles: 100%); UP states carrying a >= 2-cycle train 69%, a >= 6-cycle train 50%
+  Stage 1 criteria over 8 spindles: 10-15 Hz 88%, >= 0.5 s 75% (median 583 ms), waxing/waning 0%, TC participation per cycle median 68%
+  refractoriness: spindle-to-spindle interval median 1.43 s, min 0.99 s; P(spindle | previous UP had one) 43% (n=7) vs P(spindle | previous UP had none) 62% (n=8)
+
+== pooled over 5 runs (90 s)
+  SO 0.91 Hz (per run 0.83, 0.94, 1.11, 0.78, 0.89)
+  UP states carrying a >= 6-cycle train: 39% of 82
+  Stage 1 criteria over 32 spindles: 10-15 Hz 84%, >= 0.5 s 81% (median 583 ms), waxing/waning 9%, TC participation per cycle median 68%
+  refractoriness: spindle-to-spindle interval median 2.52 s, min 0.75 s; P(spindle | previous UP had one) 27% (n=30) vs P(spindle | previous UP had none) 47% (n=47)
