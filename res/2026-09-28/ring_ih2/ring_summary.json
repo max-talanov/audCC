@@ -1,0 +1,246 @@
+[
+ {
+  "g_gap": 0.001,
+  "seed": 0,
+  "kick": "l6",
+  "wall": 236.60670804977417,
+  "kick_frac": 1.0,
+  "kick2_t": 4500.0,
+  "cycles2": 4,
+  "duration2": 223.0,
+  "params": {
+   "ek_re": -95.0,
+   "taur_re": 5.0,
+   "g_tc_re": 0.06,
+   "thal_footprint": 10.0,
+   "gh_tc": 2e-05,
+   "kl_scale_tc": 2.273,
+   "depth_tc": 1.0
+  },
+  "pre_kick_spikes": 0,
+  "tc_spikes": 1456,
+  "re_spikes": 1635,
+  "n_trains_after_kick": 2,
+  "n_volleys_after_kick": 7,
+  "ivi": [
+   74,
+   80,
+   1346,
+   70,
+   77,
+   76
+  ],
+  "ivi_median": 76.5,
+  "evoked": true,
+  "cycles": 3,
+  "duration": 154.0,
+  "freq": 12.987012987012987,
+  "wax_wane": false,
+  "re_part": [
+   1.0,
+   0.813,
+   0.538
+  ],
+  "tc_part": [
+   1.0,
+   0.454,
+   0.37
+  ],
+  "re_sd_first": 0.10716610060487532
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 1,
+  "kick": "l6",
+  "wall": 236.79744791984558,
+  "kick_frac": 1.0,
+  "kick2_t": 4500.0,
+  "cycles2": 4,
+  "duration2": 210.0,
+  "params": {
+   "ek_re": -95.0,
+   "taur_re": 5.0,
+   "g_tc_re": 0.06,
+   "thal_footprint": 10.0,
+   "gh_tc": 2e-05,
+   "kl_scale_tc": 2.273,
+   "depth_tc": 1.0
+  },
+  "pre_kick_spikes": 0,
+  "tc_spikes": 1411,
+  "re_spikes": 1617,
+  "n_trains_after_kick": 2,
+  "n_volleys_after_kick": 7,
+  "ivi": [
+   77,
+   79,
+   1344,
+   72,
+   70,
+   68
+  ],
+  "ivi_median": 74.5,
+  "evoked": true,
+  "cycles": 3,
+  "duration": 156.0,
+  "freq": 12.820512820512821,
+  "wax_wane": false,
+  "re_part": [
+   1.0,
+   0.791,
+   0.473
+  ],
+  "tc_part": [
+   1.0,
+   0.431,
+   0.292
+  ],
+  "re_sd_first": 0.11329811555003153
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 2,
+  "kick": "l6",
+  "wall": 238.43292999267578,
+  "kick_frac": 1.0,
+  "kick2_t": 4500.0,
+  "cycles2": 3,
+  "duration2": 145.0,
+  "params": {
+   "ek_re": -95.0,
+   "taur_re": 5.0,
+   "g_tc_re": 0.06,
+   "thal_footprint": 10.0,
+   "gh_tc": 2e-05,
+   "kl_scale_tc": 2.273,
+   "depth_tc": 1.0
+  },
+  "pre_kick_spikes": 0,
+  "tc_spikes": 1287,
+  "re_spikes": 1404,
+  "n_trains_after_kick": 2,
+  "n_volleys_after_kick": 6,
+  "ivi": [
+   82,
+   81,
+   1342,
+   73,
+   72
+  ],
+  "ivi_median": 81.0,
+  "evoked": true,
+  "cycles": 3,
+  "duration": 163.0,
+  "freq": 12.269938650306749,
+  "wax_wane": false,
+  "re_part": [
+   1.0,
+   0.703,
+   0.341
+  ],
+  "tc_part": [
+   1.0,
+   0.425,
+   0.269
+  ],
+  "re_sd_first": 0.11743469204158169
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 3,
+  "kick": "l6",
+  "wall": 237.38589215278625,
+  "kick_frac": 1.0,
+  "kick2_t": 4500.0,
+  "cycles2": 4,
+  "duration2": 215.0,
+  "params": {
+   "ek_re": -95.0,
+   "taur_re": 5.0,
+   "g_tc_re": 0.06,
+   "thal_footprint": 10.0,
+   "gh_tc": 2e-05,
+   "kl_scale_tc": 2.273,
+   "depth_tc": 1.0
+  },
+  "pre_kick_spikes": 0,
+  "tc_spikes": 1396,
+  "re_spikes": 1602,
+  "n_trains_after_kick": 2,
+  "n_volleys_after_kick": 7,
+  "ivi": [
+   77,
+   80,
+   1343,
+   74,
+   67,
+   74
+  ],
+  "ivi_median": 75.5,
+  "evoked": true,
+  "cycles": 3,
+  "duration": 157.0,
+  "freq": 12.738853503184714,
+  "wax_wane": false,
+  "re_part": [
+   1.0,
+   0.835,
+   0.462
+  ],
+  "tc_part": [
+   1.0,
+   0.436,
+   0.338
+  ],
+  "re_sd_first": 0.11221106679506582
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 4,
+  "kick": "l6",
+  "wall": 150.23916125297546,
+  "kick_frac": 1.0,
+  "kick2_t": 4500.0,
+  "cycles2": 4,
+  "duration2": 213.0,
+  "params": {
+   "ek_re": -95.0,
+   "taur_re": 5.0,
+   "g_tc_re": 0.06,
+   "thal_footprint": 10.0,
+   "gh_tc": 2e-05,
+   "kl_scale_tc": 2.273,
+   "depth_tc": 1.0
+  },
+  "pre_kick_spikes": 0,
+  "tc_spikes": 1456,
+  "re_spikes": 1667,
+  "n_trains_after_kick": 2,
+  "n_volleys_after_kick": 7,
+  "ivi": [
+   79,
+   77,
+   1339,
+   78,
+   72,
+   63
+  ],
+  "ivi_median": 77.5,
+  "evoked": true,
+  "cycles": 3,
+  "duration": 156.0,
+  "freq": 12.820512820512821,
+  "wax_wane": false,
+  "re_part": [
+   1.0,
+   0.846,
+   0.593
+  ],
+  "tc_part": [
+   1.0,
+   0.448,
+   0.37
+  ],
+  "re_sd_first": 0.11683158652847618
+ }
+]

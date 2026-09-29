@@ -1,0 +1,938 @@
+[
+ {
+  "g_gap": 0.001,
+  "seed": 0,
+  "kick": "l6",
+  "wall": 17.36405611038208,
+  "params": {
+   "tau2_re_tc": 8.0,
+   "g_tc_re": 0.011
+  },
+  "pre_kick_spikes": 69,
+  "tc_spikes": 1289,
+  "re_spikes": 600,
+  "n_trains_after_kick": 1,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.2152342348996001
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 1,
+  "kick": "l6",
+  "wall": 17.556752920150757,
+  "params": {
+   "tau2_re_tc": 8.0,
+   "g_tc_re": 0.011
+  },
+  "pre_kick_spikes": 68,
+  "tc_spikes": 1319,
+  "re_spikes": 583,
+  "n_trains_after_kick": 1,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.2101402341423297
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 2,
+  "kick": "l6",
+  "wall": 17.196887969970703,
+  "params": {
+   "tau2_re_tc": 8.0,
+   "g_tc_re": 0.011
+  },
+  "pre_kick_spikes": 63,
+  "tc_spikes": 1290,
+  "re_spikes": 595,
+  "n_trains_after_kick": 1,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.23052741123960604
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 0,
+  "kick": "l6",
+  "wall": 17.562813997268677,
+  "params": {
+   "tau2_re_tc": 8.0,
+   "g_tc_re": 0.03
+  },
+  "pre_kick_spikes": 69,
+  "tc_spikes": 1308,
+  "re_spikes": 618,
+  "n_trains_after_kick": 1,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.12899456061086553
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 1,
+  "kick": "l6",
+  "wall": 20.013062000274658,
+  "params": {
+   "tau2_re_tc": 8.0,
+   "g_tc_re": 0.03
+  },
+  "pre_kick_spikes": 68,
+  "tc_spikes": 1294,
+  "re_spikes": 604,
+  "n_trains_after_kick": 1,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.12930545610400354
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 2,
+  "kick": "l6",
+  "wall": 20.07730007171631,
+  "params": {
+   "tau2_re_tc": 8.0,
+   "g_tc_re": 0.03
+  },
+  "pre_kick_spikes": 63,
+  "tc_spikes": 1234,
+  "re_spikes": 606,
+  "n_trains_after_kick": 1,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.13687936966721378
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 0,
+  "kick": "l6",
+  "wall": 19.895224809646606,
+  "params": {
+   "tau2_re_tc": 8.0,
+   "g_tc_re": 0.06
+  },
+  "pre_kick_spikes": 69,
+  "tc_spikes": 1278,
+  "re_spikes": 594,
+  "n_trains_after_kick": 1,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.08700944570635591
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 1,
+  "kick": "l6",
+  "wall": 19.942389011383057,
+  "params": {
+   "tau2_re_tc": 8.0,
+   "g_tc_re": 0.06
+  },
+  "pre_kick_spikes": 68,
+  "tc_spikes": 1260,
+  "re_spikes": 606,
+  "n_trains_after_kick": 1,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.08990612850668671
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 2,
+  "kick": "l6",
+  "wall": 31.742313146591187,
+  "params": {
+   "tau2_re_tc": 8.0,
+   "g_tc_re": 0.06
+  },
+  "pre_kick_spikes": 63,
+  "tc_spikes": 1244,
+  "re_spikes": 593,
+  "n_trains_after_kick": 1,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.09319303317446735
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 0,
+  "kick": "l6",
+  "wall": 31.265769004821777,
+  "params": {
+   "tau2_re_tc": 20.0,
+   "g_tc_re": 0.011
+  },
+  "pre_kick_spikes": 69,
+  "tc_spikes": 1473,
+  "re_spikes": 600,
+  "n_trains_after_kick": 1,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.2152342348996001
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 1,
+  "kick": "l6",
+  "wall": 31.17540192604065,
+  "params": {
+   "tau2_re_tc": 20.0,
+   "g_tc_re": 0.011
+  },
+  "pre_kick_spikes": 68,
+  "tc_spikes": 1504,
+  "re_spikes": 583,
+  "n_trains_after_kick": 1,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.2101402341423297
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 2,
+  "kick": "l6",
+  "wall": 31.348900079727173,
+  "params": {
+   "tau2_re_tc": 20.0,
+   "g_tc_re": 0.011
+  },
+  "pre_kick_spikes": 63,
+  "tc_spikes": 1484,
+  "re_spikes": 595,
+  "n_trains_after_kick": 1,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.23052741123960604
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 0,
+  "kick": "l6",
+  "wall": 52.92196297645569,
+  "params": {
+   "tau2_re_tc": 20.0,
+   "g_tc_re": 0.03
+  },
+  "pre_kick_spikes": 69,
+  "tc_spikes": 1464,
+  "re_spikes": 617,
+  "n_trains_after_kick": 1,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.12899456061086553
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 1,
+  "kick": "l6",
+  "wall": 52.85202932357788,
+  "params": {
+   "tau2_re_tc": 20.0,
+   "g_tc_re": 0.03
+  },
+  "pre_kick_spikes": 68,
+  "tc_spikes": 1481,
+  "re_spikes": 603,
+  "n_trains_after_kick": 1,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.12930545610400354
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 2,
+  "kick": "l6",
+  "wall": 52.82550024986267,
+  "params": {
+   "tau2_re_tc": 20.0,
+   "g_tc_re": 0.03
+  },
+  "pre_kick_spikes": 63,
+  "tc_spikes": 1462,
+  "re_spikes": 606,
+  "n_trains_after_kick": 1,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.13687936966721378
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 0,
+  "kick": "l6",
+  "wall": 55.431581258773804,
+  "params": {
+   "tau2_re_tc": 20.0,
+   "g_tc_re": 0.06
+  },
+  "pre_kick_spikes": 69,
+  "tc_spikes": 1452,
+  "re_spikes": 592,
+  "n_trains_after_kick": 1,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.08700944570635591
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 1,
+  "kick": "l6",
+  "wall": 30.260645866394043,
+  "params": {
+   "tau2_re_tc": 20.0,
+   "g_tc_re": 0.06
+  },
+  "pre_kick_spikes": 68,
+  "tc_spikes": 1469,
+  "re_spikes": 604,
+  "n_trains_after_kick": 1,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.08990612850668671
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 2,
+  "kick": "l6",
+  "wall": 30.20215129852295,
+  "params": {
+   "tau2_re_tc": 20.0,
+   "g_tc_re": 0.06
+  },
+  "pre_kick_spikes": 63,
+  "tc_spikes": 1450,
+  "re_spikes": 592,
+  "n_trains_after_kick": 1,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.09319303317446735
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 0,
+  "kick": "l6",
+  "wall": 30.349771738052368,
+  "params": {
+   "tau2_re_tc": 40.0,
+   "g_tc_re": 0.011
+  },
+  "pre_kick_spikes": 69,
+  "tc_spikes": 1448,
+  "re_spikes": 600,
+  "n_trains_after_kick": 1,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.2152342348996001
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 1,
+  "kick": "l6",
+  "wall": 30.304688930511475,
+  "params": {
+   "tau2_re_tc": 40.0,
+   "g_tc_re": 0.011
+  },
+  "pre_kick_spikes": 68,
+  "tc_spikes": 1477,
+  "re_spikes": 583,
+  "n_trains_after_kick": 1,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.2101402341423297
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 2,
+  "kick": "l6",
+  "wall": 30.784053087234497,
+  "params": {
+   "tau2_re_tc": 40.0,
+   "g_tc_re": 0.011
+  },
+  "pre_kick_spikes": 63,
+  "tc_spikes": 1459,
+  "re_spikes": 595,
+  "n_trains_after_kick": 1,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.23052741123960604
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 0,
+  "kick": "l6",
+  "wall": 30.62334418296814,
+  "params": {
+   "tau2_re_tc": 40.0,
+   "g_tc_re": 0.03
+  },
+  "pre_kick_spikes": 69,
+  "tc_spikes": 1434,
+  "re_spikes": 618,
+  "n_trains_after_kick": 1,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.12899456061086553
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 1,
+  "kick": "l6",
+  "wall": 30.895230054855347,
+  "params": {
+   "tau2_re_tc": 40.0,
+   "g_tc_re": 0.03
+  },
+  "pre_kick_spikes": 68,
+  "tc_spikes": 1459,
+  "re_spikes": 604,
+  "n_trains_after_kick": 1,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.12930545610400354
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 2,
+  "kick": "l6",
+  "wall": 31.67723798751831,
+  "params": {
+   "tau2_re_tc": 40.0,
+   "g_tc_re": 0.03
+  },
+  "pre_kick_spikes": 63,
+  "tc_spikes": 1435,
+  "re_spikes": 606,
+  "n_trains_after_kick": 1,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.13687936966721378
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 0,
+  "kick": "l6",
+  "wall": 37.76135230064392,
+  "params": {
+   "tau2_re_tc": 40.0,
+   "g_tc_re": 0.06
+  },
+  "pre_kick_spikes": 69,
+  "tc_spikes": 1426,
+  "re_spikes": 590,
+  "n_trains_after_kick": 1,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.08700944570635591
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 1,
+  "kick": "l6",
+  "wall": 37.99777293205261,
+  "params": {
+   "tau2_re_tc": 40.0,
+   "g_tc_re": 0.06
+  },
+  "pre_kick_spikes": 68,
+  "tc_spikes": 1447,
+  "re_spikes": 602,
+  "n_trains_after_kick": 1,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.08990612850668671
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 2,
+  "kick": "l6",
+  "wall": 38.15062069892883,
+  "params": {
+   "tau2_re_tc": 40.0,
+   "g_tc_re": 0.06
+  },
+  "pre_kick_spikes": 63,
+  "tc_spikes": 1423,
+  "re_spikes": 592,
+  "n_trains_after_kick": 1,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.09319303317446735
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 0,
+  "kick": "l6",
+  "wall": 37.68560290336609,
+  "params": {
+   "tau2_re_tc": 80.0,
+   "g_tc_re": 0.011
+  },
+  "pre_kick_spikes": 69,
+  "tc_spikes": 1181,
+  "re_spikes": 600,
+  "n_trains_after_kick": 1,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.2152342348996001
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 1,
+  "kick": "l6",
+  "wall": 33.580986976623535,
+  "params": {
+   "tau2_re_tc": 80.0,
+   "g_tc_re": 0.011
+  },
+  "pre_kick_spikes": 68,
+  "tc_spikes": 1193,
+  "re_spikes": 583,
+  "n_trains_after_kick": 1,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.2101402341423297
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 2,
+  "kick": "l6",
+  "wall": 37.26012301445007,
+  "params": {
+   "tau2_re_tc": 80.0,
+   "g_tc_re": 0.011
+  },
+  "pre_kick_spikes": 63,
+  "tc_spikes": 1168,
+  "re_spikes": 595,
+  "n_trains_after_kick": 1,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.23052741123960604
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 0,
+  "kick": "l6",
+  "wall": 33.33375883102417,
+  "params": {
+   "tau2_re_tc": 80.0,
+   "g_tc_re": 0.03
+  },
+  "pre_kick_spikes": 69,
+  "tc_spikes": 1164,
+  "re_spikes": 618,
+  "n_trains_after_kick": 1,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.12899456061086553
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 1,
+  "kick": "l6",
+  "wall": 33.04673099517822,
+  "params": {
+   "tau2_re_tc": 80.0,
+   "g_tc_re": 0.03
+  },
+  "pre_kick_spikes": 68,
+  "tc_spikes": 1171,
+  "re_spikes": 604,
+  "n_trains_after_kick": 1,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.12930545610400354
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 2,
+  "kick": "l6",
+  "wall": 34.24033212661743,
+  "params": {
+   "tau2_re_tc": 80.0,
+   "g_tc_re": 0.03
+  },
+  "pre_kick_spikes": 63,
+  "tc_spikes": 1145,
+  "re_spikes": 606,
+  "n_trains_after_kick": 1,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.13687936966721378
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 0,
+  "kick": "l6",
+  "wall": 34.70515775680542,
+  "params": {
+   "tau2_re_tc": 80.0,
+   "g_tc_re": 0.06
+  },
+  "pre_kick_spikes": 69,
+  "tc_spikes": 2762,
+  "re_spikes": 3123,
+  "n_trains_after_kick": 13,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.08700944570635591
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 1,
+  "kick": "l6",
+  "wall": 33.91783404350281,
+  "params": {
+   "tau2_re_tc": 80.0,
+   "g_tc_re": 0.06
+  },
+  "pre_kick_spikes": 68,
+  "tc_spikes": 2693,
+  "re_spikes": 3238,
+  "n_trains_after_kick": 13,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.08990612850668671
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 2,
+  "kick": "l6",
+  "wall": 33.696760177612305,
+  "params": {
+   "tau2_re_tc": 80.0,
+   "g_tc_re": 0.06
+  },
+  "pre_kick_spikes": 63,
+  "tc_spikes": 1277,
+  "re_spikes": 653,
+  "n_trains_after_kick": 2,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.09319303317446735
+ }
+]

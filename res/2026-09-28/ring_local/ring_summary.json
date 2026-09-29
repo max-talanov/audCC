@@ -1,0 +1,698 @@
+[
+ {
+  "g_gap": 0.001,
+  "seed": 0,
+  "kick": "l6",
+  "wall": 14.38025689125061,
+  "kick_frac": 1.0,
+  "params": {
+   "thal_footprint": 5.0
+  },
+  "pre_kick_spikes": 69,
+  "tc_spikes": 1285,
+  "re_spikes": 600,
+  "n_trains_after_kick": 1,
+  "n_volleys_after_kick": 1,
+  "ivi": [],
+  "ivi_median": NaN,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.21608849998657426
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 1,
+  "kick": "l6",
+  "wall": 16.60855984687805,
+  "kick_frac": 1.0,
+  "params": {
+   "thal_footprint": 5.0
+  },
+  "pre_kick_spikes": 68,
+  "tc_spikes": 1369,
+  "re_spikes": 582,
+  "n_trains_after_kick": 1,
+  "n_volleys_after_kick": 1,
+  "ivi": [],
+  "ivi_median": NaN,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.20846888075335726
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 2,
+  "kick": "l6",
+  "wall": 14.443695783615112,
+  "kick_frac": 1.0,
+  "params": {
+   "thal_footprint": 5.0
+  },
+  "pre_kick_spikes": 63,
+  "tc_spikes": 1277,
+  "re_spikes": 595,
+  "n_trains_after_kick": 1,
+  "n_volleys_after_kick": 1,
+  "ivi": [],
+  "ivi_median": NaN,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.22295576745759002
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 0,
+  "kick": "l6",
+  "wall": 14.54737114906311,
+  "kick_frac": 0.2,
+  "params": {
+   "thal_footprint": 5.0
+  },
+  "pre_kick_spikes": 69,
+  "tc_spikes": 338,
+  "re_spikes": 130,
+  "n_trains_after_kick": 1,
+  "n_volleys_after_kick": 1,
+  "ivi": [],
+  "ivi_median": NaN,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   0.209
+  ],
+  "tc_part": [
+   0.202
+  ],
+  "re_sd_first": 0.31318000806602775
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 1,
+  "kick": "l6",
+  "wall": 15.236112833023071,
+  "kick_frac": 0.2,
+  "params": {
+   "thal_footprint": 5.0
+  },
+  "pre_kick_spikes": 68,
+  "tc_spikes": 381,
+  "re_spikes": 129,
+  "n_trains_after_kick": 1,
+  "n_volleys_after_kick": 1,
+  "ivi": [],
+  "ivi_median": NaN,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   0.209
+  ],
+  "tc_part": [
+   0.202
+  ],
+  "re_sd_first": 0.29569861875029124
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 2,
+  "kick": "l6",
+  "wall": 15.578049898147583,
+  "kick_frac": 0.2,
+  "params": {
+   "thal_footprint": 5.0
+  },
+  "pre_kick_spikes": 63,
+  "tc_spikes": 406,
+  "re_spikes": 127,
+  "n_trains_after_kick": 1,
+  "n_volleys_after_kick": 1,
+  "ivi": [],
+  "ivi_median": NaN,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   0.209
+  ],
+  "tc_part": [
+   0.205
+  ],
+  "re_sd_first": 0.27413929775058504
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 0,
+  "kick": "l6",
+  "wall": 15.320230722427368,
+  "kick_frac": 1.0,
+  "params": {
+   "thal_footprint": 10.0
+  },
+  "pre_kick_spikes": 69,
+  "tc_spikes": 1278,
+  "re_spikes": 600,
+  "n_trains_after_kick": 1,
+  "n_volleys_after_kick": 1,
+  "ivi": [],
+  "ivi_median": NaN,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.21452649194732412
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 1,
+  "kick": "l6",
+  "wall": 15.532737016677856,
+  "kick_frac": 1.0,
+  "params": {
+   "thal_footprint": 10.0
+  },
+  "pre_kick_spikes": 68,
+  "tc_spikes": 1373,
+  "re_spikes": 583,
+  "n_trains_after_kick": 1,
+  "n_volleys_after_kick": 1,
+  "ivi": [],
+  "ivi_median": NaN,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.20887144207480815
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 2,
+  "kick": "l6",
+  "wall": 18.177457809448242,
+  "kick_frac": 1.0,
+  "params": {
+   "thal_footprint": 10.0
+  },
+  "pre_kick_spikes": 63,
+  "tc_spikes": 1268,
+  "re_spikes": 592,
+  "n_trains_after_kick": 1,
+  "n_volleys_after_kick": 1,
+  "ivi": [],
+  "ivi_median": NaN,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.22306914131476624
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 0,
+  "kick": "l6",
+  "wall": 18.267181158065796,
+  "kick_frac": 0.2,
+  "params": {
+   "thal_footprint": 10.0
+  },
+  "pre_kick_spikes": 69,
+  "tc_spikes": 344,
+  "re_spikes": 129,
+  "n_trains_after_kick": 1,
+  "n_volleys_after_kick": 1,
+  "ivi": [],
+  "ivi_median": NaN,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   0.209
+  ],
+  "tc_part": [
+   0.202
+  ],
+  "re_sd_first": 0.333640209618826
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 1,
+  "kick": "l6",
+  "wall": 18.35308289527893,
+  "kick_frac": 0.2,
+  "params": {
+   "thal_footprint": 10.0
+  },
+  "pre_kick_spikes": 68,
+  "tc_spikes": 383,
+  "re_spikes": 129,
+  "n_trains_after_kick": 1,
+  "n_volleys_after_kick": 1,
+  "ivi": [],
+  "ivi_median": NaN,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   0.209
+  ],
+  "tc_part": [
+   0.202
+  ],
+  "re_sd_first": 0.3185080350976891
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 2,
+  "kick": "l6",
+  "wall": 18.341100931167603,
+  "kick_frac": 0.2,
+  "params": {
+   "thal_footprint": 10.0
+  },
+  "pre_kick_spikes": 63,
+  "tc_spikes": 405,
+  "re_spikes": 127,
+  "n_trains_after_kick": 1,
+  "n_volleys_after_kick": 1,
+  "ivi": [],
+  "ivi_median": NaN,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   0.209
+  ],
+  "tc_part": [
+   0.202
+  ],
+  "re_sd_first": 0.31022509922484653
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 0,
+  "kick": "l6",
+  "wall": 16.752893924713135,
+  "kick_frac": 1.0,
+  "params": {
+   "thal_footprint": 20.0
+  },
+  "pre_kick_spikes": 69,
+  "tc_spikes": 1269,
+  "re_spikes": 601,
+  "n_trains_after_kick": 1,
+  "n_volleys_after_kick": 1,
+  "ivi": [],
+  "ivi_median": NaN,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.2143983924666411
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 1,
+  "kick": "l6",
+  "wall": 17.060393810272217,
+  "kick_frac": 1.0,
+  "params": {
+   "thal_footprint": 20.0
+  },
+  "pre_kick_spikes": 68,
+  "tc_spikes": 1377,
+  "re_spikes": 584,
+  "n_trains_after_kick": 1,
+  "n_volleys_after_kick": 1,
+  "ivi": [],
+  "ivi_median": NaN,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.20838668157344686
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 2,
+  "kick": "l6",
+  "wall": 17.08289408683777,
+  "kick_frac": 1.0,
+  "params": {
+   "thal_footprint": 20.0
+  },
+  "pre_kick_spikes": 63,
+  "tc_spikes": 1247,
+  "re_spikes": 594,
+  "n_trains_after_kick": 1,
+  "n_volleys_after_kick": 1,
+  "ivi": [],
+  "ivi_median": NaN,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.22554928323883588
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 0,
+  "kick": "l6",
+  "wall": 17.14683699607849,
+  "kick_frac": 0.2,
+  "params": {
+   "thal_footprint": 20.0
+  },
+  "pre_kick_spikes": 69,
+  "tc_spikes": 375,
+  "re_spikes": 129,
+  "n_trains_after_kick": 1,
+  "n_volleys_after_kick": 1,
+  "ivi": [],
+  "ivi_median": NaN,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   0.209
+  ],
+  "tc_part": [
+   0.202
+  ],
+  "re_sd_first": 0.3510619031377397
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 1,
+  "kick": "l6",
+  "wall": 16.31843090057373,
+  "kick_frac": 0.2,
+  "params": {
+   "thal_footprint": 20.0
+  },
+  "pre_kick_spikes": 68,
+  "tc_spikes": 427,
+  "re_spikes": 129,
+  "n_trains_after_kick": 1,
+  "n_volleys_after_kick": 1,
+  "ivi": [],
+  "ivi_median": NaN,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   0.209
+  ],
+  "tc_part": [
+   0.202
+  ],
+  "re_sd_first": 0.3156304424132916
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 2,
+  "kick": "l6",
+  "wall": 16.33306312561035,
+  "kick_frac": 0.2,
+  "params": {
+   "thal_footprint": 20.0
+  },
+  "pre_kick_spikes": 63,
+  "tc_spikes": 441,
+  "re_spikes": 127,
+  "n_trains_after_kick": 1,
+  "n_volleys_after_kick": 1,
+  "ivi": [],
+  "ivi_median": NaN,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   0.209
+  ],
+  "tc_part": [
+   0.202
+  ],
+  "re_sd_first": 0.3158716998223304
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 0,
+  "kick": "l6",
+  "wall": 16.13223886489868,
+  "kick_frac": 1.0,
+  "params": {
+   "thal_footprint": 40.0
+  },
+  "pre_kick_spikes": 69,
+  "tc_spikes": 1294,
+  "re_spikes": 600,
+  "n_trains_after_kick": 1,
+  "n_volleys_after_kick": 1,
+  "ivi": [],
+  "ivi_median": NaN,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.21445717288180266
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 1,
+  "kick": "l6",
+  "wall": 19.93075919151306,
+  "kick_frac": 1.0,
+  "params": {
+   "thal_footprint": 40.0
+  },
+  "pre_kick_spikes": 68,
+  "tc_spikes": 1328,
+  "re_spikes": 584,
+  "n_trains_after_kick": 1,
+  "n_volleys_after_kick": 1,
+  "ivi": [],
+  "ivi_median": NaN,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.21003641124084582
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 2,
+  "kick": "l6",
+  "wall": 16.45785689353943,
+  "kick_frac": 1.0,
+  "params": {
+   "thal_footprint": 40.0
+  },
+  "pre_kick_spikes": 63,
+  "tc_spikes": 1286,
+  "re_spikes": 595,
+  "n_trains_after_kick": 1,
+  "n_volleys_after_kick": 1,
+  "ivi": [],
+  "ivi_median": NaN,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   1.0
+  ],
+  "tc_part": [
+   1.0
+  ],
+  "re_sd_first": 0.2246859768436817
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 0,
+  "kick": "l6",
+  "wall": 16.69948101043701,
+  "kick_frac": 0.2,
+  "params": {
+   "thal_footprint": 40.0
+  },
+  "pre_kick_spikes": 69,
+  "tc_spikes": 457,
+  "re_spikes": 130,
+  "n_trains_after_kick": 1,
+  "n_volleys_after_kick": 1,
+  "ivi": [],
+  "ivi_median": NaN,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   0.209
+  ],
+  "tc_part": [
+   0.202
+  ],
+  "re_sd_first": 0.33313128687416355
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 1,
+  "kick": "l6",
+  "wall": 16.91391611099243,
+  "kick_frac": 0.2,
+  "params": {
+   "thal_footprint": 40.0
+  },
+  "pre_kick_spikes": 68,
+  "tc_spikes": 491,
+  "re_spikes": 133,
+  "n_trains_after_kick": 1,
+  "n_volleys_after_kick": 1,
+  "ivi": [],
+  "ivi_median": NaN,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   0.22
+  ],
+  "tc_part": [
+   0.202
+  ],
+  "re_sd_first": 5.474060849836986
+ },
+ {
+  "g_gap": 0.001,
+  "seed": 2,
+  "kick": "l6",
+  "wall": 15.287124156951904,
+  "kick_frac": 0.2,
+  "params": {
+   "thal_footprint": 40.0
+  },
+  "pre_kick_spikes": 63,
+  "tc_spikes": 479,
+  "re_spikes": 127,
+  "n_trains_after_kick": 1,
+  "n_volleys_after_kick": 1,
+  "ivi": [],
+  "ivi_median": NaN,
+  "evoked": true,
+  "cycles": 1,
+  "duration": 0.0,
+  "freq": NaN,
+  "wax_wane": false,
+  "re_part": [
+   0.209
+  ],
+  "tc_part": [
+   0.202
+  ],
+  "re_sd_first": 0.30283745857548194
+ }
+]
