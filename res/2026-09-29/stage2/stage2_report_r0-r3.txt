@@ -1,0 +1,28 @@
+
+== R0 production thalamus
+  SO: 31 UP states (1.72 Hz), interval median 583 ms, CV 0.27
+  RE trains: 62 (206.7/min); cycles median 1, max 2; histogram 1:61 2:1
+  multi-cycle trains: freq median 8.1 Hz, duration median 123 ms
+  spindle-like (>= 6 cycles): 0 (0.0/min)
+  nesting: trains starting in an UP state 69% (>= 6 cycles: -); UP states carrying a >= 2-cycle train 3%, a >= 6-cycle train 0%
+
+== R1 Stage 1 thalamus
+  SO: 30 UP states (1.67 Hz), interval median 589 ms, CV 0.22
+  RE trains: 10 (33.3/min); cycles median 22, max 28; histogram 1:1 4:1 10:1
+  multi-cycle trains: freq median 10.7 Hz, duration median 1993 ms
+  spindle-like (>= 6 cycles): 8 (26.7/min), 10.0-12.1 Hz, 835-2518 ms
+  nesting: trains starting in an UP state 70% (>= 6 cycles: 88%); UP states carrying a >= 2-cycle train 23%, a >= 6-cycle train 23%
+
+== R2 + weak L6 kick (0.01)
+  SO: 34 UP states (1.89 Hz), interval median 579 ms, CV 0.22
+  RE trains: 15 (50.0/min); cycles median 10, max 30; histogram 4:1 5:2 6:3 7:1 10:1 11:1 13:1 15:2
+  multi-cycle trains: freq median 10.8 Hz, duration median 828 ms
+  spindle-like (>= 6 cycles): 12 (40.0/min), 9.8-11.8 Hz, 424-2591 ms
+  nesting: trains starting in an UP state 93% (>= 6 cycles: 92%); UP states carrying a >= 2-cycle train 41%, a >= 6-cycle train 32%
+
+== R3 + slower L5 pacemaker (taur 1000)
+  SO: 23 UP states (1.28 Hz), interval median 816 ms, CV 0.41
+  RE trains: 18 (60.0/min); cycles median 6, max 10; histogram 1:1 3:1 5:2 6:5 7:5 8:2 10:2
+  multi-cycle trains: freq median 11.0 Hz, duration median 533 ms
+  spindle-like (>= 6 cycles): 14 (46.7/min), 9.0-12.3 Hz, 454-859 ms
+  nesting: trains starting in an UP state 83% (>= 6 cycles: 86%); UP states carrying a >= 2-cycle train 65%, a >= 6-cycle train 52%

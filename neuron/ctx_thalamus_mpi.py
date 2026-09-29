@@ -87,7 +87,7 @@ class ParallelCorticoThalamicNet:
                  het=0.05, delay_jitter=0.0, state=None, het_seed=0,
                  kl_scale_tc=None, kl_scale_re=None, thal_footprint=None,
                  ek_tc=None, ek_re=None, taur_re=None, depth_tc=None,
-                 taur_tc=None, ginc_tc=None):
+                 taur_tc=None, ginc_tc=None, taur_l5_ib=None):
         self.pc = h.ParallelContext()
         self.rank = int(self.pc.id())
         self.nhost = int(self.pc.nhost())
@@ -168,6 +168,10 @@ class ParallelCorticoThalamicNet:
         # ginc_tc: conductance ratio of the Ca2+-locked I_h state (ihca
         # ginc, default 2).
         self.taur_tc, self.ginc_tc = taur_tc, ginc_tc
+        # taur_l5_ib: Ca2+-pool clearance of L5 PYCellIB (default 500 ms), the
+        # slow recovery variable of the L5 relaxation oscillator that paces
+        # the slow oscillation (PLAN-spindels.md Stage 2: slow the SO < 1 Hz).
+        self.taur_l5_ib = taur_l5_ib
         # het_seed: 0 (default) = the production per-cell jitter; other values
         # draw a different, equally deterministic set of cells (seeds for
         # thal_ring_test.py, PLAN-spindels.md Stage 1).
@@ -301,8 +305,9 @@ class ParallelCorticoThalamicNet:
             # _wire_l5_gap below), the same way TRN heterogeneity + RE<->RE
             # gap junctions coexist in tc_neuron.py, not making the cells
             # identical.
+            kw_ib = {} if self.taur_l5_ib is None else {"taur": self.taur_l5_ib}
             return C.PYCellIB(e_pas=self._jitter(-70.0, gid, 1),
-                               gnap=self._jitter(2e-4, gid, 3))
+                               gnap=self._jitter(2e-4, gid, 3), **kw_ib)
         # L5's regular-spiking cells get a slower Ca2+-pool clearance
         # (taur_l5e_rs, default 80ms = unchanged from every other layer)
         # ONLY when opted in: these are the cells the L5 recurrent-excitation
@@ -919,6 +924,25 @@ def main():
                     help="RE<->RE gap-junction conductance (uS). 0.03 is ~30x "
                          "too strong (Edu-questions.md Q7); PLAN-spindels.md "
                          "Stage 1 sweeps it down (thal_ring_test.py).")
+    ap.add_argument("--thal-scale", type=float, default=None,
+                    help="scale for the thalamus (tc, re) only, e.g. 1.65 = the "
+                         "MN5 thalamus (346 TC / 91 RE) under a --scale 0.1 "
+                         "cortex. Unset = --scale.")
+    stage1 = ap.add_argument_group("Stage 1 thalamus options (PLAN-spindels.md; unset = production)")
+    for name, typ, hlp in [
+            ("--g-tc-re", float, "TC->RE total conductance (production 0.011)"),
+            ("--g-l6-tc", float, "L6->TC total conductance (production 0.03)"),
+            ("--g-l6-re", float, "L6->RE total conductance (production 0.03)"),
+            ("--ek-tc", float, "TC K+ reversal (mV)"),
+            ("--ek-re", float, "RE K+ reversal (mV), Stage 1: -95"),
+            ("--taur-re", float, "RE Ca2+ pool clearance (ms), Stage 1: 5"),
+            ("--kl-scale-tc", float, "TC K+ leak scale (sleep depth / I_h balance)"),
+            ("--kl-scale-re", float, "RE K+ leak scale"),
+            ("--depth-tc", float, "TC Ca2+ pool depth (um), Stage 1: 1"),
+            ("--taur-tc", float, "TC Ca2+ pool clearance (ms), Stage 1: 5"),
+            ("--ginc-tc", float, "locked-open I_h conductance ratio, Stage 1: 8"),
+            ("--taur-l5-ib", float, "L5 IB Ca2+ pool clearance (ms, default 500): SO period")]:
+        stage1.add_argument(name, type=typ, default=None, help=hlp)
     ap.add_argument("--thal-footprint", type=int, default=None,
                     help="local, topographic RE<->TC wiring: each TC hears "
                          "from its F nearest RE cells on a ring (PLAN-spindels.md "
@@ -1184,6 +1208,13 @@ def main():
         return
 
     sizes = {k: max(1, int(round(v * a.scale))) for k, v in DEFAULT_SIZES.items()}
+    if a.thal_scale is not None:
+        for k in ("tc", "re"):
+            sizes[k] = max(1, int(round(DEFAULT_SIZES[k] * a.thal_scale)))
+    extra = {k: getattr(a, k) for k in ("g_tc_re", "g_l6_tc", "g_l6_re", "ek_tc", "ek_re",
+                                         "taur_re", "kl_scale_tc", "kl_scale_re", "depth_tc",
+                                         "taur_tc", "ginc_tc", "taur_l5_ib")
+             if getattr(a, k) is not None}
     net = ParallelCorticoThalamicNet(sizes=sizes, conv=a.conv, het=a.het,
                                       delay_jitter=a.delay_jitter,
                                       g_re_re=a.g_re_re, g_re_re_sd=a.g_re_re_sd,
@@ -1192,7 +1223,8 @@ def main():
                                       g_l5_rec=a.g_l5_rec, tau2_l5_rec=a.tau2_l5_rec,
                                       l5_rec_mech=a.l5_rec_mech, mg_l5_rec=a.mg_l5_rec,
                                       taur_l5e_rs=a.taur_l5e_rs, state=a.state,
-                                      g_gap=a.g_gap, thal_footprint=a.thal_footprint)
+                                      g_gap=a.g_gap, thal_footprint=a.thal_footprint,
+                                      **extra)
     aud = AI.AuditoryInput(net, a.stim, a.tstop) if a.stim else None
     wall = net.run(tstop=a.tstop)
     t, g = net.gather()
