@@ -2,7 +2,10 @@
 
 Status: **Stage 0 done. Stage 1: the isolated thalamus produces
 spindle-like trains in the 10–15 Hz band with partial refractoriness
-(2026-09-28, strong I_h locking; see "Option 1").** See "Results so far", "RE recovery" and "Lever 4 (I_h)" in
+(2026-09-28, strong I_h locking; see "Option 1"). Stage 2 (2026-09-29):
+with the cortex attached, SO < 1 Hz and spindles nested in UP states;
+one open trade-off — spindles either wax and wane OR last ≥ 0.5 s, not
+both (see "Stage 2 results").** See "Results so far", "RE recovery" and "Lever 4 (I_h)" in
 Stage 1. Background and evidence:
 `Edu-questions.md` question 5, and the history in `neuron/README.md`.
 
@@ -417,18 +420,108 @@ second kick within ~2 s produces a weaker or no spindle (refractoriness).
 
 Only after Stage 1 passes. Use `ctx_thalamus_mpi.py` at `--scale 0.05`–`0.1`.
 
-- [ ] Port the Stage 1 wiring/mechanisms into `ParallelCorticoThalamicNet`
+- [x] Port the Stage 1 wiring/mechanisms into `ParallelCorticoThalamicNet`
       behind flags (default off, so existing runs are unchanged).
-- [ ] Slow the cortical slow oscillation to < 1 Hz (L5 IB pacemaker /
+- [x] Slow the cortical slow oscillation to < 1 Hz (L5 IB pacemaker /
       L5 recurrence parameters).
-- [ ] Make the L6 → TC / RE kick weaker or more spread in time (lower
+- [x] Make the L6 → TC / RE kick weaker or more spread in time (lower
       `g_l6_tc`, `g_l6_re`, or delay jitter), so it triggers a spindle rather
       than resetting the thalamus.
-- [ ] Check spindles start in UP states, and that not every UP state carries
+- [x] Check spindles start in UP states, and that not every UP state carries
       one.
 
 **Done when:** Stage 1 criteria hold with the cortex attached, SO < 1 Hz, and
 spindles are nested in UP states.
+
+### Stage 2 results (2026-09-29)
+
+Raw output: `res/2026-09-29/stage2/stage2_report_*.txt`; figures
+`out/stage2_so_spindles_lfp.png`, `out/stage2_l6_kick_lfp.png`. Measure:
+`neuron/stage2_report.py` (UP-state onsets from the L5E + L6E rate; Stage 0
+RE volley trains; spindle = ≥ 6 cycles; "in an UP state" = starts −50 …
++300 ms from an onset; `--pool` over seeds).
+
+Setup: `ctx_thalamus_mpi.py --scale 0.1 --thal-scale 1.65` (MN5-size
+thalamus, 346 TC / 91 RE, under a 0.1-scale Option 2 cortex: `--g-i-e-l5
+0.02 --g-l5-rec 0.013 --tau2-l5-rec 200 --taur-l5e-rs 120 --l5-rec-mech
+nmda`), 20 s runs, first 2 s skipped. The Stage 1 thalamus is `--g-gap 0.001
+--thal-footprint 10 --ek-re -95 --taur-re 5 --g-tc-re 0.06 --gh-tc 5e-6
+--kl-scale-tc 1.671 --depth-tc 1 --taur-tc 5 --ginc-tc 8`. New options (all
+default off): `--thal-scale`, `--taur-l5-ib`, `--het-seed`,
+`--l6-delay-spread`, and the Stage 1 flags.
+
+1. **The Stage 1 thalamus survives the cortex.** Production thalamus: 62 RE
+   volleys, 61 of them single (0 spindles). Stage 1 thalamus: 8 spindles
+   at 10–12 Hz, but up to 2.5 s long (the production L6 kick 0.03 keeps
+   re-driving it). A weaker L6 kick (0.01 to TC and RE) brings them down
+   to 0.4–0.9 s.
+2. **SO < 1 Hz via the L5 IB Ca²⁺ clearance** (`--taur-l5-ib`, default
+   500 ms):
+
+   | taur_l5_ib | SO (Hz) |
+   |---|---|
+   | 500 | 1.89 |
+   | 1000 | 1.28 |
+   | 1500 | 1.11 |
+   | **2000** | **0.91 pooled over 5 seeds (0.78–1.11)** |
+   | 3000 | 0.56 (few spindles) |
+
+   UP-state intervals are irregular (CV 0.6–0.9).
+3. **Nesting ✅ and refractoriness ✅** (2000 ms, L6 0.01, 5 seeds, 90 s):
+   - 100% of spindles start in an UP state;
+   - 39% of 82 UP states carry one (not every UP state);
+   - an UP state right after a spindle-carrying one carries a spindle 27% of
+     the time, vs 47% after one without; the median spindle-to-spindle
+     interval is 2.5 s.
+4. **The envelope problem.** The 0.1-scale cortex's UP onset is a
+   population spike: all 42 L6E cells fire within ~2 ms. With L6 → TC and
+   RE both at 0.01 it fires every TC and RE cell in the first cycle (4.2 RE
+   spikes/cell, 0 ms spread), and each following cycle is smaller: the
+   spindles are **decrementing**, not waxing (waxing/waning in 9% of 32).
+   Variants at 2000 ms:
+
+   | L6 → TC / RE | seeds | spindles | ≥ 0.5 s | median | wax/wane | TC part./cycle |
+   |---|---|---|---|---|---|---|
+   | 0.01 / 0.01 | 5 | 32 | **81%** | 583 ms | 9% | 68% |
+   | 0.01 / 0.01, + 0–40 ms delay spread | 1 | 5 | 60% | 537 ms | 0% | 59% |
+   | 0.005 / 0.005 | 1 | 4 | 25% | 480 ms | 0% | 71% |
+   | 0.005 / 0.005, + spread 40 | 1 | 1 (15.9 Hz) | 100% | 503 ms | 0% | 59% |
+   | 0.003 / 0.003, + spread 40 | 1 | 0 (no RE volleys) | – | – | – | – |
+   | 0.005 / 0.01 | 1 | 3 | 33% | 442 ms | 0% | 65% |
+   | **0.003 / 0.01** | **4** | **10** | 10% | 400 ms | **50%** | **49%** |
+   | 0.003 / 0.015 | 1 | 1 | 0% | 339 ms | 0% | 25% |
+
+   - Spreading the L6 arrival in time does not help.
+   - Making the cortex drive **mainly RE** (L6 → TC 0.003, L6 → RE 0.01)
+     gives the textbook sequence (review: cortex → RE → TC). RE fires first
+     and TC is almost silent in cycle 1 (0–25%). TC then rebounds with
+     ~50% participation per cycle, i.e. each TC cell fires about every 2nd
+     cycle, as the criteria ask. The RE and LFP envelope grows over 2–3
+     cycles and then fades.
+   - The cost is **shorter spindles**: 5–7 cycles, ~0.4 s, and only 18% of
+     UP states carry a ≥ 6-cycle one.
+
+**Against the "done when":**
+- SO < 1 Hz ✅
+- nested in UP states ✅ (100%), not every UP state ✅
+- refractoriness ✅ (spontaneous, partial)
+- 10–15 Hz ✅ (84–90%)
+- Stage 1 criteria ⚠️: either ≥ 0.5 s (81%, L6 0.01 / 0.01) or
+  waxing/waning plus TC every 2nd cycle (50% / 49%, L6 0.003 / 0.01), not
+  both in one setting.
+
+The spindle length is capped by the isolated thalamus's own ~0.5 s (Stage 1
+`ginc` 8). The RE-first start spends one of those cycles, which pushes it
+under 0.5 s.
+
+**Next (small, before Stage 3):** lengthen the intrinsic spindle while
+keeping the RE-weighted L6 input:
+- `ginc_tc` 4 (Stage 1: 7–9 cycles, 0.51–0.67 s, still partly refractory);
+- or I_h 5e-6 → 3e-6 (fewer, longer spindles);
+- then 5 seeds.
+
+A larger cortex may also help, if its UP onsets are less synchronous; that
+is testable in Stage 3 at `--scale 1.65`.
 
 ## Stage 3 — full-scale confirmation on MN5
 
