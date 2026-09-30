@@ -603,6 +603,12 @@ plus the Option 2 cortex flags.
 ## Stage 3 — full-scale confirmation on MN5
 
 - [ ] One 200 s run at `--scale 1.65` with the Stage 2 settings.
+      Prepared 2026-09-30: `run_ctx_nrn.sh SPINDLE=stage2` (commands in
+      `MN5_NEURON.md`, "Spindle Stage 3"). A 12 s local preview at full
+      scale keeps the spindles: 8 cycles, 13.6 Hz, 0.51 s, 75%
+      waxing/waning. But the SO slows to 0.40 Hz and turns clockwork (every
+      UP state carries a spindle), so the MN5 submission adds
+      `--taur-l5-ib` 1500 and 1000 variants.
 - [ ] Evaluate with the Stage 0 measure and the existing figures
       (`ctx_analyze.py`, `volley_stats.py`).
 - [ ] Update `neuron/README.md` and `Edu-questions.md`.

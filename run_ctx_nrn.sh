@@ -33,6 +33,10 @@
 #          stable over 60s locally before scaling up -- see
 #          res/2026-09-02/robustness_60s_litbest_option2.txt.
 #
+#   sbatch --export=ALL,SCALE=1.65,TSTOP=200000,G_I_E_L5=0.02,G_L5_REC=0.013,TAU2_L5_REC=200,TAUR_L5E_RS=120,L5_REC_MECH=nmda,SPINDLE=stage2,TAG=spindle_stage3 run_ctx_nrn.sh
+#       -> PLAN-spindels.md Stage 3: Option 2 cortex + the Stage 2 spindle
+#          settings (SPINDLE=stage2, see below) at full scale.
+#
 # RUN THE BENCHMARK FIRST -- same reasoning as run_nrn.sh: this tells you
 # whether the requested scale is affordable in the time/rank budget before a
 # 200 s production run finds out the hard way. Also run run_nrn.sh's own
@@ -154,6 +158,26 @@ else
     # -> legacy leak, no auditory input.
     [ -n "${STATE:-}" ] && PROD_ARGS+=(--state "$STATE")
     [ -n "${STIM:-}" ] && PROD_ARGS+=(--stim "$STIM")
+    # SPINDLE=stage2 (optional, PLAN-spindels.md Stage 3): the Stage 2
+    # thalamus + slow-SO settings, validated locally at --scale 0.1 with the
+    # MN5 thalamus (5 seeds x 20 s: SO 0.93 Hz, spindles nested in UP states,
+    # 10-15 Hz, median 0.55 s, waxing/waning, refractory; see
+    # res/2026-09-30/stage2/). Use with the Option 2 cortex flags above.
+    # HET_SEED (optional): per-cell jitter set, the seed for repeat runs.
+    # EXTRA_ARGS (optional): any further ctx_thalamus_mpi.py flags, appended
+    # last (so they override the preset), e.g. EXTRA_ARGS="--g-l6-re 0.012".
+    if [ "${SPINDLE:-}" = "stage2" ]; then
+        PROD_ARGS+=(--taur-l5-ib 2000
+                    --g-gap 0.001 --thal-footprint 10 --ek-re -95 --taur-re 5
+                    --g-tc-re 0.06 --gh-tc 5e-6 --kl-scale-tc 1.422 --depth-tc 1
+                    --taur-tc 5 --ginc-tc 4 --g-l6-tc 0.003 --g-l6-re 0.01)
+    elif [ -n "${SPINDLE:-}" ]; then
+        echo "ERROR: unknown SPINDLE=${SPINDLE} (only 'stage2')"; exit 1
+    fi
+    [ -n "${HET_SEED:-}" ] && PROD_ARGS+=(--het-seed "$HET_SEED")
+    # shellcheck disable=SC2206
+    [ -n "${EXTRA_ARGS:-}" ] && PROD_ARGS+=(${EXTRA_ARGS})
+    echo "args   : --scale $SCALE --tstop $TSTOP --conv $CONV ${PROD_ARGS[*]}"
     srun --mpi=pmix "$PY" neuron/ctx_thalamus_mpi.py \
         --scale "$SCALE" --tstop "$TSTOP" --conv "$CONV" \
         --out "out/${TAG}.npz" "${PROD_ARGS[@]}"

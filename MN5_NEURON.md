@@ -190,6 +190,10 @@ on why fixed convergence and not the serial model's `frac`-based fan-in),
 ### ⚠️ Status: locally validated at 1 rank only — NOT yet run on MN5, and
 ### multi-rank correctness is UNTESTED here
 
+> **Update 2026-09-30:** multi-rank identity has since been checked locally
+> (1 vs 4 ranks, bit-identical); see "Spindle Stage 3" at the end of this
+> file. This section is kept for history.
+
 This machine has no MPI runtime NEURON can link against (`libmpi.dylib` not
 found — `mpirun -n 4 nrniv -python -mpi ...` fails at `nrnmpi_init`), so only
 `nhost=1` could be exercised locally. What IS verified at `nhost=1`:
@@ -233,3 +237,88 @@ candidate explanation, tested at small scale in
 `neuron/ctx_thalamus_network.py`'s new `het=`/`delay_jitter=` heterogeneity
 parameters before committing to this larger run (see `neuron/README.md`
 "Heterogeneity" section for that result).
+
+## Spindle Stage 3 (Sep 2026): full-scale run with the Stage 2 settings
+
+`PLAN-spindels.md` Stage 3: one 200 s run at `SCALE=1.65` (5031 cells) with
+the thalamus and slow-oscillation settings validated locally in Stage 2
+(`res/2026-09-30/stage2/`). `run_ctx_nrn.sh` has a preset for them,
+`SPINDLE=stage2`, plus `HET_SEED` (repeat runs) and `EXTRA_ARGS` (any further
+flags, appended last so they override the preset).
+
+**Multi-rank correctness is now checked locally** (2026-09-30, Open MPI via
+`mpiexec`): with every Stage 2 option on (plus `--cx-noise-rate` and
+`--l6-delay-spread`), a 2.5 s run gives bit-identical sorted spike trains at 1
+and 4 ranks. That covers cross-rank `gid_connect`, the RE and L5 IB gap
+junctions (`GapMPI`), and the new per-connection RNG streams.
+
+### Files to upload
+
+The run needs only these files. `tc_neuron.py` and `ctx_thalamus_mpi.py` changed
+during the spindle work, so re-upload them even if an older copy is on MN5:
+
+```bash
+ssh USER@glogin1.bsc.es 'mkdir -p ~/audCC/neuron/mod ~/audCC/neuron/stim ~/audCC/out'
+scp run_ctx_nrn.sh USER@glogin1.bsc.es:~/audCC/
+scp neuron/ctx_thalamus_mpi.py neuron/tc_neuron.py neuron/cortex_neuron.py \
+    neuron/brain_state.py neuron/auditory_input.py USER@glogin1.bsc.es:~/audCC/neuron/
+scp neuron/stim/*.json USER@glogin1.bsc.es:~/audCC/neuron/stim/
+scp neuron/mod/*.mod USER@glogin1.bsc.es:~/audCC/neuron/mod/
+```
+
+`run_ctx_nrn.sh` recompiles the mechanisms itself when the `mod/` file list
+has changed (`kleak.mod` was added for the auditory plan).
+
+### Submit
+
+Set `--account` / `--qos` at the top of `run_ctx_nrn.sh`, load the NEURON
+module, then from `~/audCC`:
+
+```bash
+sbatch --export=ALL,SCALE=1.65,TSTOP=200000,G_I_E_L5=0.02,G_L5_REC=0.013,TAU2_L5_REC=200,TAUR_L5E_RS=120,L5_REC_MECH=nmda,SPINDLE=stage2,TAG=spindle_stage3 run_ctx_nrn.sh
+```
+
+The job prints the full argument list (`args :` line) before `srun`; check
+it once.
+
+**Local full-scale preview (12 s, 5031 cells, 8 ranks, 18 min wall;
+`res/2026-09-30/stage3_preview/`, `out/stage3_preview_full_scale_lfp.png`):**
+- **The thalamus carries over.** Every spindle has 8 cycles at 13.2–13.8 Hz
+  and lasts 0.51–0.53 s; 75% wax and wane; TC participation is 56% per
+  cycle; all start in UP states.
+- **The cortex does not.** At full size the SO slows to **0.40 Hz** and
+  becomes clockwork: UP states every 2.9 s (CV 0), each carrying a spindle.
+  The larger L5 IB population, coupled by gap junctions, runs slower and
+  more regular than at scale 0.1.
+- The spindle shows up only weakly in the cortical LFP after the first
+  UP state.
+
+Only 4 UP states in 12 s, so this is not yet a result. It is the reason to
+submit two faster-pacemaker variants alongside the preset (each ~10 min on
+100 ranks):
+
+```bash
+COMMON=SCALE=1.65,TSTOP=200000,G_I_E_L5=0.02,G_L5_REC=0.013,TAU2_L5_REC=200,TAUR_L5E_RS=120,L5_REC_MECH=nmda,SPINDLE=stage2
+sbatch --export=ALL,$COMMON,TAG=spindle_stage3 run_ctx_nrn.sh
+sbatch --export=ALL,$COMMON,TAG=spindle_stage3_ib1500,EXTRA_ARGS="--taur-l5-ib 1500" run_ctx_nrn.sh
+sbatch --export=ALL,$COMMON,TAG=spindle_stage3_ib1000,EXTRA_ARGS="--taur-l5-ib 1000" run_ctx_nrn.sh
+```
+
+At scale 0.1, IB 1000 gave 1.3 Hz and IB 2000 gave 0.9 Hz. At full size
+the same settings run ~2× slower, so 1000–1500 ms should land at
+0.5–1 Hz. Expected cost: 5000 cells ran at ~2× realtime on 100 ranks (job
+44671355), so 200 s is ~7–10 min plus setup, well within the 2 h limit.
+Optional seeds: add `HET_SEED=1`, `HET_SEED=2`, … with different `TAG`s.
+
+### Analyse locally
+
+```bash
+scp USER@glogin1.bsc.es:'~/audCC/out/spindle_stage3.npz' out/
+python3 neuron/stage2_report.py "stage3=out/spindle_stage3.npz"
+python3 neuron/volley_stats.py "stage3=out/spindle_stage3.npz" --recon out/stage3_lfp.png --lfp cortex --raster --window-start 20000 --window-len 10000
+python3 neuron/volley_stats.py "stage3=out/spindle_stage3.npz" --windows "20-40,60-80,100-120,160-180"
+```
+
+`stage2_report.py` gives the Stage 3 "done when" numbers: SO rate, spindle
+nesting, and the Stage 1 criteria with refractoriness. The `--windows`
+table checks for drift over the 200 s.
