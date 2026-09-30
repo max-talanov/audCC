@@ -266,6 +266,14 @@ scp neuron/stim/*.json USER@glogin1.bsc.es:~/audCC/neuron/stim/
 scp neuron/mod/*.mod USER@glogin1.bsc.es:~/audCC/neuron/mod/
 ```
 
+Or in one step with rsync, from the repo root. `-R` keeps the `neuron/...`
+layout, and later runs only send changed files:
+
+```bash
+rsync -avR run_ctx_nrn.sh neuron/ctx_thalamus_mpi.py neuron/tc_neuron.py neuron/cortex_neuron.py neuron/brain_state.py neuron/auditory_input.py neuron/stim/tones_random.json neuron/mod/*.mod USER@glogin1.bsc.es:~/audCC/
+```
+
+Do not copy `neuron/arm64/` (the local Mac build), `.venv*`, `out/` or `res/`.
 `run_ctx_nrn.sh` recompiles the mechanisms itself when the `mod/` file list
 has changed (`kleak.mod` was added for the auditory plan).
 
@@ -313,7 +321,7 @@ Optional seeds: add `HET_SEED=1`, `HET_SEED=2`, … with different `TAG`s.
 ### Analyse locally
 
 ```bash
-scp USER@glogin1.bsc.es:'~/audCC/out/spindle_stage3.npz' out/
+rsync -av 'USER@glogin1.bsc.es:~/audCC/out/spindle_stage3*.npz' 'USER@glogin1.bsc.es:~/audCC/slurmout_ctx_*.txt' out/
 python3 neuron/stage2_report.py "stage3=out/spindle_stage3.npz"
 python3 neuron/volley_stats.py "stage3=out/spindle_stage3.npz" --recon out/stage3_lfp.png --lfp cortex --raster --window-start 20000 --window-len 10000
 python3 neuron/volley_stats.py "stage3=out/spindle_stage3.npz" --windows "20-40,60-80,100-120,160-180"
