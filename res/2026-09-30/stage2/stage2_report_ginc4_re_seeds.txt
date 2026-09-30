@@ -1,0 +1,56 @@
+
+== ginc4 L6RE s0
+  SO: 16 UP states (0.89 Hz), interval median 359 ms, CV 0.91
+  UP onset: L6E first-spike spread median SD 0.9 ms, 10-90% range 2.2 ms
+  RE trains: 6 (20.0/min); cycles median 7, max 8; histogram 7:5 8:1
+  multi-cycle trains: freq median 12.6 Hz, duration median 475 ms
+  spindle-like (>= 6 cycles): 6 (20.0/min), 12.0-14.1 Hz, 427-580 ms
+  nesting: trains starting in an UP state 100% (>= 6 cycles: 100%); UP states carrying a >= 2-cycle train 38%, a >= 6-cycle train 38%
+  Stage 1 criteria over 6 spindles: 10-15 Hz 100%, >= 0.5 s 33% (median 475 ms), waxing/waning 83%, TC participation per cycle median 53%
+  refractoriness: spindle-to-spindle interval median 2.95 s, min 2.95 s; P(spindle | previous UP had one) 0% (n=6) vs P(spindle | previous UP had none) 56% (n=9)
+
+== s1
+  SO: 16 UP states (0.89 Hz), interval median 343 ms, CV 0.92
+  UP onset: L6E first-spike spread median SD 1.0 ms, 10-90% range 2.5 ms
+  RE trains: 6 (20.0/min); cycles median 9, max 11; histogram 7:1 8:1 9:2 10:1 11:1
+  multi-cycle trains: freq median 14.4 Hz, duration median 558 ms
+  spindle-like (>= 6 cycles): 6 (20.0/min), 12.2-15.8 Hz, 491-648 ms
+  nesting: trains starting in an UP state 100% (>= 6 cycles: 100%); UP states carrying a >= 2-cycle train 38%, a >= 6-cycle train 38%
+  Stage 1 criteria over 6 spindles: 10-15 Hz 50%, >= 0.5 s 83% (median 558 ms), waxing/waning 0%, TC participation per cycle median 56%
+  refractoriness: spindle-to-spindle interval median 2.94 s, min 2.92 s; P(spindle | previous UP had one) 0% (n=6) vs P(spindle | previous UP had none) 56% (n=9)
+
+== s2
+  SO: 21 UP states (1.17 Hz), interval median 811 ms, CV 0.55
+  UP onset: L6E first-spike spread median SD 0.8 ms, 10-90% range 2.2 ms
+  RE trains: 12 (40.0/min); cycles median 8, max 9; histogram 1:1 2:1 3:1 6:1 8:3 9:5
+  multi-cycle trains: freq median 13.5 Hz, duration median 538 ms
+  spindle-like (>= 6 cycles): 9 (30.0/min), 11.5-14.9 Hz, 436-635 ms
+  nesting: trains starting in an UP state 100% (>= 6 cycles: 100%); UP states carrying a >= 2-cycle train 52%, a >= 6-cycle train 43%
+  Stage 1 criteria over 9 spindles: 10-15 Hz 100%, >= 0.5 s 89% (median 556 ms), waxing/waning 78%, TC participation per cycle median 44%
+  refractoriness: spindle-to-spindle interval median 2.04 s, min 0.85 s; P(spindle | previous UP had one) 22% (n=9) vs P(spindle | previous UP had none) 55% (n=11)
+
+== s3
+  SO: 18 UP states (1.00 Hz), interval median 534 ms, CV 0.73
+  UP onset: L6E first-spike spread median SD 1.2 ms, 10-90% range 2.8 ms
+  RE trains: 8 (26.7/min); cycles median 8, max 10; histogram 7:2 8:3 9:1 10:2
+  multi-cycle trains: freq median 13.3 Hz, duration median 544 ms
+  spindle-like (>= 6 cycles): 8 (26.7/min), 12.1-15.6 Hz, 455-628 ms
+  nesting: trains starting in an UP state 88% (>= 6 cycles: 88%); UP states carrying a >= 2-cycle train 39%, a >= 6-cycle train 39%
+  Stage 1 criteria over 8 spindles: 10-15 Hz 88%, >= 0.5 s 75% (median 544 ms), waxing/waning 25%, TC participation per cycle median 52%
+  refractoriness: spindle-to-spindle interval median 2.33 s, min 1.08 s; P(spindle | previous UP had one) 0% (n=7) vs P(spindle | previous UP had none) 70% (n=10)
+
+== s4
+  SO: 13 UP states (0.72 Hz), interval median 1151 ms, CV 0.63
+  UP onset: L6E first-spike spread median SD 0.6 ms, 10-90% range 1.5 ms
+  RE trains: 10 (33.3/min); cycles median 9, max 11; histogram 5:2 7:2 9:2 10:2 11:2
+  multi-cycle trains: freq median 13.8 Hz, duration median 568 ms
+  spindle-like (>= 6 cycles): 8 (26.7/min), 13.5-14.7 Hz, 439-721 ms
+  nesting: trains starting in an UP state 90% (>= 6 cycles: 100%); UP states carrying a >= 2-cycle train 69%, a >= 6-cycle train 62%
+  Stage 1 criteria over 8 spindles: 10-15 Hz 100%, >= 0.5 s 75% (median 614 ms), waxing/waning 62%, TC participation per cycle median 49%
+  refractoriness: spindle-to-spindle interval median 2.66 s, min 0.93 s; P(spindle | previous UP had one) 62% (n=8) vs P(spindle | previous UP had none) 50% (n=4)
+
+== pooled over 5 runs (90 s)
+  SO 0.93 Hz (per run 0.89, 0.89, 1.17, 1.00, 0.72)
+  UP states carrying a >= 6-cycle train: 43% of 84
+  Stage 1 criteria over 37 spindles: 10-15 Hz 89%, >= 0.5 s 73% (median 545 ms), waxing/waning 51%, TC participation per cycle median 51%
+  refractoriness: spindle-to-spindle interval median 2.71 s, min 0.85 s; P(spindle | previous UP had one) 19% (n=36) vs P(spindle | previous UP had none) 58% (n=43)

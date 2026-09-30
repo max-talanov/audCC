@@ -2,10 +2,10 @@
 
 Status: **Stage 0 done. Stage 1: the isolated thalamus produces
 spindle-like trains in the 10–15 Hz band with partial refractoriness
-(2026-09-28, strong I_h locking; see "Option 1"). Stage 2 (2026-09-29):
-with the cortex attached, SO < 1 Hz and spindles nested in UP states;
-one open trade-off — spindles either wax and wane OR last ≥ 0.5 s, not
-both (see "Stage 2 results").** See "Results so far", "RE recovery" and "Lever 4 (I_h)" in
+(2026-09-28, strong I_h locking; see "Option 1"). Stage 2 done (2026-09-30):
+with the cortex attached, SO 0.93 Hz, spindles nested in UP states, 10–15 Hz,
+median 0.55 s, half of them waxing/waning, refractory (see "Stage 2
+results" and "Stage 2 follow-up").** Next: Stage 3 (full scale on MN5). See "Results so far", "RE recovery" and "Lever 4 (I_h)" in
 Stage 1. Background and evidence:
 `Edu-questions.md` question 5, and the history in `neuron/README.md`.
 
@@ -522,6 +522,83 @@ keeping the RE-weighted L6 input:
 
 A larger cortex may also help, if its UP onsets are less synchronous; that
 is testable in Stage 3 at `--scale 1.65`.
+
+### Stage 2 follow-up: background input and weaker I_h locking (2026-09-30)
+
+Raw output: `res/2026-09-30/stage2/stage2_report_*.txt`; figure
+`out/stage2_ginc4_noise_lfp.png`. Same setup as above with `--taur-l5-ib
+2000`. New options (default off): `--cx-noise-rate` / `--cx-noise-w` and
+`--het-seed`. `stage2_report.py` now also prints the UP-onset spread (SD and
+10–90% range of L6E first spikes).
+
+**How the SO is generated** (checked on single cells):
+- **No external drive.** There is no periodic input, noise or current
+  injection.
+- **The pacemaker is the L5 IB cell.** Its persistent Na⁺ current drives a
+  burst (the UP state), SK2 ends it, and the slow Ca²⁺ clearance
+  (`taur_l5_ib`) sets the DOWN state. A lone IB cell with no input bursts
+  every 1.24 / 2.4 / 4.7 s at 500 / 1000 / 2000 ms.
+- **The network speeds this up 2–4×.** The first IB cell to recover recruits
+  the rest through the IB gap junctions and the L5 NMDA recurrence.
+- **The thalamus follows and does not set the pace.** The SO is the same
+  with the production and Stage 1 thalamus.
+- **Consequence:** the DOWN → UP transition is deterministic, and the column
+  rises within ~2 ms (L6E 10–90% range 1.5–2.9 ms).
+
+1. **Background input does not desynchronise the UP onset.** A Poisson AMPA
+   train goes to every cortical E cell: 2e-4 µS, a 0.7 mV EPSP; at
+   100–200 Hz it gives 1–1.3 mV of membrane noise and a lone cell stays
+   silent.
+   - The onset range grows only from ~2 to ~3.5 ms. The gap junctions and
+     recurrence still recruit the column at once.
+   - It ends DOWN states earlier: SO 1.1–1.3 Hz at IB 2000 ms, and
+     **1.6 Hz at IB 3000 ms**. Once the input is present, the SO period is
+     set by noise-triggered recurrence, not by the IB clearance.
+   - Some spindles now start in part of the RE ring and spread (visible in
+     the figure).
+   - Not adopted: it does not fix the envelope, and it breaks SO < 1 Hz.
+2. **Weaker I_h locking restores the length.** `--ginc-tc 4
+   --kl-scale-tc 1.422` plus the RE-weighted cortical input (`--g-l6-tc
+   0.003 --g-l6-re 0.01`), 5 seeds, 90 s:
+
+   | Criterion | Result |
+   |---|---|
+   | SO | **0.93 Hz** pooled (0.72–1.17 per seed; 1 of 5 seeds > 1 Hz) |
+   | Spindles start in an UP state | 88–100% per seed |
+   | UP states carrying a spindle | 43% of 84 |
+   | ≥ 6 cycles | 37 spindles, 6–10 cycles |
+   | 10–15 Hz | 89% (a few at 15.5–15.8 Hz) |
+   | ≥ 0.5 s | 73%, median 545 ms; seed medians ≥ 0.5 s in 4/5 seeds |
+   | Waxing/waning | 51% (seeds: 83 / 0 / 78 / 25 / 62%) |
+   | TC participation per cycle | 51% (each TC cell fires about every 2nd cycle) |
+   | Refractoriness | P(spindle \| previous UP had one) 19% vs 58% otherwise; min interval 0.85 s, median 2.7 s |
+
+   Compared with `ginc` 8, the spindle loses less of its drive to I_h, so it
+   gains 1–2 cycles. That makes up for the cycle the RE-first start costs.
+
+**Stage 2 status: done.** Every "done when" criterion holds pooled over 5
+seeds:
+- SO < 1 Hz;
+- spindles nested in UP states, not every UP state carrying one;
+- Stage 1 criteria, with waxing/waning in half of the spindles and not all
+  seeds, and the length criterion met in 4/5 seeds.
+
+Settings for Stage 3:
+
+    --taur-l5-ib 2000 --g-gap 0.001 --thal-footprint 10 --ek-re -95
+    --taur-re 5 --g-tc-re 0.06 --gh-tc 5e-6 --kl-scale-tc 1.422 --depth-tc 1
+    --taur-tc 5 --ginc-tc 4 --g-l6-tc 0.003 --g-l6-re 0.01
+
+plus the Option 2 cortex flags.
+
+**Caveats for Stage 3:**
+- At `--scale 1.65` the L6 → thalamus convergence and the IB population size
+  change, so the L6 weights and the SO rate need checking.
+- The 0.1-scale cortex has only 42 L6E cells.
+- The synchronous UP onset is a property of the cortical wiring (IB gap
+  junctions, all-to-all-like recurrence), not of the thalamus.
+  Topographic cortical wiring is the lever if propagating UP states are
+  wanted.
 
 ## Stage 3 — full-scale confirmation on MN5
 

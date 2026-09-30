@@ -1,0 +1,10 @@
+
+== ginc4 L6RE noise 200 ib3000
+  SO: 29 UP states (1.61 Hz), interval median 572 ms, CV 0.48
+  UP onset: L6E first-spike spread median SD 1.4 ms, 10-90% range 3.6 ms
+  RE trains: 11 (36.7/min); cycles median 8, max 9; histogram 4:2 5:1 6:1 7:1 8:2 9:4
+  multi-cycle trains: freq median 14.3 Hz, duration median 485 ms
+  spindle-like (>= 6 cycles): 8 (26.7/min), 11.8-15.0 Hz, 400-613 ms
+  nesting: trains starting in an UP state 100% (>= 6 cycles: 100%); UP states carrying a >= 2-cycle train 38%, a >= 6-cycle train 28%
+  Stage 1 criteria over 8 spindles: 10-15 Hz 100%, >= 0.5 s 62% (median 537 ms), waxing/waning 88%, TC participation per cycle median 49%
+  refractoriness: spindle-to-spindle interval median 1.50 s, min 1.27 s; P(spindle | previous UP had one) 0% (n=8) vs P(spindle | previous UP had none) 40% (n=20)

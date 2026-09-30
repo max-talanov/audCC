@@ -88,7 +88,8 @@ class ParallelCorticoThalamicNet:
                  kl_scale_tc=None, kl_scale_re=None, thal_footprint=None,
                  ek_tc=None, ek_re=None, taur_re=None, depth_tc=None,
                  taur_tc=None, ginc_tc=None, taur_l5_ib=None,
-                 l6_delay_spread=0.0):
+                 l6_delay_spread=0.0, cx_noise_rate=0.0, cx_noise_w=2e-4,
+                 cx_noise_tstop=None):
         self.pc = h.ParallelContext()
         self.rank = int(self.pc.id())
         self.nhost = int(self.pc.nhost())
@@ -179,6 +180,19 @@ class ParallelCorticoThalamicNet:
         # thalamus in the first cycle; spreading the arrival lets a spindle
         # build up (PLAN-spindels.md Stage 2).
         self.l6_delay_spread = l6_delay_spread
+        # cx_noise_rate / cx_noise_w: background synaptic input to every
+        # cortical excitatory cell (default off): an independent Poisson
+        # train of AMPA events (Hz, uS) on its synaptic section, standing in
+        # for spontaneous release / unmodelled cortex. 2e-4 uS is a 0.7 mV
+        # EPSP in PYCell; 100-200 Hz gives 1-1.3 mV membrane noise with the
+        # isolated cell silent. Purpose (PLAN-spindels.md Stage 2): let
+        # DOWN -> UP transitions start stochastically instead of as one
+        # deterministic population spike. Interneurons get none (FSCell's
+        # small soma turns 2e-4 uS into a 4.6 mV EPSP). Trains are a
+        # deterministic function of (het_seed, gid): rank-count independent.
+        # cx_noise_tstop: how long to generate trains for (required > 0).
+        self.cx_noise_rate, self.cx_noise_w = cx_noise_rate, cx_noise_w
+        self.cx_noise_tstop = cx_noise_tstop
         # het_seed: 0 (default) = the production per-cell jitter; other values
         # draw a different, equally deterministic set of cells (seeds for
         # thal_ring_test.py, PLAN-spindels.md Stage 1).
@@ -249,6 +263,8 @@ class ParallelCorticoThalamicNet:
             self._wire_layer_inh(pop_e, pop_i, g_e_i, gie)
         self._wire_thalamocortical(g_tc_l4)
         self._wire_corticothalamic(g_l6_tc, g_l6_re)
+        if self.cx_noise_rate > 0:
+            self._add_cortical_noise()
 
         self.tspk, self.gspk = h.Vector(), h.Vector()
         self.pc.spike_record(-1, self.tspk, self.gspk)
@@ -606,6 +622,28 @@ class ParallelCorticoThalamicNet:
         wall = self.pc.allreduce(wall, 2)
         return wall
 
+    def _add_cortical_noise(self):
+        rate, T = self.cx_noise_rate, self.cx_noise_tstop
+        self._noise = []
+        for pop in ("l4e", "l23e", "l5e", "l6e"):
+            lo, hi = self.ranges[pop]
+            for gid in range(lo, hi):
+                if int(self.pc.gid_exists(gid)) == 0:
+                    continue
+                syn = h.Exp2Syn(self._target_sec(gid)(0.5))
+                syn.e, syn.tau1, syn.tau2 = 0.0, 0.5, 2.0
+                nc = h.NetCon(None, syn)
+                nc.weight[0] = self.cx_noise_w
+                r = np.random.default_rng([70_000_011, self.het_seed, gid])
+                ts = np.cumsum(r.exponential(1000.0 / rate, int(rate * T / 1000.0 * 1.2) + 20))
+                self._noise.append((syn, nc, ts[ts < T]))
+        self._noise_fih = h.FInitializeHandler(self._queue_noise)
+
+    def _queue_noise(self):
+        for _, nc, ts in self._noise:
+            for t in ts:
+                nc.event(float(t))
+
     def teardown(self):
         self.cells.clear()
         self.syns.clear()
@@ -954,7 +992,9 @@ def main():
             ("--taur-tc", float, "TC Ca2+ pool clearance (ms), Stage 1: 5"),
             ("--ginc-tc", float, "locked-open I_h conductance ratio, Stage 1: 8"),
             ("--taur-l5-ib", float, "L5 IB Ca2+ pool clearance (ms, default 500): SO period"),
-            ("--l6-delay-spread", float, "extra L6->TC/RE delay, uniform 0..X ms (default 0)")]:
+            ("--l6-delay-spread", float, "extra L6->TC/RE delay, uniform 0..X ms (default 0)"),
+            ("--cx-noise-rate", float, "background Poisson AMPA input to cortical E cells (Hz, default off)"),
+            ("--cx-noise-w", float, "its weight (uS, default 2e-4 = 0.7 mV EPSP)")]:
         stage1.add_argument(name, type=typ, default=None, help=hlp)
     ap.add_argument("--het-seed", type=int, default=0,
                     help="which deterministic set of per-cell parameter "
@@ -1230,8 +1270,11 @@ def main():
             sizes[k] = max(1, int(round(DEFAULT_SIZES[k] * a.thal_scale)))
     extra = {k: getattr(a, k) for k in ("g_tc_re", "g_l6_tc", "g_l6_re", "ek_tc", "ek_re",
                                          "taur_re", "kl_scale_tc", "kl_scale_re", "depth_tc",
-                                         "taur_tc", "ginc_tc", "taur_l5_ib", "l6_delay_spread")
+                                         "taur_tc", "ginc_tc", "taur_l5_ib", "l6_delay_spread",
+                                         "cx_noise_rate", "cx_noise_w")
              if getattr(a, k) is not None}
+    if a.cx_noise_rate:
+        extra["cx_noise_tstop"] = a.tstop
     net = ParallelCorticoThalamicNet(sizes=sizes, conv=a.conv, het=a.het,
                                       delay_jitter=a.delay_jitter,
                                       g_re_re=a.g_re_re, g_re_re_sd=a.g_re_re_sd,

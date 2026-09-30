@@ -9,8 +9,18 @@ and their nesting, for ctx_thalamus_mpi.py runs (.npz). No NEURON needed.
   - nesting: a train "starts in an UP state" if its first volley is within
     -50 .. +300 ms of an UP-state onset; fraction of UP states that carry a
     train with >= 2 / >= 6 cycles
+  - UP-onset synchrony: spread (SD and 10-90% range) of the L6E cells'
+    first spikes within -100 .. +100 ms of each UP onset
+  - Stage 1 criteria per spindle (>= 6 cycles): 10-15 Hz, >= 0.5 s,
+    waxing/waning (RE participation peaks inside the train), TC
+    participation per cycle
+  - refractoriness: interval between consecutive spindle starts, and the
+    probability that an UP state carries a spindle given that the previous
+    UP state did / did not
 
-    python3 neuron/stage2_report.py "label=run.npz" ... [--skip 2000]
+    python3 neuron/stage2_report.py "label=run.npz" ... [--skip 2000] [--pool]
+
+--pool also prints the numbers pooled over all runs given (e.g. seeds).
 """
 
 import argparse
@@ -38,6 +48,24 @@ def up_onsets(t, g, R, tstop, skip):
     thr = r[b >= skip].mean() + 2 * r[b >= skip].std()
     pk, _ = find_peaks(r, height=thr, distance=300)
     return b[pk]
+
+
+def onset_spread(t, g, R, ups):
+    """Median over UP onsets of the SD and 10-90% range (ms) of the L6E
+    cells' first spikes in -100 .. +100 ms."""
+    lo, hi = R["l6e"]
+    m = (g >= lo) & (g < hi)
+    tl, gl = t[m], g[m]
+    sd, rng = [], []
+    for u in ups:
+        w = (tl >= u - 100) & (tl < u + 100)
+        cells = np.unique(gl[w])
+        if len(cells) < 3:
+            continue
+        first = np.array([tl[w][gl[w] == c].min() for c in cells])
+        sd.append(first.std())
+        rng.append(np.percentile(first, 90) - np.percentile(first, 10))
+    return (float(np.median(sd)), float(np.median(rng))) if sd else (np.nan, np.nan)
 
 
 def analyse(npz, skip=2000.0):
@@ -84,6 +112,7 @@ def criteria(runs):
 def report(label, npz, skip=2000.0):
     ups, trains, span = analyse(npz, skip)
     iui = np.diff(ups)
+    osd, orng = onset_spread(npz["times"], npz["gids"], npz["ranges"].item(), ups)
     cyc = np.array([tr["cycles"] for tr in trains]) if trains else np.zeros(0, int)
     sp = [tr for tr in trains if tr["cycles"] >= 6]
     multi = [tr for tr in trains if tr["cycles"] >= 2]
@@ -99,6 +128,7 @@ def report(label, npz, skip=2000.0):
     print("  SO: %d UP states (%.2f Hz), interval median %.0f ms, CV %.2f"
           % (len(ups), len(ups) / span, np.median(iui) if len(iui) else np.nan,
              iui.std() / iui.mean() if len(iui) > 1 else np.nan))
+    print("  UP onset: L6E first-spike spread median SD %.1f ms, 10-90%% range %.1f ms" % (osd, orng))
     if not trains:
         print("  no RE volleys")
         return
