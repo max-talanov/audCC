@@ -75,7 +75,7 @@ Two sizes are in use:
 - `--scale 1.65` gives **5031 cells**. This is the MN5 full-scale run (job
   45453403) and the size shown in the diagram.
 
-### Diagram (scale 1.65, 5031 cells)
+### Diagram (5031 cells)
 
 Solid arrows are excitatory (AMPA-like, E = 0 mV). Dotted arrows are inhibitory
 (GABA_A). Double-headed thick links are gap junctions. Edge labels give the
