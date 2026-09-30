@@ -3,6 +3,7 @@
 ## 1) How do we know when a spindle starts? (grey rectangles in the figure)
 
 Figure: `out/compare_regularity_vs_literature_score.png` (commit `7b3e1c8`).
+![](out/compare_regularity_vs_literature_score.png)
 
 The grey rectangles come from a simple threshold on the spindle-band amplitude.
 The figure is drawn by `make_comparison_figure` in `neuron/ctx_analyze.py`
