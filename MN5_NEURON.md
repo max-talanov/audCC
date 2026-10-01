@@ -330,3 +330,30 @@ python3 neuron/volley_stats.py "stage3=out/spindle_stage3.npz" --windows "20-40,
 `stage2_report.py` gives the Stage 3 "done when" numbers: SO rate, spindle
 nesting, and the Stage 1 criteria with refractoriness. The `--windows`
 table checks for drift over the 200 s.
+
+### Stage 3 round 2: irregular slow oscillation (2026-10-01)
+
+First results (`res/2026-10-01/s3/`, `PLAN-spindels.md` "Stage 3 results"):
+- every spindle meets the criteria, with no drift over 200 s;
+- but the full-scale SO is clockwork (CV 0.01) and every UP state carries
+  an identical spindle.
+
+Next batch: background input and weaker IB gap junctions (the new
+`--g-l5-gap` flag), all with the preset. Re-upload `neuron/ctx_thalamus_mpi.py`
+first (it has the new flag):
+
+```bash
+rsync -avR neuron/ctx_thalamus_mpi.py USER@glogin1.bsc.es:~/audCC/
+```
+
+```bash
+COMMON=SCALE=1.65,TSTOP=200000,G_I_E_L5=0.02,G_L5_REC=0.013,TAU2_L5_REC=200,TAUR_L5E_RS=120,L5_REC_MECH=nmda,SPINDLE=stage2
+sbatch --export=ALL,$COMMON,TAG=s3_n100,EXTRA_ARGS="--cx-noise-rate 100" run_ctx_nrn.sh
+sbatch --export=ALL,$COMMON,TAG=s3_n200,EXTRA_ARGS="--cx-noise-rate 200" run_ctx_nrn.sh
+sbatch --export=ALL,$COMMON,TAG=s3_ib1500_n100,EXTRA_ARGS="--taur-l5-ib 1500 --cx-noise-rate 100" run_ctx_nrn.sh
+sbatch --export=ALL,$COMMON,TAG=s3_gap005,EXTRA_ARGS="--g-l5-gap 0.005" run_ctx_nrn.sh
+sbatch --export=ALL,$COMMON,TAG=s3_gap005_n100,EXTRA_ARGS="--g-l5-gap 0.005 --cx-noise-rate 100" run_ctx_nrn.sh
+```
+
+The quotes keep each `EXTRA_ARGS` value with its spaces as one variable, and
+the script splits it into flags. Bring back `out/s3_*.npz`.

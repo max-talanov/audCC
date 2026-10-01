@@ -996,6 +996,10 @@ def main():
             ("--cx-noise-rate", float, "background Poisson AMPA input to cortical E cells (Hz, default off)"),
             ("--cx-noise-w", float, "its weight (uS, default 2e-4 = 0.7 mV EPSP)")]:
         stage1.add_argument(name, type=typ, default=None, help=hlp)
+    ap.add_argument("--g-l5-gap", type=float, default=0.02,
+                    help="gap-junction conductance between L5 IB cells (uS, "
+                         "default 0.02): what keeps the IB population, and so "
+                         "the UP onset, synchronous (PLAN-spindels.md Stage 3).")
     ap.add_argument("--het-seed", type=int, default=0,
                     help="which deterministic set of per-cell parameter "
                          "jitters to draw (0 = production); the seed for "
@@ -1284,7 +1288,7 @@ def main():
                                       l5_rec_mech=a.l5_rec_mech, mg_l5_rec=a.mg_l5_rec,
                                       taur_l5e_rs=a.taur_l5e_rs, state=a.state,
                                       g_gap=a.g_gap, thal_footprint=a.thal_footprint,
-                                      het_seed=a.het_seed, **extra)
+                                      het_seed=a.het_seed, g_l5_gap=a.g_l5_gap, **extra)
     aud = AI.AuditoryInput(net, a.stim, a.tstop) if a.stim else None
     wall = net.run(tstop=a.tstop)
     t, g = net.gather()

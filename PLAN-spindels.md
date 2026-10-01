@@ -5,7 +5,10 @@ spindle-like trains in the 10–15 Hz band with partial refractoriness
 (2026-09-28, strong I_h locking; see "Option 1"). Stage 2 done (2026-09-30):
 with the cortex attached, SO 0.93 Hz, spindles nested in UP states, 10–15 Hz,
 median 0.55 s, half of them waxing/waning, refractory (see "Stage 2
-results" and "Stage 2 follow-up").** Next: Stage 3 (full scale on MN5). See "Results so far", "RE recovery" and "Lever 4 (I_h)" in
+results" and "Stage 2 follow-up"). Stage 3 first MN5 runs (2026-10-01):
+every spindle meets the criteria at 5031 cells over 200 s with no drift, but
+the full-scale SO is clockwork and every UP state carries an identical
+spindle (see "Stage 3 results").** See "Results so far", "RE recovery" and "Lever 4 (I_h)" in
 Stage 1. Background and evidence:
 `Edu-questions.md` question 5, and the history in `neuron/README.md`.
 
@@ -614,6 +617,70 @@ plus the Option 2 cortex flags.
 - [ ] Update `neuron/README.md` and `Edu-questions.md`.
 
 **Done when:** Stage 1 criteria hold at 5031 cells over 200 s without drift.
+
+### Stage 3 results: first MN5 runs (2026-10-01)
+
+Raw output: `res/2026-10-01/s3/stage3_report.txt`, `stage3_drift.txt` (the
+`.npz` files are local only); figure `out/stage3_mn5_lfp.png`. Setup:
+- 5031 cells (`SCALE=1.65`), 200 s, 100 ranks on MN5, ~10 min wall each;
+- Option 2 cortex + `SPINDLE=stage2`;
+- three L5 IB clearances (`taur_l5_ib`).
+
+| | IB 2000 (preset) | IB 1500 | IB 1000 |
+|---|---|---|---|
+| SO | 0.35 Hz | 0.45 Hz | **0.70 Hz** |
+| UP-state interval CV | 0.11 | 0.01 | 0.01 |
+| Spindles (≥ 6 cycles) | 68 (20.6/min) | 90 (27.3/min) | 138 (41.8/min) |
+| Cycles | 7–9 (median 8) | 7–9 (8) | 7–9 (8–9) |
+| Frequency | 13.9 Hz (99% in 10–15 Hz) | 13.9 Hz (98%) | 14.0 Hz (100%) |
+| ≥ 0.5 s | 97% (median 506 ms) | 96% (504 ms) | 96% (528 ms) |
+| Waxing/waning | 99% | 99% | 99% |
+| TC participation per cycle | 50% | 49% | 49% |
+| Start in an UP state | 100% | 100% | 100% |
+| UP states carrying a spindle | **99%** | **100%** | **99%** |
+
+**Drift:** none. The 40 s windows keep the same UP rate, spindle count,
+cycles, frequency and duration from 0 to 200 s, and population rates stay
+within ±5% (TC 1.5–3.2, RE 5.8–12.1, L5E 1.3–2.8 Hz/cell).
+
+**What holds:** every individual spindle meets the Stage 1 criteria at full
+scale, more cleanly than at scale 0.1:
+- 7–9 cycles at ~14 Hz, ~0.5 s;
+- waxing/waning in 99%;
+- each TC cell fires about every 2nd cycle;
+- always nested in an UP state, starting at the DOWN → UP transition.
+
+**What fails:**
+1. **The SO is clockwork:** UP-state interval CV 0.01–0.11, against
+   ~0.3–0.6 in real slow-wave sleep. At scale 0.1 it was 0.6–0.9; that
+   irregularity came from the small network, not from a mechanism.
+2. **Every UP state carries a spindle, and they are all the same.** So
+   "not every UP state carries one" fails, and **refractoriness cannot be
+   tested**: the shortest interval (1.4 s at IB 1000) is longer than the
+   thalamus's recovery, so it is never challenged.
+3. **The spindle rate is too high.** 21–42/min, against ~2–7/min in human
+   N2/N3. This follows directly from 2.
+4. ~14 Hz is at the top of the band (fast spindles, 12–15 Hz, are the
+   type coupled to SO UP states, so this is acceptable).
+
+**Cause:** the full-scale cortex is a deterministic, fully synchronised
+oscillator:
+- 437 L5 IB cells, coupled by gap junctions;
+- L6E UP-onset spread 1.2 ms (10–90%) in all three runs.
+
+So the thalamus gets an identical kick every cycle, from an identical
+recovered state, and answers with an identical spindle. The thalamus is no
+longer the problem; the variability has to come from the cortex.
+
+**Next (MN5, cheap, ~10 min per run):** make the full-scale SO irregular.
+- **Background input to cortical E cells** (`--cx-noise-rate 100 / 200`).
+  At scale 0.1 it sped the SO up and made it irregular. At full scale the
+  IB 2000 SO is 0.35 Hz, so speeding it up is welcome.
+- **Weaker IB gap junctions** (`--g-l5-gap`, new flag, default 0.02), so
+  the IB population can drift partly out of phase.
+- **Target:** SO 0.5–1 Hz with CV ≥ 0.3, 20–60% of UP states carrying a
+  spindle, and refractoriness measurable as at scale 0.1 (Stage 2:
+  19% vs 58%).
 
 ## Out of scope for now
 
