@@ -1,0 +1,22 @@
+python : /gpfs/apps/MN5/GPP/MINIFORGE/24.3.0-0/envs/neuron/bin/python3
+== NEURON MPI (corticothalamic): 100 ranks, scale=1.65 ==
+args   : --scale 1.65 --tstop 200000 --conv 100 --g-i-e-l5 0.02 --g-l5-rec 0.013 --tau2-l5-rec 200 --taur-l5e-rs 120 --l5-rec-mech nmda --taur-l5-ib 2000 --g-gap 0.001 --thal-footprint 10 --ek-re -95 --taur-re 5 --g-tc-re 0.06 --gh-tc 5e-6 --kl-scale-tc 1.422 --depth-tc 1 --taur-tc 5 --ginc-tc 4 --g-l6-tc 0.003 --g-l6-re 0.01 --g-l5-gap 0.005 --cx-noise-rate 100
+numprocs=100
+
+=== NEURON MPI corticothalamic network ===
+ranks 100 | total cells 5031 | tstop 200000 ms | wall 608.2 s (3.04 x realtime)
+  tc     gid [0,346)  n=346
+  re     gid [346,437)  n=91
+  l4e    gid [437,1493)  n=1056
+  l4i    gid [1493,1757)  n=264
+  l23e   gid [1757,2813)  n=1056
+  l23i   gid [2813,3077)  n=264
+  l5e    gid [3077,3951)  n=874
+  l5i    gid [3951,4165)  n=214
+  l6e    gid [4165,4858)  n=693
+  l6i    gid [4858,5031)  n=173
+spikes 3150988 total (TC 120367, RE 118249, L6E 108868)
+RE burst shape (full run): frac_burst=0.517 mean_burst_size=2.75 n_events=75 event_Hz=0.378 (g_re_re=0.0060 +/- 0.0020)
+  first half:  frac_burst=0.520 mean_burst_size=2.75 event_Hz=0.378
+  second half: frac_burst=0.514 mean_burst_size=2.75 event_Hz=0.378
+== done; results in out/ ==

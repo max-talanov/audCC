@@ -8,7 +8,10 @@ median 0.55 s, half of them waxing/waning, refractory (see "Stage 2
 results" and "Stage 2 follow-up"). Stage 3 first MN5 runs (2026-10-01):
 every spindle meets the criteria at 5031 cells over 200 s with no drift, but
 the full-scale SO is clockwork and every UP state carries an identical
-spindle (see "Stage 3 results").** See "Results so far", "RE recovery" and "Lever 4 (I_h)" in
+spindle (see "Stage 3 results"). Round 2 (2026-10-02): with cortical
+background input at 200 Hz the SO is irregular (0.77 Hz, CV 0.38), 63% of
+UP states carry a spindle, refractoriness is visible; spindles are ~1
+cycle short (median 498 ms) (see "Stage 3 round 2").** See "Results so far", "RE recovery" and "Lever 4 (I_h)" in
 Stage 1. Background and evidence:
 `Edu-questions.md` question 5, and the history in `neuron/README.md`.
 
@@ -681,6 +684,64 @@ longer the problem; the variability has to come from the cortex.
 - **Target:** SO 0.5–1 Hz with CV ≥ 0.3, 20–60% of UP states carrying a
   spindle, and refractoriness measurable as at scale 0.1 (Stage 2:
   19% vs 58%).
+
+### Stage 3 round 2: irregular SO at full scale (2026-10-02)
+
+Raw output: `res/2026-10-02/s3b/stage3b_report.txt`,
+`stage3b_drift_n200.txt` and the SLURM logs; figure
+`out/stage3b_noise200_lfp.png`. Same setup as round 1 (5031 cells, 200 s,
+100 ranks, ~10 min each, `SPINDLE=stage2`, IB 2000 unless noted).
+
+| | preset (ref.) | noise 100 | **noise 200** | IB 1500 + noise 100 | gap 0.005 | gap 0.005 + noise 100 |
+|---|---|---|---|---|---|---|
+| SO | 0.35 Hz | 0.38 | **0.77** | 0.49 | 0.35 | 0.38 |
+| UP interval CV | 0.11 | 0.10 | **0.38** | 0.01 | 0.11 | 0.00 |
+| UP states with a spindle | 99% | 99% | **63%** | 100% | 99% | 100% |
+| Spindles / min | 20.6 | 22.4 | 29.4 | 30.0 | 20.9 | 22.7 |
+| ≥ 0.5 s (median) | 97% (506 ms) | 99% (566) | 45% (498) | 97% (565) | 97% (505) | 100% (566) |
+| 10–15 Hz | 99% | 97% | 93% | 96% | 99% | 93% |
+| Waxing/waning | 99% | 99% | 98% | 99% | 99% | 99% |
+| TC part./cycle | 50% | 47% | 45% | 47% | 50% | 48% |
+| P(spindle \| prev. UP had one) vs none | 99% vs – | 99% vs – | **56% vs 75%** | 100% vs – | 99% vs – | 100% vs – |
+
+1. **Weaker IB gap junctions do nothing** (0.005 vs 0.02: identical SO and
+   spindles). The full-scale synchrony comes from the recurrent L5 NMDA
+   excitation, not the gap junctions.
+2. **Background input has a threshold.** At 100 Hz nothing changes. At
+   200 Hz the cortex switches regime:
+   - DOWN states end stochastically: SO 0.77 Hz with CV 0.38, in the
+     range of real slow-wave sleep (~0.3–0.6);
+   - spindles **start locally** in part of the TC/RE ring and differ from
+     one UP state to the next (see the raster);
+   - 37% of UP states carry no spindle;
+   - **refractoriness becomes visible**: an UP state right after a
+     spindle carries one 56% of the time, vs 75% otherwise.
+3. **Drift with noise 200 (40 s windows):** UP rate 0.70–0.82/s,
+   18–22 spindles per window, 59–68% of UP states carrying one, rates
+   within ±13%, no trend. Duration rises slightly, 460–470 ms in the first
+   80 s to ~500 ms after. The SLURM check gives RE events 0.566 vs
+   0.614 Hz in the first vs second half (+8%).
+
+**Stage 3 status with `SPINDLE=stage2 --cx-noise-rate 200`:**
+- SO < 1 Hz and irregular ✅
+- nested in UP states ✅ (100%), not every UP state ✅ (63%)
+- refractoriness ✅
+- 10–15 Hz ✅ (93%), waxing/waning ✅ (98%), TC every ~2nd cycle ✅ (45%)
+- no drift ✅ (fluctuations, no trend)
+- **≥ 0.5 s ⚠️:** median 498 ms, 45% ≥ 0.5 s. The background input
+  shortens spindles by about one cycle (7–8 instead of 8–9), because they
+  start locally.
+- **Spindle rate is still high:** 29/min, against ~2–7/min in human
+  N2/N3 scalp EEG. That comparison is loose: the model is a single column
+  and the scalp counts spindles visible over large areas.
+
+**Next:**
+- Repeat noise 200 with 2 seeds (`HET_SEED` 1, 2) to confirm.
+- Bracket the noise level (150, 250) for the fraction of UP states
+  carrying a spindle.
+- Add one cycle of length, e.g. a slightly weaker I_h locking (`ginc`
+  3, which needs a local re-balance of `kl_scale_tc` first) or
+  `--g-l6-re 0.012`.
 
 ## Out of scope for now
 

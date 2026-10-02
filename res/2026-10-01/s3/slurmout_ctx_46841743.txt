@@ -1,0 +1,62 @@
+python : /gpfs/apps/MN5/GPP/MINIFORGE/24.3.0-0/envs/neuron/bin/python3
+== compiling NMODL mechanisms (mod/*.mod changed or no prior build) ==
+/gpfs/projects/uab100/audCC/neuron
+Mod files: "mod/mod/IT.mod" "mod/mod/IT2.mod" "mod/mod/cad.mod" "mod/mod/gap.mod" "mod/mod/gapmpi.mod" "mod/mod/hh2.mod" "mod/mod/ical.mod" "mod/mod/ihca.mod" "mod/mod/inap.mod" "mod/mod/kleak.mod" "mod/mod/nmda.mod" "mod/mod/sk2.mod"
+
+Creating 'x86_64' directory for .o files.
+
+ -> [32mCompiling[0m mod_func.cpp
+ -> [32mNMODL[0m ../mod/IT.mod
+ -> [32mNMODL[0m ../mod/cad.mod
+ -> [32mNMODL[0m ../mod/IT2.mod
+Warning: Default 36 of PARAMETER celsius will be ignored and set by NEURON.
+Warning: Default 2 of PARAMETER cao will be ignored and set by NEURON.
+Warning: Default 0.00024 of PARAMETER cai will be ignored and set by NEURON.
+Warning: Default 36 of PARAMETER celsius will be ignored and set by NEURON.
+Warning: Default 2 of PARAMETER cao will be ignored and set by NEURON.
+Warning: Default 0.00024 of PARAMETER cai will be ignored and set by NEURON.
+ -> [32mNMODL[0m ../mod/gap.mod
+ -> [32mNMODL[0m ../mod/gapmpi.mod
+ -> [32mNMODL[0m ../mod/hh2.mod
+ -> [32mNMODL[0m ../mod/ical.mod
+ -> [32mNMODL[0m ../mod/ihca.mod
+ -> [32mNMODL[0m ../mod/inap.mod
+ -> [32mNMODL[0m ../mod/kleak.mod
+ -> [32mNMODL[0m ../mod/nmda.mod
+ -> [32mNMODL[0m ../mod/sk2.mod
+ -> [32mCompiling[0m IT.c
+ -> [32mCompiling[0m IT2.c
+ -> [32mCompiling[0m cad.c
+ -> [32mCompiling[0m gap.c
+ -> [32mCompiling[0m gapmpi.c
+ -> [32mCompiling[0m hh2.c
+ -> [32mCompiling[0m ical.c
+ -> [32mCompiling[0m ihca.c
+ -> [32mCompiling[0m inap.c
+ -> [32mCompiling[0m kleak.c
+ -> [32mCompiling[0m nmda.c
+ -> [32mCompiling[0m sk2.c
+ => [32mLINKING[0m shared library ./libnrnmech.so
+ => [32mLINKING[0m executable ./special LDFLAGS are:    -pthread
+Successfully created x86_64/special
+== NEURON MPI (corticothalamic): 100 ranks, scale=1.65 ==
+args   : --scale 1.65 --tstop 200000 --conv 100 --g-i-e-l5 0.02 --g-l5-rec 0.013 --tau2-l5-rec 200 --taur-l5e-rs 120 --l5-rec-mech nmda --taur-l5-ib 2000 --g-gap 0.001 --thal-footprint 10 --ek-re -95 --taur-re 5 --g-tc-re 0.06 --gh-tc 5e-6 --kl-scale-tc 1.422 --depth-tc 1 --taur-tc 5 --ginc-tc 4 --g-l6-tc 0.003 --g-l6-re 0.01
+numprocs=100
+
+=== NEURON MPI corticothalamic network ===
+ranks 100 | total cells 5031 | tstop 200000 ms | wall 634.9 s (3.17 x realtime)
+  tc     gid [0,346)  n=346
+  re     gid [346,437)  n=91
+  l4e    gid [437,1493)  n=1056
+  l4i    gid [1493,1757)  n=264
+  l23e   gid [1757,2813)  n=1056
+  l23i   gid [2813,3077)  n=264
+  l5e    gid [3077,3951)  n=874
+  l5i    gid [3951,4165)  n=214
+  l6e    gid [4165,4858)  n=693
+  l6i    gid [4858,5031)  n=173
+spikes 2256993 total (TC 108955, RE 109303, L6E 76426)
+RE burst shape (full run): frac_burst=0.537 mean_burst_size=2.78 n_events=68 event_Hz=0.344 (g_re_re=0.0060 +/- 0.0020)
+  first half:  frac_burst=0.539 mean_burst_size=2.78 event_Hz=0.344
+  second half: frac_burst=0.536 mean_burst_size=2.77 event_Hz=0.344
+== done; results in out/ ==

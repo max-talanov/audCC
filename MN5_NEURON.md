@@ -357,3 +357,20 @@ sbatch --export=ALL,$COMMON,TAG=s3_gap005_n100,EXTRA_ARGS="--g-l5-gap 0.005 --cx
 
 The quotes keep each `EXTRA_ARGS` value with its spaces as one variable, and
 the script splits it into flags. Bring back `out/s3_*.npz`.
+
+### Stage 3 round 3: confirm background input 200 Hz (2026-10-02)
+
+Round 2 result (`res/2026-10-02/s3b/`, `PLAN-spindels.md` "Stage 3 round
+2"): only `--cx-noise-rate 200` breaks the clockwork. It gives SO 0.77 Hz
+with CV 0.38, spindles on 63% of UP states, and visible refractoriness.
+`--g-l5-gap 0.005` and noise 100 change nothing. No code changes are
+needed for this batch:
+
+```bash
+COMMON=SCALE=1.65,TSTOP=200000,G_I_E_L5=0.02,G_L5_REC=0.013,TAU2_L5_REC=200,TAUR_L5E_RS=120,L5_REC_MECH=nmda,SPINDLE=stage2
+sbatch --export=ALL,$COMMON,TAG=s3_n200_s1,HET_SEED=1,EXTRA_ARGS="--cx-noise-rate 200" run_ctx_nrn.sh
+sbatch --export=ALL,$COMMON,TAG=s3_n200_s2,HET_SEED=2,EXTRA_ARGS="--cx-noise-rate 200" run_ctx_nrn.sh
+sbatch --export=ALL,$COMMON,TAG=s3_n150,EXTRA_ARGS="--cx-noise-rate 150" run_ctx_nrn.sh
+sbatch --export=ALL,$COMMON,TAG=s3_n250,EXTRA_ARGS="--cx-noise-rate 250" run_ctx_nrn.sh
+sbatch --export=ALL,$COMMON,TAG=s3_n200_l6re012,EXTRA_ARGS="--cx-noise-rate 200 --g-l6-re 0.012" run_ctx_nrn.sh
+```
