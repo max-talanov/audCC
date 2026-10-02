@@ -1317,7 +1317,10 @@ def main():
             np.savez_compressed(a.out.replace(".h5", ".npz"),
                                  times=t, gids=g, sizes=net.sizes,
                                  ranges=net.ranges, tstop=a.tstop, wall=wall,
-                                 state=a.state or "legacy", **extra)
+                                 # the state the network actually used: a
+                                 # --kl-scale-* flag implies "nrem" even
+                                 # without --state
+                                 state=net.state or "legacy", **extra)
     net.teardown()
     pc = h.ParallelContext()
     pc.barrier()

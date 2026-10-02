@@ -1,7 +1,9 @@
 # Plan: auditory input to the thalamocortical loop, awake and asleep
 
-Status: **Stage A done (2026-09-24, local, see "Stage A results"); Stages
-B and C not started.** Builds on the production
+Status (2026-10-02): **Stage A done (2026-09-24, see "Stage A results").
+C1 + C2 prepared for MN5, not yet run (see "Status update 2026-10-02").
+Stage B and C3 not started.** The spindle plan's Stage 2 blocker is gone:
+the full-scale sleep model now has an irregular SO and real spindles. Builds on the production
 NEURON model `ParallelCorticoThalamicNet` (`neuron/ctx_thalamus_mpi.py`;
 architecture in `Edu-questions.md` Q2). Runs alongside `PLAN-spindels.md`,
 and the spindle-related experiments here depend on it (see "Dependencies").
@@ -27,13 +29,13 @@ of this model's parameters, studies.
 
 | Aspect | Now | Consequence for this plan |
 |---|---|---|
-| External input | **None.** No IC/brainstem source, no background noise (`PLAN-spindels.md` diagnosis 1) | An input population must be added from scratch |
+| External input | IC → TC tone input (`--stim`, Stage A); background Poisson input to cortical E cells (`--cx-noise-rate`, spindle plan Stage 3). None to the thalamus | Wake still needs thalamic background input |
 | Sleep state | Set only by hyperpolarised `e_pas` in `_make_cell` (TC −80, RE −82, cortex −70 / FS −68 mV) | There is no knob to leave sleep; wake must be added as a new mechanism |
-| Cortical SO | Intrinsic: L5 `PYCellIB` (I_NaP + slow SK2) + IB gap junctions, ~1.4 Hz, optional L5 NMDA recurrence (Options 1/2) | In wake these mechanisms must be turned down, not removed |
+| Cortical SO | Intrinsic: L5 `PYCellIB` (I_NaP + slow SK2, `--taur-l5-ib`) synchronised by L5 NMDA recurrence (not the IB gap junctions: `PLAN-spindels.md` Stage 3 round 2). Full-scale sleep model: 0.77 Hz, CV 0.38 with `--cx-noise-rate 200` | In wake these mechanisms must be turned down, not removed |
 | TC → cortex | TC → L4E only (`_wire_thalamocortical`); no TC → L4I | No feedforward inhibition, so evoked responses won't be sharp. The NEST model has `thalamus_E → L4_I`; the NEURON model lacks it |
-| Topography | None. Fixed-convergence random draws (`_draw`) | No tonotopy. `PLAN-spindels.md` Stage 1 step 2 adds topographic RE ↔ TC wiring, so both plans should share one coordinate |
+| Topography | Thalamus only: local RE ↔ TC wiring on a ring (`--thal-footprint`, `ring_pos`). Cortex and IC → TC are still random | Tonotopy (D2) should reuse `ring_pos` as its coordinate |
 | Synapses | `Exp2Syn`, no short-term plasticity | No adaptation to repeated sounds (SSA) without adding depression |
-| Spindles | Single RE volleys, not spindles (`Edu-questions.md` Q5) | Spindle-gating experiments must wait for `PLAN-spindels.md` Stage 2 |
+| Spindles | Real spindles at full scale (`SPINDLE=stage2`): 7–9 cycles, ~14 Hz, ~0.5 s, waxing/waning, nested in UP states, refractory (`PLAN-spindels.md` Stages 2–3) | C2 / C3 are unblocked. In the isolated thalamus a tone already evokes a spindle, and a second tone 1.5–4 s later a weaker one |
 | Determinism | Everything is a function of gid, independent of rank count | Stimulus spike trains must follow the same rule |
 
 ## Design
@@ -177,9 +179,9 @@ detector events).
 |---|---|
 | Stage A, B (input, wake) | Nothing. Can start now |
 | Stage C1, C2 (NREM input, SO phase, evoked slow waves) | Nothing. The SO exists today |
-| Stage C2 spindle part, C3 closed loop on spindles | Stage 2 done (real spindles with the cortex attached) |
+| Stage C2 spindle part, C3 closed loop on spindles | Stage 2 done (real spindles with the cortex attached) — **done 2026-09-30** |
 | D2 tonotopy | Shares the topographic coordinate with Stage 1 step 2; build it once |
-| NREM background noise | Its decision on noise in NREM |
+| NREM background noise | Its decision on noise in NREM — **decided:** `--cx-noise-rate 200` on cortical E cells is part of the full-scale sleep model |
 
 Every new mechanism is behind a flag with the old behaviour as default, so
 the two plans don't break each other's runs.
@@ -259,6 +261,49 @@ All at `--scale 0.1` (305 cells), 4 ranks, Option 2 flags. Raw output:
   wake/NREM contrast in B1 should be judged relative to this baseline, and
   the silence metric may need a per-layer or thresholded version.
 
+## Status update 2026-10-02
+
+**What changed since Stage A**, from the spindle plan:
+- **The NREM model the tones should go into is different now.** Stage A
+  used the production thalamus (single RE volleys, no spindles) and a
+  noise-free cortex. The current sleep model is:
+  - `SPINDLE=stage2` (local RE ↔ TC wiring, RE K⁺ and Ca²⁺ fixes,
+    Ca²⁺-dependent I_h, RE-weighted L6 input, `taur_l5_ib` 2000);
+  - plus `--cx-noise-rate 200`.
+
+  At full scale that gives SO 0.77 Hz with CV 0.38 and local spindles on
+  63% of UP states, with spontaneous refractoriness. Stage A's tone
+  responses are not re-measured on it yet; C1/C2 below do that, with a sham.
+- **Evidence for C2 already exists in the isolated thalamus**
+  (`PLAN-spindels.md` "Refractoriness with a tone kick", "Option 1"):
+  - one 60 dB tone evokes a 7–11 cycle spindle;
+  - with strong I_h locking, a second tone 1.5–4 s later evokes a spindle
+    with 25–35% fewer cycles.
+- **Bug fixed:** `ctx_thalamus_mpi.py` saved `state="legacy"` in the `.npz`
+  for runs that used `--kl-scale-*` without `--state`, although those
+  runs use the nrem leak split. It now saves the state the network
+  used. Only the label was wrong; the simulations were not affected.
+
+**C1 + C2 prepared** (run together; the commands are in `MN5_NEURON.md`,
+"Auditory Stages C1 / C2"):
+- **Stimulus:** `neuron/stim/tones_c1c2.json`, 50 ms tones at 30 / 45 /
+  60 dB, randomly mixed, every 2–5 s from 3 s on.
+- **Runs:** full-scale sleep model, 400 s (~115 tones per run), 3 seeds;
+  each a tone run plus a sham run with the same `HET_SEED` (6 MN5 jobs,
+  ~20 min each).
+- **Analysis:** `neuron/aud_phase.py`, sham-controlled. The state at each
+  tone is classified **from activity before the tone only**.
+  - SO phase (from the L5E + L6E rate in the 100 ms before the tone): UP,
+    DOWN-early, DOWN-late.
+  - Spindle state: in-spindle, post-spindle (0–2 s after a ≥ 6-cycle
+    spindle), none.
+  - Per bin, it compares tone vs sham on TC / L4E / L2/3E / L5E / L6E
+    spikes in 0–50 ms, the TC burst fraction, P(UP onset within 300 ms) and
+    P(spindle within 300 ms), with Mann–Whitney / Fisher tests. It also
+    gives a table by level and a bar figure.
+- A local end-to-end test at scale 0.1 (30 s tone + sham) checks the
+  pipeline; it has too few tones for statistics.
+
 ## Stage B — the awake state (local, then MN5)
 
 ### B1. Find the wake operating point (single channel)
@@ -309,6 +354,10 @@ qualitative sanity checks, not fits.
 
 ### C1. Open loop, SO phase (can start after Stage A)
 
+**Prepared 2026-10-02**, run together with C2: see "Status update
+2026-10-02". The phase bins are UP / DOWN-early / DOWN-late, classified
+before the tone; UP→DOWN is not separated yet.
+
 - [ ] Tones at random times (inter-tone interval 2–5 s, jittered, so they
       sample all SO phases), several levels. 200 s per seed, several seeds.
 - [ ] Measure, binned by SO phase (UP, DOWN, DOWN→UP, UP→DOWN):
@@ -328,6 +377,9 @@ qualitative sanity checks, not fits.
      target.
 
 ### C2. Spindle phase (after PLAN-spindels.md Stage 2)
+
+**Prepared 2026-10-02** (in-spindle / post-spindle / none bins in
+`aud_phase.py`), same runs as C1.
 
 - [ ] Same protocol; additional bins: during a spindle, just after a spindle
       (refractory), no spindle.
@@ -396,6 +448,8 @@ and one MN5 run at `--scale 1.65`; C2/C3 after the spindle plan allows.
 | `neuron/mod/kleak.mod` | new: K⁺ leak, the state knob |
 | `neuron/mod/tmgsyn.mod` | new: Tsodyks–Markram depressing synapse (Stage B2) |
 | `neuron/brain_state.py` | new: `nrem` / `wake` presets and schedules |
+| `neuron/aud_phase.py` | C1/C2: sham-controlled tone effects by SO phase and spindle state |
+| `neuron/stim/tones_c1c2.json` | C1/C2 tone protocol (3 levels, ISI 2–5 s) |
 | `neuron/auditory_input.py` | new: stimulus spec, IC fibre trains, driver synapses, closed-loop hook |
 | `neuron/ctx_thalamus_mpi.py` | flags `--state`, `--stim`, `--closed-loop`, `--tonotopy`; TC → L4I; background noise; stimulus log in the `.npz` |
 | `neuron/aud_analyze.py` | new: PSTH, burst/tonic, cortical state, phase binning, evoked events |

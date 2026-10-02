@@ -374,3 +374,39 @@ sbatch --export=ALL,$COMMON,TAG=s3_n150,EXTRA_ARGS="--cx-noise-rate 150" run_ctx
 sbatch --export=ALL,$COMMON,TAG=s3_n250,EXTRA_ARGS="--cx-noise-rate 250" run_ctx_nrn.sh
 sbatch --export=ALL,$COMMON,TAG=s3_n200_l6re012,EXTRA_ARGS="--cx-noise-rate 200 --g-l6-re 0.012" run_ctx_nrn.sh
 ```
+
+## Auditory Stages C1 / C2: tones during NREM (prepared 2026-10-02)
+
+`PLAN-auditory-input.md` C1 (tone effect vs slow-oscillation phase) and C2
+(vs spindle state), on the current full-scale sleep model:
+`SPINDLE=stage2` plus `--cx-noise-rate 200` (SO 0.77 Hz, CV 0.38, spindles
+on 63% of UP states; `PLAN-spindels.md` "Stage 3 round 2").
+
+Each seed is a **tone run plus a sham run**: the same flags and `HET_SEED`
+(so the same background-input trains), with and without `STIM`. The
+analysis applies the tone times to the sham run as fake tones. The tones
+(`neuron/stim/tones_c1c2.json`) are 50 ms at 30 / 45 / 60 dB, randomly
+mixed, every 2–5 s, so they fall at all SO phases. 400 s is ~115 tones per
+run, so 3 seeds give ~350 tones and ~6 jobs of ~20 min each.
+
+Upload (new or changed since the Stage 3 runs):
+
+```bash
+rsync -avR neuron/ctx_thalamus_mpi.py neuron/stim/tones_c1c2.json USER@glogin1.bsc.es:~/audCC/
+```
+
+Submit from `~/audCC`:
+
+```bash
+C=SCALE=1.65,TSTOP=400000,G_I_E_L5=0.02,G_L5_REC=0.013,TAU2_L5_REC=200,TAUR_L5E_RS=120,L5_REC_MECH=nmda,SPINDLE=stage2
+for s in 0 1 2; do
+  sbatch --export=ALL,$C,HET_SEED=$s,EXTRA_ARGS="--cx-noise-rate 200",STIM=neuron/stim/tones_c1c2.json,TAG=c12_tone_s$s run_ctx_nrn.sh
+  sbatch --export=ALL,$C,HET_SEED=$s,EXTRA_ARGS="--cx-noise-rate 200",TAG=c12_sham_s$s run_ctx_nrn.sh
+done
+```
+
+Bring back `out/c12_*.npz` and `slurmout_ctx_*.txt`, then locally:
+
+```bash
+python3 neuron/aud_phase.py --pair out/c12_tone_s0.npz=out/c12_sham_s0.npz --pair out/c12_tone_s1.npz=out/c12_sham_s1.npz --pair out/c12_tone_s2.npz=out/c12_sham_s2.npz --out-txt res/c12_table.txt --plot out/c12_phase.png
+```
