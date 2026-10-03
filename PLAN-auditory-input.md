@@ -1,7 +1,8 @@
 # Plan: auditory input to the thalamocortical loop, awake and asleep
 
 Status (2026-10-02): **Stage A done (2026-09-24, see "Stage A results").
-C1 + C2 prepared for MN5, not yet run (see "Status update 2026-10-02").
+C1 + C2: tone runs done on MN5 (2026-10-03), sham runs still missing;
+provisional results in "C1/C2 results (provisional)".
 Stage B and C3 not started.** The spindle plan's Stage 2 blocker is gone:
 the full-scale sleep model now has an irregular SO and real spindles. Builds on the production
 NEURON model `ParallelCorticoThalamicNet` (`neuron/ctx_thalamus_mpi.py`;
@@ -303,6 +304,87 @@ All at `--scale 0.1` (305 cells), 4 ranks, Option 2 flags. Raw output:
     gives a table by level and a bar figure.
 - A local end-to-end test at scale 0.1 (30 s tone + sham) checks the
   pipeline; it has too few tones for statistics.
+
+## C1/C2 results (provisional, 2026-10-03)
+
+Raw output: `res/2026-10-03/s3b/c12_table_provisional.txt` and the SLURM
+logs; figure `out/c12_phase_provisional.png`.
+- **Runs:** 3 tone runs on MN5 (seeds 0–2, 5031 cells, 400 s each,
+  `SPINDLE=stage2 --cx-noise-rate 200`), 342 tones. All ran cleanly, with
+  no drift (RE event rate first vs second half within ±5%).
+- **The 3 sham runs are missing** (not run or not copied back). Until they
+  exist, the control is **within-run**: one time per inter-tone interval,
+  at least 1.5 s after the previous tone and 0.5 s before the next,
+  classified and measured like the tones (`aud_phase.py --pair stim.npz`
+  without `=sham`). Those control times can still carry after-effects of
+  the previous tone, so the control rates are approximate. The effect
+  sizes below are large enough that the conclusions should not depend on
+  it.
+
+**C1, SO phase at tone onset** (tone vs control, mean over tones):
+
+| | UP (n 234) | DOWN-early (54) | DOWN-late (54) |
+|---|---|---|---|
+| TC spikes/cell, 0–50 ms | 1.57 vs 0.16 | 1.45 vs 0.03 | 1.59 vs 0.00 |
+| L4E | 1.43 vs 0.20 | 1.63 vs 0.03 | 1.69 vs 0.00 |
+| L2/3E | 0.18 vs 0.01 | 0.25 vs 0.01 | 0.29 vs 0.00 |
+| P(UP onset ≤ 300 ms) | 29% vs 13% (p 3e-5) | 37% vs 28% (n.s.) | **83% vs 53%** (p 0.001) |
+| P(spindle ≤ 300 ms) | 53% vs 5% | 89% vs 17% | **96% vs 38%** |
+
+**C2, spindle state at tone onset:**
+
+| | in-spindle (105) | post-spindle, 0–2 s (197) | none (40) |
+|---|---|---|---|
+| TC spikes/cell, 0–50 ms | 1.71 vs 0.36 | 1.50 vs 0.00 | 1.38 vs 0.00 |
+| L4E | **1.20 vs 0.47** | 1.63 vs 0.00 | 1.65 vs 0.00 |
+| L2/3E | **0.10 vs 0.02** | 0.25 vs 0.00 | 0.29 vs 0.01 |
+| P(spindle ≤ 300 ms) | 0% | 93% (8 cycles, 510 ms) | 98% (8 cycles, 499 ms) |
+
+What this says (answers to the C1 questions, provisional):
+1. **Thalamic transmission is not gated by SO phase.** TC and L4 respond
+   about equally in UP and DOWN (TC 1.45–1.59, L4 1.43–1.69 spikes/cell).
+   L4 and L2/3 are lower in UP (−15% and −38% vs late DOWN):
+   ongoing UP-state activity and inhibition partly occlude the response.
+   This fits the single-unit picture of preserved A1 responses in NREM
+   (Issa & Wang 2008; Nir et al. 2015) better than "the thalamus closes
+   the gate".
+2. **Tones in late DOWN states start UP states** (83% vs 53% within
+   300 ms), but in early DOWN states barely (37% vs 28%, n.s.). This is a
+   cortical refractory period after an UP state: a K-complex / evoked slow
+   wave is only possible once the cortex has recovered.
+3. **Tones evoke spindles very reliably,** at any time except during an
+   ongoing spindle: 53% in UP, 89–96% in DOWN. The evoked spindles are the
+   same size as spontaneous ones (8 cycles, ~0.5 s).
+4. **During a spindle, cortical transmission is reduced:**
+   - net L4 response (tone − control) 0.73 vs 1.63 outside spindles, −55%;
+   - net L2/3 0.08 vs 0.25–0.28, −70%;
+   - the TC response itself is about unchanged (net 1.35 vs 1.38–1.50).
+
+   This is spindle gating at the thalamocortical synapse or in L4, as
+   reported in humans (Dang-Vu et al. 2011; Schabus et al. 2012).
+5. **No refractoriness after a spindle for tone-evoked spindles:** 93% in
+   the 0–2 s after a spindle vs 98% otherwise, with the same size. In
+   humans, spindle refractoriness lasts several seconds. The model's
+   refractoriness (spontaneous: 56% vs 75%) is too weak to stop a tone.
+   With `ginc` 4 the Ca²⁺-locked I_h depolarises TC too little, and RE has
+   no refractory mechanism of its own (see `PLAN-spindels.md`, "Option 1"
+   and option 2, RE-side K⁺).
+
+**Measurement caveat: the TC burst fraction is 0 everywhere**, for
+spontaneous and tone-evoked spikes alike. In this model TC fires one
+low-threshold spike per spindle cycle, without the ≤ 4 ms doublets that the
+Lu et al. (1992) criterion needs (tone-window ISIs median 32 ms, 1% ≤ 4 ms).
+So the burst/tonic question needs another measure, e.g. the TC membrane
+potential or I_T availability before the tone (≤ −70 mV = burst mode), or a
+silence-only criterion.
+
+**Next:**
+- Run the 3 sham jobs (commands in `MN5_NEURON.md`), then rerun
+  `aud_phase.py` with `--pair tone=sham` for the final numbers.
+- Replace the TC burst measure.
+- Refractoriness: point 5 is the clearest model–data mismatch, so it is
+  the next spindle-plan lever (RE-side slow K⁺), now with a tone-based
+  test.
 
 ## Stage B — the awake state (local, then MN5)
 

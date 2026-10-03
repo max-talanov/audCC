@@ -1,0 +1,61 @@
+PROVISIONAL: control = within-run times between tones (no sham run); 'sham' columns below are those controls
+Auditory C1/C2: 3 tone runs, 342 tones (levels 30, 45, 60 dB); DOWN-early/late split at 1228 ms after the last UP onset; UP threshold 2.0 Hz/cell
+
+== C1, SO phase (all levels): tone vs sham, mean (Mann-Whitney / Fisher p)
+                      | UP                        | DOWN-early                | DOWN-late                 
+  n tones (tone/sham) | 234 / 223                 | 54 / 58                   | 54 / 58                   
+  TC sp/cell 0-50     |  1.57 vs  0.16 (p 2.7e-77)|  1.45 vs  0.03 (p 1.3e-21)|  1.59 vs  0.00 (p 1.3e-22)
+  TC burst frac       |  0.00 vs  0.00 (p 0.058)  |  0.01 vs  0.00 (p 0.74)   |  0.00 vs  0.00 (p nan)    
+  L4E sp/cell         |  1.43 vs  0.20 (p 8.2e-66)|  1.63 vs  0.03 (p 5.2e-20)|  1.69 vs  0.00 (p 5.5e-20)
+  L2/3E sp/cell       |  0.18 vs  0.01 (p 1.4e-24)|  0.25 vs  0.01 (p 4.1e-13)|  0.29 vs  0.00 (p 1.6e-15)
+  L5E sp/cell         |  0.29 vs  0.20 (p 3.7e-10)|  0.29 vs  0.16 (p 0.035)  |  0.47 vs  0.15 (p 0.00041)
+  L6E sp/cell         |  0.22 vs  0.07 (p 2.9e-05)|  0.30 vs  0.08 (p 0.057)  |  0.51 vs  0.11 (p 0.00044)
+  evoked UP (300 ms)  |  29% vs  13% (p 2.8e-05)  |  37% vs  28% (p 0.32)     |  83% vs  53% (p 0.0011)   
+  evoked spindle      |  53% vs   5% (p 3.5e-32)  |  89% vs  17% (p 3.9e-15)  |  96% vs  38% (p 1.2e-11)  
+
+== C2, spindle state (all levels): tone vs sham, mean (Mann-Whitney / Fisher p)
+                      | in-spindle                | post-spindle              | none                      
+  n tones (tone/sham) | 105 / 99                  | 197 / 224                 | 40 / 16                   
+  TC sp/cell 0-50     |  1.71 vs  0.36 (p 6e-35)  |  1.50 vs  0.00 (p 3.4e-80)|  1.38 vs  0.00 (p 4.9e-09)
+  TC burst frac       |  0.00 vs  0.00 (p 0.0092) |  0.00 vs  0.00 (p 0.74)   |  0.00 vs  0.00 (p nan)    
+  L4E sp/cell         |  1.20 vs  0.47 (p 7.2e-20)|  1.63 vs  0.00 (p 3.5e-71)|  1.65 vs  0.00 (p 7.2e-09)
+  L2/3E sp/cell       |  0.10 vs  0.02 (p 0.002)  |  0.25 vs  0.00 (p 4.7e-45)|  0.29 vs  0.01 (p 1.3e-06)
+  L5E sp/cell         |  0.22 vs  0.22 (p 0.95)   |  0.36 vs  0.17 (p 1.5e-12)|  0.39 vs  0.20 (p 0.0022) 
+  L6E sp/cell         |  0.13 vs  0.09 (p 0.12)   |  0.34 vs  0.07 (p 8.3e-08)|  0.35 vs  0.11 (p 0.079)  
+  evoked UP (300 ms)  |  12% vs   7% (p 0.24)     |  50% vs  28% (p 3.7e-06)  |  50% vs  31% (p 0.24)     
+  evoked spindle      |   0% vs   0% (p 1)        |  93% vs  18% (p 2.6e-61)  |  98% vs  19% (p 3.9e-09)  
+
+== C1, SO phase, by level: tone vs sham, mean (Mann-Whitney / Fisher p)
+  -- level 30 dB
+                      | UP                        | DOWN-early                | DOWN-late                 
+  n tones (tone/sham) | 90 / 80                   | 17 / 22                   | 16 / 21                   
+  TC sp/cell 0-50     |  0.82 vs  0.18 (p 4e-29)  |  0.78 vs  0.04 (p 3.5e-08)|  0.76 vs  0.00 (p 2.1e-08)
+  TC burst frac       |  0.00 vs  0.00 (p 1)      |  0.00 vs  0.00 (p 1)      |  0.00 vs  0.00 (p nan)    
+  L4E sp/cell         |  1.17 vs  0.26 (p 4.9e-21)|  1.28 vs  0.04 (p 1.6e-07)|  1.28 vs  0.00 (p 2.5e-07)
+  L2/3E sp/cell       |  0.09 vs  0.01 (p 1.9e-09)|  0.09 vs  0.01 (p 0.00013)|  0.22 vs  0.00 (p 1.1e-05)
+  L5E sp/cell         |  0.26 vs  0.21 (p 0.017)  |  0.33 vs  0.17 (p 0.028)  |  0.45 vs  0.20 (p 0.073)  
+  L6E sp/cell         |  0.16 vs  0.09 (p 0.0068) |  0.40 vs  0.09 (p 0.026)  |  0.45 vs  0.16 (p 0.1)    
+  evoked UP (300 ms)  |  23% vs  11% (p 0.045)    |  41% vs  36% (p 1)        |  88% vs  62% (p 0.14)     
+  evoked spindle      |  58% vs   2% (p 1.5e-16)  |  82% vs  23% (p 0.00033)  |  94% vs  52% (p 0.01)     
+  -- level 45 dB
+                      | UP                        | DOWN-early                | DOWN-late                 
+  n tones (tone/sham) | 71 / 71                   | 26 / 20                   | 14 / 20                   
+  TC sp/cell 0-50     |  1.78 vs  0.15 (p 2.3e-25)|  1.60 vs  0.00 (p 2.5e-09)|  1.65 vs  0.00 (p 4.5e-08)
+  TC burst frac       |  0.01 vs  0.00 (p 0.14)   |  0.01 vs  0.00 (p nan)    | -                         
+  L4E sp/cell         |  1.55 vs  0.20 (p 6.3e-23)|  1.81 vs  0.00 (p 7.4e-09)|  1.80 vs  0.00 (p 8.9e-07)
+  L2/3E sp/cell       |  0.22 vs  0.02 (p 5.4e-09)|  0.29 vs  0.00 (p 1.3e-06)|  0.34 vs  0.00 (p 8.3e-06)
+  L5E sp/cell         |  0.30 vs  0.19 (p 6e-05)  |  0.25 vs  0.15 (p 0.49)   |  0.54 vs  0.13 (p 0.03)   
+  L6E sp/cell         |  0.24 vs  0.05 (p 0.0069) |  0.21 vs  0.10 (p 0.25)   |  0.68 vs  0.08 (p 0.0069) 
+  evoked UP (300 ms)  |  32% vs  14% (p 0.016)    |  31% vs  30% (p 1)        |  93% vs  55% (p 0.024)    
+  evoked spindle      |  51% vs   6% (p 1.3e-09)  |  88% vs  20% (p 3.3e-06)  | 100% vs  25% (p 9.8e-06)  
+  -- level 60 dB
+                      | UP                        | DOWN-early                | DOWN-late                 
+  n tones (tone/sham) | 73 / 72                   | 11 / 16                   | 24 / 17                   
+  TC sp/cell 0-50     |  2.27 vs  0.13 (p 8.5e-26)|  2.11 vs  0.04 (p 3.3e-06)|  2.10 vs  0.00 (p 2.3e-08)
+  TC burst frac       |  0.00 vs  0.00 (p 0.25)   |  0.00 vs  0.00 (p 1)      | -                         
+  L4E sp/cell         |  1.63 vs  0.14 (p 5e-25)  |  1.77 vs  0.05 (p 1.2e-05)|  1.89 vs  0.00 (p 6.7e-08)
+  L2/3E sp/cell       |  0.25 vs  0.01 (p 5.1e-10)|  0.37 vs  0.01 (p 0.00012)|  0.31 vs  0.01 (p 2.7e-06)
+  L5E sp/cell         |  0.32 vs  0.19 (p 7.7e-06)|  0.32 vs  0.14 (p 0.4)    |  0.45 vs  0.13 (p 0.021)  
+  L6E sp/cell         |  0.26 vs  0.08 (p 0.045)  |  0.35 vs  0.03 (p 0.0034) |  0.45 vs  0.09 (p 0.044)  
+  evoked UP (300 ms)  |  32% vs  12% (p 0.0086)   |  45% vs  12% (p 0.084)    |  75% vs  41% (p 0.05)     
+  evoked spindle      |  48% vs   7% (p 2.1e-08)  | 100% vs   6% (p 9.2e-07)  |  96% vs  35% (p 3.8e-05)  

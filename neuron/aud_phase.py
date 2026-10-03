@@ -31,6 +31,13 @@ Responses per tone:
         [--out-txt table.txt] [--plot fig.png]
 
 Several --pair arguments (e.g. seeds) are pooled.
+
+Without a sham run (--pair stim.npz, no "="), the control is provisional
+and comes from the same run: one control time per inter-tone interval, drawn
+uniformly in [previous tone + 1.5 s, next tone - 0.5 s] (deterministic). Those
+times are still within a few seconds of a tone, so slow after-effects of the
+previous tone (e.g. spindle refractoriness) are not removed; use a sham run
+for the real comparison.
 """
 
 import argparse
@@ -108,6 +115,18 @@ def measure(npz, tones, skip=2000.0, up_thr=2.0):
     return rows
 
 
+def control_times(tones, seed=0):
+    """Within-run control times between consecutive tones (see docstring)."""
+    rng = np.random.default_rng(seed)
+    out, src = [], []
+    for i in range(len(tones) - 1):
+        lo, hi = tones[i] + 1500.0, tones[i + 1] - 500.0
+        if hi > lo:
+            out.append(rng.uniform(lo, hi))
+            src.append(i)
+    return np.array(out), np.array(src, int)
+
+
 def split_down(rows_all):
     """DOWN -> DOWN-early / DOWN-late at the pooled median time since UP."""
     since = [r["since_up"] for r in rows_all if r["so"] == "DOWN" and np.isfinite(r["since_up"])]
@@ -156,7 +175,7 @@ def table(stim, sham, field, bins, title, levels=None):
     return lines
 
 
-def figure(stim, sham, out_png):
+def figure(stim, sham, out_png, ctl_label="sham"):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -172,7 +191,7 @@ def figure(stim, sham, out_png):
             vs = [_cell([r for r in stim if r[field] == b], [r for r in sham if r[field] == b], key)
                   for b in bins]
             ax.bar(x - 0.2, [v[1] for v in vs], 0.4, color="#b03a2e", label="tone")
-            ax.bar(x + 0.2, [v[2] for v in vs], 0.4, color="0.6", label="sham")
+            ax.bar(x + 0.2, [v[2] for v in vs], 0.4, color="0.6", label=ctl_label)
             ax.set_xticks(x)
             ax.set_xticklabels(["%s\n(n=%d)" % (b, sum(r[field] == b for r in stim)) for b in bins],
                                fontsize=8)
@@ -199,22 +218,34 @@ def main(argv=None):
     a = ap.parse_args(argv)
 
     stim_all, sham_all = [], []
+    self_ctl = False
     for pair in a.pair:
-        sp, sh = pair.split("=", 1)
+        sp, sh = pair.split("=", 1) if "=" in pair else (pair, None)
         zs = np.load(sp, allow_pickle=True)
         if "stim_t" not in zs:
             raise SystemExit("%s has no stimulus log (run without --stim?)" % sp)
         tones, levels = zs["stim_t"], zs["stim_level"]
         lev_of = dict(zip(np.round(tones, 6), levels))
-        for rows, path, z in ((stim_all, sp, zs), (sham_all, sh, None)):
-            z = z if z is not None else np.load(path, allow_pickle=True)
-            for r in measure(z, tones, a.skip, a.up_thr):
-                r["level"] = float(lev_of[round(r["t0"], 6)])
-                r["run"] = os.path.basename(path)
-                rows.append(r)
+        for r in measure(zs, tones, a.skip, a.up_thr):
+            r["level"] = float(lev_of[round(r["t0"], 6)])
+            r["run"] = os.path.basename(sp)
+            stim_all.append(r)
+        if sh is not None:
+            ctl, ctl_lev = tones, lev_of
+            z = np.load(sh, allow_pickle=True)
+        else:
+            self_ctl = True
+            ctl, src = control_times(np.asarray(tones, float))
+            ctl_lev = dict(zip(np.round(ctl, 6), np.asarray(levels)[src]))
+            z = zs
+        for r in measure(z, ctl, a.skip, a.up_thr):
+            r["level"] = float(ctl_lev[round(r["t0"], 6)])
+            r["run"] = os.path.basename(sh or sp) + (" (within-run control)" if sh is None else "")
+            sham_all.append(r)
     cut = split_down(stim_all + sham_all)
     levels = sorted({r["level"] for r in stim_all})
-    out = ["Auditory C1/C2: %d tone runs, %d tones (levels %s dB); DOWN-early/late split at "
+    out = (["PROVISIONAL: control = within-run times between tones (no sham run); "
+            "'sham' columns below are those controls"] if self_ctl else []) + ["Auditory C1/C2: %d tone runs, %d tones (levels %s dB); DOWN-early/late split at "
            "%.0f ms after the last UP onset; UP threshold %.1f Hz/cell"
            % (len(a.pair), len(stim_all), ", ".join("%g" % x for x in levels), cut, a.up_thr)]
     out += table(stim_all, sham_all, "so", SO_BINS, "C1, SO phase (all levels)")
@@ -227,7 +258,8 @@ def main(argv=None):
         with open(a.out_txt, "w") as f:
             f.write(text + "\n")
     if a.plot:
-        figure(stim_all, sham_all, a.plot)
+        figure(stim_all, sham_all, a.plot,
+               "within-run control (provisional)" if self_ctl else "sham")
     return 0
 
 
