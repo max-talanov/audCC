@@ -89,7 +89,8 @@ class ParallelCorticoThalamicNet:
                  ek_tc=None, ek_re=None, taur_re=None, depth_tc=None,
                  taur_tc=None, ginc_tc=None, taur_l5_ib=None,
                  l6_delay_spread=0.0, cx_noise_rate=0.0, cx_noise_w=2e-4,
-                 cx_noise_tstop=None):
+                 cx_noise_tstop=None, gkna_re=None, taur_kna_re=None,
+                 alpha_kna_re=None, kd_kna_re=None):
         self.pc = h.ParallelContext()
         self.rank = int(self.pc.id())
         self.nhost = int(self.pc.nhost())
@@ -193,6 +194,13 @@ class ParallelCorticoThalamicNet:
         # cx_noise_tstop: how long to generate trains for (required > 0).
         self.cx_noise_rate, self.cx_noise_w = cx_noise_rate, cx_noise_w
         self.cx_noise_tstop = cx_noise_tstop
+        # gkna_re (S/cm2) / taur_kna_re / alpha_kna_re / kd_kna_re: Na+-activated
+        # K+ current in RE (mod/kna.mod; default off). Na+ from RE's spikes
+        # accumulates over a spindle's bursts and opens K_Na, which
+        # hyperpolarises and shunts RE; the slow Na+ removal (taur, ms) is the
+        # TRN refractory period (Fernandez & Luthi 2020 sect. V.D.1, Fig. 7g).
+        self.kna_re = {"gbar": gkna_re, "taur": taur_kna_re,
+                       "alpha": alpha_kna_re, "kd": kd_kna_re}
         # het_seed: 0 (default) = the production per-cell jitter; other values
         # draw a different, equally deterministic set of cells (seeds for
         # thal_ring_test.py, PLAN-spindels.md Stage 1).
@@ -307,6 +315,13 @@ class ParallelCorticoThalamicNet:
                 c.soma.ek = self.ek_re
             if self.taur_re is not None and c.soma.has_membrane("cad"):
                 c.soma.taur_cad = self.taur_re
+            if self.kna_re["gbar"]:
+                c.soma.insert("kna")
+                for k, val in self.kna_re.items():
+                    if val is not None:
+                        setattr(c.soma, k + "_kna", val)
+                if self.ek_re is not None:
+                    c.soma.ek = self.ek_re     # keep it after the insert
             return c
         if pop.endswith("i"):
             return C.FSCell(e_pas=self._jitter(-68.0, gid, 1))
@@ -994,7 +1009,11 @@ def main():
             ("--taur-l5-ib", float, "L5 IB Ca2+ pool clearance (ms, default 500): SO period"),
             ("--l6-delay-spread", float, "extra L6->TC/RE delay, uniform 0..X ms (default 0)"),
             ("--cx-noise-rate", float, "background Poisson AMPA input to cortical E cells (Hz, default off)"),
-            ("--cx-noise-w", float, "its weight (uS, default 2e-4 = 0.7 mV EPSP)")]:
+            ("--cx-noise-w", float, "its weight (uS, default 2e-4 = 0.7 mV EPSP)"),
+            ("--gkna-re", float, "Na+-activated K+ conductance in RE (S/cm2, default off)"),
+            ("--taur-kna-re", float, "its Na+ removal time constant (ms, default 4000)"),
+            ("--alpha-kna-re", float, "its Na+ accumulation gain (default 2)"),
+            ("--kd-kna-re", float, "its half-activation, excess Na+ (mM, default 10)")]:
         stage1.add_argument(name, type=typ, default=None, help=hlp)
     ap.add_argument("--g-l5-gap", type=float, default=0.02,
                     help="gap-junction conductance between L5 IB cells (uS, "
@@ -1275,7 +1294,8 @@ def main():
     extra = {k: getattr(a, k) for k in ("g_tc_re", "g_l6_tc", "g_l6_re", "ek_tc", "ek_re",
                                          "taur_re", "kl_scale_tc", "kl_scale_re", "depth_tc",
                                          "taur_tc", "ginc_tc", "taur_l5_ib", "l6_delay_spread",
-                                         "cx_noise_rate", "cx_noise_w")
+                                         "cx_noise_rate", "cx_noise_w", "gkna_re",
+                                         "taur_kna_re", "alpha_kna_re", "kd_kna_re")
              if getattr(a, k) is not None}
     if a.cx_noise_rate:
         extra["cx_noise_tstop"] = a.tstop

@@ -410,3 +410,25 @@ Bring back `out/c12_*.npz` and `slurmout_ctx_*.txt`, then locally:
 ```bash
 python3 neuron/aud_phase.py --pair out/c12_tone_s0.npz=out/c12_sham_s0.npz --pair out/c12_tone_s1.npz=out/c12_sham_s1.npz --pair out/c12_tone_s2.npz=out/c12_sham_s2.npz --out-txt res/c12_table.txt --plot out/c12_phase.png
 ```
+
+## C2 with TRN-side refractoriness: K_Na in RE (prepared 2026-10-08)
+
+The same tone + sham design as "Auditory Stages C1 / C2", with the new
+Na⁺-activated K⁺ current in RE (`neuron/mod/kna.mod`; `PLAN-spindels.md`
+"TRN-side refractoriness"). Locally, in the isolated thalamus, it makes a
+second tone 1.5 s later evoke a 40% weaker spindle, recovering over 4–8 s.
+Upload the new mechanism and the changed network file. `run_ctx_nrn.sh`
+recompiles because the `mod/` file list changed:
+
+```bash
+rsync -avR neuron/mod/kna.mod neuron/ctx_thalamus_mpi.py USER@glogin1.bsc.es:/gpfs/projects/uab100/audCC/
+```
+
+Then from `/gpfs/projects/uab100/audCC`:
+
+```bash
+C=SCALE=1.65,TSTOP=400000,G_I_E_L5=0.02,G_L5_REC=0.013,TAU2_L5_REC=200,TAUR_L5E_RS=120,L5_REC_MECH=nmda,SPINDLE=stage2
+for s in 0 1 2; do sbatch -A uab100 -q acc_resc --export=ALL,$C,HET_SEED=$s,EXTRA_ARGS="--cx-noise-rate 200 --gkna-re 3e-4 --alpha-kna-re 0.6 --taur-kna-re 8000",STIM=neuron/stim/tones_c1c2.json,TAG=c12k_tone_s$s run_ctx_nrn.sh; sbatch -A uab100 -q acc_resc --export=ALL,$C,HET_SEED=$s,EXTRA_ARGS="--cx-noise-rate 200 --gkna-re 3e-4 --alpha-kna-re 0.6 --taur-kna-re 8000",TAG=c12k_sham_s$s run_ctx_nrn.sh; done
+```
+
+Bring back `out/c12k_*.npz` and the `slurmout_ctx_*.txt` files.

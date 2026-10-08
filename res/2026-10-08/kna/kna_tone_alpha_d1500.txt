@@ -1,0 +1,72 @@
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+numprocs=1
+kick  g_gap   seed | evoked  cycles dur_ms   Hz      wax   | RE_SD_ms  TC part per cycle      | trains after kick / pre-kick spikes
+----------------------------------------------------------------------------------------------------------------------
+tone  0.001   0    | yes     7      512      11.7    no    | 0.19      1.00,0.50,0.55,0.49,0.49,0.41 | 2 / 0 alpha_kna_re=0.3 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0001 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10
+tone  0.001   1    | yes     8      588      11.9    no    | 0.22      1.00,0.49,0.58,0.50,0.52,0.45 | 2 / 0 alpha_kna_re=0.3 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0001 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10
+tone  0.001   2    | yes     7      512      11.7    no    | 0.17      1.00,0.48,0.54,0.48,0.42,0.31 | 2 / 0 alpha_kna_re=0.3 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0001 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10
+tone  0.001   0    | yes     7      507      11.8    no    | 0.19      1.00,0.50,0.55,0.49,0.50,0.41 | 2 / 0 alpha_kna_re=0.6 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0001 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10
+tone  0.001   1    | yes     7      507      11.8    no    | 0.22      1.00,0.49,0.58,0.50,0.53,0.45 | 2 / 0 alpha_kna_re=0.6 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0001 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10
+tone  0.001   2    | yes     7      529      11.3    no    | 0.17      1.00,0.48,0.55,0.48,0.42,0.31 | 2 / 0 alpha_kna_re=0.6 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0001 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10
+tone  0.001   0    | yes     6      433      11.5    no    | 0.19      1.00,0.50,0.56,0.51,0.51,0.39 | 2 / 0 alpha_kna_re=1 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0001 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10
+tone  0.001   1    | yes     6      435      11.5    no    | 0.22      1.00,0.48,0.58,0.51,0.54,0.46 | 2 / 0 alpha_kna_re=1 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0001 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10
+tone  0.001   2    | yes     6      440      11.4    no    | 0.17      1.00,0.48,0.54,0.48,0.44,0.30 | 2 / 0 alpha_kna_re=1 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0001 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10
+tone  0.001   0    | yes     7      511      11.7    no    | 0.19      1.00,0.50,0.55,0.49,0.49,0.42 | 2 / 0 alpha_kna_re=0.3 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0003 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10
+tone  0.001   1    | yes     8      591      11.8    no    | 0.22      1.00,0.49,0.58,0.50,0.53,0.46 | 2 / 0 alpha_kna_re=0.3 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0003 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10
+tone  0.001   2    | yes     7      519      11.6    no    | 0.17      1.00,0.48,0.54,0.48,0.42,0.31 | 2 / 0 alpha_kna_re=0.3 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0003 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10
+tone  0.001   0    | yes     6      430      11.6    no    | 0.19      1.00,0.50,0.56,0.50,0.51,0.40 | 2 / 0 alpha_kna_re=0.6 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0003 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10
+tone  0.001   1    | yes     7      514      11.7    no    | 0.22      1.00,0.49,0.58,0.51,0.53,0.45 | 2 / 0 alpha_kna_re=0.6 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0003 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10
+tone  0.001   2    | yes     6      437      11.4    no    | 0.17      1.00,0.48,0.54,0.49,0.43,0.31 | 2 / 0 alpha_kna_re=0.6 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0003 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10
+tone  0.001   0    | yes     5      364      11.0    no    | 0.19      1.00,0.51,0.59,0.54,0.51 | 2 / 0 alpha_kna_re=1 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0003 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10
+tone  0.001   1    | yes     5      360      11.1    no    | 0.22      1.00,0.49,0.60,0.54,0.56 | 2 / 0 alpha_kna_re=1 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0003 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10
+tone  0.001   2    | yes     5      363      11.0    no    | 0.17      1.00,0.49,0.56,0.49,0.41 | 2 / 0 alpha_kna_re=1 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0003 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10
+
+RE volley intervals after the kick (ms, first 8), per run:
+  tone  g_gap=0.001  alpha_kna_re=0.3 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0001 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10 seed 0: 14 volleys, IVI [125, 78, 71, 77, 76, 85, 986, 118]
+  tone  g_gap=0.001  alpha_kna_re=0.3 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0001 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10 seed 1: 16 volleys, IVI [126, 76, 74, 75, 77, 72, 88, 912]
+  tone  g_gap=0.001  alpha_kna_re=0.3 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0001 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10 seed 2: 15 volleys, IVI [131, 72, 76, 76, 79, 78, 988, 122]
+  tone  g_gap=0.001  alpha_kna_re=0.6 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0001 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10 seed 0: 13 volleys, IVI [125, 78, 72, 77, 77, 78, 991, 119]
+  tone  g_gap=0.001  alpha_kna_re=0.6 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0001 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10 seed 1: 13 volleys, IVI [126, 76, 74, 76, 77, 78, 993, 116]
+  tone  g_gap=0.001  alpha_kna_re=0.6 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0001 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10 seed 2: 13 volleys, IVI [131, 77, 71, 77, 80, 93, 971, 121]
+  tone  g_gap=0.001  alpha_kna_re=1 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0001 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10 seed 0:  9 volleys, IVI [125, 78, 72, 79, 79, 1065, 124, 76]
+  tone  g_gap=0.001  alpha_kna_re=1 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0001 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10 seed 1: 10 volleys, IVI [125, 77, 75, 79, 79, 1065, 126, 68]
+  tone  g_gap=0.001  alpha_kna_re=1 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0001 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10 seed 2: 10 volleys, IVI [126, 78, 76, 79, 81, 1060, 132, 73]
+  tone  g_gap=0.001  alpha_kna_re=0.3 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0003 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10 seed 0: 14 volleys, IVI [125, 78, 71, 77, 76, 84, 987, 118]
+  tone  g_gap=0.001  alpha_kna_re=0.3 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0003 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10 seed 1: 16 volleys, IVI [126, 76, 74, 75, 78, 75, 87, 909]
+  tone  g_gap=0.001  alpha_kna_re=0.3 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0003 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10 seed 2: 14 volleys, IVI [131, 72, 76, 78, 77, 85, 981, 121]
+  tone  g_gap=0.001  alpha_kna_re=0.6 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0003 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10 seed 0: 10 volleys, IVI [125, 79, 71, 78, 77, 1068, 124, 70]
+  tone  g_gap=0.001  alpha_kna_re=0.6 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0003 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10 seed 1: 11 volleys, IVI [125, 77, 75, 77, 77, 83, 986, 120]
+  tone  g_gap=0.001  alpha_kna_re=0.6 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0003 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10 seed 2: 10 volleys, IVI [131, 73, 77, 76, 80, 1063, 129, 71]
+  tone  g_gap=0.001  alpha_kna_re=1 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0003 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10 seed 0:  7 volleys, IVI [126, 77, 74, 87, 1134, 65]
+  tone  g_gap=0.001  alpha_kna_re=1 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0003 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10 seed 1:  6 volleys, IVI [126, 77, 77, 80, 1140]
+  tone  g_gap=0.001  alpha_kna_re=1 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0003 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10 seed 2:  7 volleys, IVI [127, 78, 80, 78, 1137, 61]
+
+per (kick, g_gap), over seeds: evoked / median cycles / max cycles / runs with >= 6 cycles / median RE first-spike SD / median RE volleys after kick and their median interval
+  tone  g_gap=0.001   alpha_kna_re=0.3 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0001 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10 kick 1 -> cycles [7, 8, 7] | kick 2 at 4500 ms -> cycles [7, 8, 8]
+  tone  g_gap=0.001   alpha_kna_re=0.3 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0001 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10 evoked 3/3, cycles median 7 max 8, >=6: 3/3, RE SD 0.19 ms, volleys 15, IVI 76 ms
+  tone  g_gap=0.001   alpha_kna_re=0.6 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0001 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10 kick 1 -> cycles [7, 7, 7] | kick 2 at 4500 ms -> cycles [6, 6, 6]
+  tone  g_gap=0.001   alpha_kna_re=0.6 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0001 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10 evoked 3/3, cycles median 7 max 7, >=6: 3/3, RE SD 0.19 ms, volleys 13, IVI 77 ms
+  tone  g_gap=0.001   alpha_kna_re=1 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0001 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10 kick 1 -> cycles [6, 6, 6] | kick 2 at 4500 ms -> cycles [3, 4, 4]
+  tone  g_gap=0.001   alpha_kna_re=1 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0001 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10 evoked 3/3, cycles median 6 max 6, >=6: 3/3, RE SD 0.19 ms, volleys 10, IVI 79 ms
+  tone  g_gap=0.001   alpha_kna_re=0.3 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0003 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10 kick 1 -> cycles [7, 8, 7] | kick 2 at 4500 ms -> cycles [7, 8, 7]
+  tone  g_gap=0.001   alpha_kna_re=0.3 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0003 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10 evoked 3/3, cycles median 7 max 8, >=6: 3/3, RE SD 0.19 ms, volleys 14, IVI 77 ms
+  tone  g_gap=0.001   alpha_kna_re=0.6 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0003 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10 kick 1 -> cycles [6, 7, 6] | kick 2 at 4500 ms -> cycles [4, 4, 4]
+  tone  g_gap=0.001   alpha_kna_re=0.6 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0003 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10 evoked 3/3, cycles median 6 max 7, >=6: 3/3, RE SD 0.19 ms, volleys 10, IVI 77 ms
+  tone  g_gap=0.001   alpha_kna_re=1 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0003 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10 kick 1 -> cycles [5, 5, 5] | kick 2 at 4500 ms -> cycles [2, 1, 2]
+  tone  g_gap=0.001   alpha_kna_re=1 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0003 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10 evoked 3/3, cycles median 5 max 5, >=6: 0/3, RE SD 0.19 ms, volleys 7, IVI 80 ms

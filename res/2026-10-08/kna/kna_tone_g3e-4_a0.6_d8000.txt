@@ -1,0 +1,17 @@
+numprocs=1
+numprocs=1
+numprocs=1
+kick  g_gap   seed | evoked  cycles dur_ms   Hz      wax   | RE_SD_ms  TC part per cycle      | trains after kick / pre-kick spikes
+----------------------------------------------------------------------------------------------------------------------
+tone  0.001   0    | yes     6      430      11.6    no    | 0.19      1.00,0.50,0.56,0.50,0.51,0.40 | 2 / 0 alpha_kna_re=0.6 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0003 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10
+tone  0.001   1    | yes     7      518      11.6    no    | 0.22      1.00,0.49,0.58,0.51,0.53,0.45 | 2 / 0 alpha_kna_re=0.6 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0003 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10
+tone  0.001   2    | yes     6      437      11.4    no    | 0.17      1.00,0.48,0.54,0.49,0.43,0.31 | 2 / 0 alpha_kna_re=0.6 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0003 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10
+
+RE volley intervals after the kick (ms, first 8), per run:
+  tone  g_gap=0.001  alpha_kna_re=0.6 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0003 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10 seed 0: 12 volleys, IVI [125, 79, 71, 78, 77, 7568, 118, 65]
+  tone  g_gap=0.001  alpha_kna_re=0.6 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0003 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10 seed 1: 14 volleys, IVI [125, 77, 75, 77, 77, 87, 7482, 114]
+  tone  g_gap=0.001  alpha_kna_re=0.6 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0003 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10 seed 2: 12 volleys, IVI [131, 73, 77, 76, 80, 7563, 119, 69]
+
+per (kick, g_gap), over seeds: evoked / median cycles / max cycles / runs with >= 6 cycles / median RE first-spike SD / median RE volleys after kick and their median interval
+  tone  g_gap=0.001   alpha_kna_re=0.6 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0003 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10 kick 1 -> cycles [6, 7, 6] | kick 2 at 11000 ms -> cycles [6, 7, 6]
+  tone  g_gap=0.001   alpha_kna_re=0.6 depth_tc=1 ek_re=-95 g_tc_re=0.06 gh_tc=5e-06 ginc_tc=4 gkna_re=0.0003 kl_scale_tc=1.422 taur_kna_re=8000 taur_re=5 taur_tc=5 thal_footprint=10 evoked 3/3, cycles median 6 max 7, >=6: 3/3, RE SD 0.19 ms, volleys 12, IVI 77 ms

@@ -743,6 +743,79 @@ Raw output: `res/2026-10-02/s3b/stage3b_report.txt`,
   3, which needs a local re-balance of `kl_scale_tc` first) or
   `--g-l6-re 0.012`.
 
+### TRN-side refractoriness: Na⁺-activated K⁺ current in RE (2026-10-08)
+
+Why: the C2 tone runs (`PLAN-auditory-input.md`, "C1/C2 results") showed
+no refractoriness for tone-evoked spindles. The review's termination
+mechanisms (sect. V.D, Fig. 7) are:
+- 1a, TC Ca²⁺ → cAMP → HCN: in the model as `ihca`;
+- 1b, TRN Ca²⁺/Na⁺-activated K⁺ build-up with a lasting AHP: missing until
+  now;
+- 2, cortical desynchronisation;
+- 3, locus coeruleus.
+
+New mechanism `neuron/mod/kna.mod`:
+- an excess-Na⁺ pool fed by RE's own `ina` (private, so `ena` and the spikes
+  are unchanged), cleared with `taur`;
+- a K_Na conductance with Hill activation (`kd` 10 mM, n 3.5; Compte et al.
+  2003);
+- calibration: one RECell spike brings in 0.25 mA·ms/cm² of Na⁺.
+
+Options (default off): `--gkna-re`, `--alpha-kna-re`, `--taur-kna-re`,
+`--kd-kna-re`.
+
+Test: isolated MN5 thalamus (`thal_ring_test.py`), the Stage 2/3 thalamus
+(`ginc` 4), 60 dB tone at 3 s and a second tone Δ later, 3 seeds, Na⁺
+clearance 8 s. Raw output: `res/2026-10-08/kna/kna_tone_*.txt`.
+
+| K_Na (S/cm²), gain | 1st tone (cycles) | 2nd at +1.5 s |
+|---|---|---|
+| 0 (baseline) | 7, 9, 7 | 7, 9, 7 (no refractoriness) |
+| 1e-4, 2 | 3, 4, 4 | 1, 1, 2 |
+| 3e-4, 2 / 1e-3, 2 | 2 / 1 | 1 / 1 |
+| 1e-4 or 3e-4, 0.3 | 7–8 | unchanged |
+| 1e-4, 0.6 | 7, 7, 7 | 6, 6, 6 |
+| 1e-4, 1.0 | 6, 6, 6 | 3, 4, 4 |
+| **3e-4, 0.6** | **6, 7, 6 (0.43–0.51 s, 11.6 Hz)** | **4, 4, 4 (0.27 s)** |
+| 3e-4, 1.0 | 5, 5, 5 | 2, 1, 2 |
+
+**Recovery time course with 3e-4 / 0.6** (cycles, and duration of the
+second spindle against the first):
+
+| Δ | 2nd spindle | vs 1st |
+|---|---|---|
+| 1.5 s | 4, 4, 4 (264–268 ms) | −40% cycles, −45% duration |
+| 4 s | 5, 6, 6 (316–390 ms) | −10–15% |
+| 8 s | 6, 7, 6 (386–468 ms) | ~90–100% (recovered) |
+
+**Findings:**
+1. **Refractoriness now comes from the TRN side.** A second tone 1.5 s
+   later gives a 40% weaker spindle in 3/3 seeds, recovering over 4–8 s.
+   That matches the review's 5–10 s refractory period. Before, the second
+   spindle was identical to the first.
+2. **K_Na also helps end the spindle:** the first spindle loses about one
+   cycle (7–9 → 6–7). The review says TRN K⁺ build-up contributes to
+   termination, and RE bursts get weaker within the spindle.
+3. **Length and refractoriness trade off,** as with I_h:
+   - higher gain or conductance ends the first spindle sooner;
+   - lower gain removes the refractoriness;
+   - the steep Hill activation couples the two.
+
+   The second spindle is weakened, never abolished; a stronger setting
+   (3e-4 / 1.0) nearly abolishes it (1–2 cycles) but cuts the first to 5.
+4. **First spindles are now slightly under 0.5 s** (0.43–0.51 s), so this
+   costs part of the length criterion. Possible compensation:
+   - a little less I_h locking (`ginc` 3); K_Na now provides some of the
+     termination;
+   - or a longer Na⁺ clearance with lower gain.
+
+**Next:**
+- Add K_Na to the full-scale sleep model on MN5 and repeat C2:
+  `SPINDLE=stage2`, `EXTRA_ARGS="--cx-noise-rate 200 --gkna-re 3e-4
+  --alpha-kna-re 0.6 --taur-kna-re 8000"`.
+- Upload `neuron/mod/kna.mod` first; the script recompiles because the mod
+  list changed.
+
 ## Out of scope for now
 
 - Changing the LFP proxy or computing EEG (`Edu-questions.md` Q3–Q4).
