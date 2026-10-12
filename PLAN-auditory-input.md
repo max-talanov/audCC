@@ -1,8 +1,8 @@
 # Plan: auditory input to the thalamocortical loop, awake and asleep
 
 Status (2026-10-02): **Stage A done (2026-09-24, see "Stage A results").
-C1 + C2: tone runs done on MN5 (2026-10-03), sham runs still missing;
-provisional results in "C1/C2 results (provisional)".
+C1 + C2 done on MN5 (tone 2026-10-03, sham 2026-10-09): see "C1/C2
+final results".
 Stage B and C3 not started.** The spindle plan's Stage 2 blocker is gone:
 the full-scale sleep model now has an irregular SO and real spindles. Builds on the production
 NEURON model `ParallelCorticoThalamicNet` (`neuron/ctx_thalamus_mpi.py`;
@@ -385,6 +385,74 @@ silence-only criterion.
 - Refractoriness: point 5 is the clearest model–data mismatch, so it is
   the next spindle-plan lever (RE-side slow K⁺), now with a tone-based
   test.
+
+## C1/C2 final results (sham-controlled, 2026-10-09)
+
+Sham runs: `res/2026-10-09/c1c2/` (seeds 0–2, same flags and `HET_SEED` as
+the tone runs, no `--stim`; clean, no drift). Table:
+`res/2026-10-09/c1c2/c12_table_final.txt`; figure `out/c12_phase_final.png`.
+342 tones, 3 seeds; the DOWN-early/late split falls 1273 ms after the
+last UP onset.
+
+**The provisional within-run control is confirmed.** Every number moves by
+a few percent at most, and all conclusions stand:
+
+| | UP (234) | DOWN-early (56) | DOWN-late (52) |
+|---|---|---|---|
+| TC spikes/cell, 0–50 ms | 1.57 vs 0.15 | 1.46 vs 0.00 | 1.57 vs 0.00 |
+| L4E | 1.43 vs 0.20 | 1.65 vs 0.00 | 1.68 vs 0.00 |
+| L2/3E | 0.18 vs 0.01 | 0.25 vs 0.01 | 0.28 vs 0.01 |
+| P(UP onset ≤ 300 ms) | 29% vs 9% (p 1e-7) | 39% vs 33% (n.s.) | **83% vs 50%** (p 3e-4) |
+| P(spindle ≤ 300 ms) | 53% vs 4% | 89% vs 19% | 96% vs 40% |
+
+| | in-spindle (105) | post-spindle (197) | none (40) |
+|---|---|---|---|
+| TC | 1.71 vs 0.32 | 1.50 vs 0.00 | 1.38 vs 0.00 |
+| L4E (net) | **1.20 vs 0.42 (0.78)** | 1.63 vs 0.00 | 1.65 vs 0.00 |
+| L2/3E (net) | **0.10 vs 0.01 (0.09)** | 0.25 vs 0.01 | 0.29 vs 0.00 |
+| P(spindle ≤ 300 ms) | 0% | **93% vs 19%** | 98% vs 19% |
+
+So:
+- transmission is phase-independent;
+- tones in late DOWN states start UP states, early DOWN does not;
+- tones evoke spindles reliably;
+- during a spindle the net cortical response drops ~50% in L4 and ~65%
+  in L2/3;
+- there is no refractoriness after a spindle without K_Na.
+
+**New, by tone level** (UP / DOWN-early / DOWN-late):
+
+| | 30 dB | 45 dB | 60 dB |
+|---|---|---|---|
+| TC spikes/cell | 0.8 / 0.8 / 0.8 | 1.8 / 1.6 / 1.6 | 2.3 / 2.1 / 2.1 |
+| L4E | 1.2 / 1.3 / 1.3 | 1.6 / 1.8 / 1.8 | 1.6 / 1.8 / 1.9 |
+| P(UP ≤ 300 ms), tone vs sham | 23 vs 10 / 41 vs 41 / **88 vs 43%** | 32 vs 7 / 33 vs 33 / **92 vs 53%** | 32 vs 12 / 50 vs 24 / 74 vs 60% |
+| P(spindle ≤ 300 ms), tone | 58 / 82 / 94% | 51 / 89 / 100% | 48 / 100 / 96% |
+
+- **TC is graded with level** (0.8 → 1.7 → 2.2 spikes/cell). **L4
+  saturates** by 45 dB.
+- **Evoked spindles and UP states are nearly all-or-none:** even a 30 dB
+  tone evokes a spindle 58–94% of the time. In human NREM, the chance of an
+  evoked K-complex or spindle grows with intensity, and soft tones rarely
+  evoke one.
+- So the model's thalamus is **too excitable to sounds**: about one TC
+  spike per cell (30 dB) is enough to start the RE ↔ TC loop. Candidate
+  causes:
+  - every TC cell receives every tone (one channel, no tonotopy, D2);
+  - the strong driver synapse (0.002 µS, calibrated on single cells in
+    Stage A);
+  - TC → RE at 0.06 µS (5× production, Stage 1).
+
+  Tonotopy (D2) would make a tone reach only part of the TC population,
+  which should also give the local, propagating spindles the review
+  describes.
+
+**Next** (C2 with K_Na is prepared on MN5, `c12k_*`):
+1. Repeat C2 with K_Na in RE: does a tone 0–2 s after a spindle now evoke a
+   weaker spindle, or none?
+2. Make spindle evocation graded with level. The first step is tonotopy
+   (D2, 8–16 channels, reusing `ring_pos`), so a tone drives one sector of
+   the thalamus.
 
 ## Stage B — the awake state (local, then MN5)
 
