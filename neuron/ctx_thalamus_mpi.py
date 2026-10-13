@@ -1046,7 +1046,10 @@ def main():
                          "('sham', the matched control).")
     ap.add_argument("--cl-delays", default="0,200,400,600,800,1000",
                     help="delays (ms) after the detected UP; one is drawn per "
-                         "detection, seeded by (--cl-seed, detection index)")
+                         "detection, seeded by (--cl-seed, detection index). "
+                         "Separate with ',' or ':' -- use ':' inside "
+                         "sbatch --export / EXTRA_ARGS, where a ',' truncates "
+                         "the value")
     ap.add_argument("--cl-every", type=int, default=2,
                     help="stimulate every N-th detection (keeps the tone spacing "
                          "near the open-loop 2-5 s)")
@@ -1334,8 +1337,8 @@ def main():
             aud = AI.AuditoryInput(net, {"seed": a.cl_seed}, a.tstop)  # no preset events
         wall, cl_extra = CL.run_closed_loop(
             net, aud, a.closed_loop,
-            [float(x) for x in a.cl_delays.split(",")], every=a.cl_every,
-            level=[float(x) for x in a.cl_level.split(",")], dur=a.cl_dur,
+            [float(x) for x in a.cl_delays.replace(":", ",").split(",")], every=a.cl_every,
+            level=[float(x) for x in a.cl_level.replace(":", ",").split(",")], dur=a.cl_dur,
             seed=a.cl_seed, tstop=a.tstop)
         if net.rank == 0:
             print("closed loop (%s): %d UP detections, %d scheduled for a tone"

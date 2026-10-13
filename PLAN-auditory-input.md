@@ -544,6 +544,23 @@ before the tone; UP→DOWN is not separated yet.
       spindle rate vs sham. Expected from Ngo 2013 / Mushtaq 2024: in-phase
       (UP) stimulation increases SO and spindle activity; out-of-phase does
       not. The spindle part needs C2.
+**Status 2026-10-13.** Closed loop built and checked locally
+(`neuron/closed_loop.py`, `--closed-loop stim|sham`; commit `5b00556`); the
+MN5 run is prepared in `MN5_NEURON.md` ("C3 closed loop"), not yet run.
+- **The trigger had to change.** The plan said to detect a DOWN state as
+  population silence after an UP. In this model the cortex never goes silent
+  (L5E + L6E 100 ms rate between SOs is 2-3.5 Hz/cell, troughs ~0.9; the UP
+  onset is a ~10 Hz/cell volley); a silence detector found 120 of ~880 UP
+  onsets, 2 s late. The loop triggers on the UP volley instead (Ngo et al.
+  2013 also stimulate at a fixed delay after the detected up-state).
+- **Phase control:** a tone at detection + d lands at time-since-UP = d almost
+  exactly. The next UP is not predictable (median interval 1303 ms), so at
+  d = 1000 ms the tone lands a median 403 ms (IQR 227-675) before it:
+  "in-phase" here means tones during or just after the UP (d = 0-200 ms) and
+  "late DOWN" (d = 800-1000 ms), not tones aimed at the next UP.
+- **Still open in C3:** the MN5 stim/sham result; the wake -> NREM ramp, which
+  needs Stage B (no calibrated wake state yet).
+
 - [ ] Wake → NREM transition: ramp the state over ~20–30 s with tones
       throughout; response vs time as TC switches from tonic to burst mode.
 - [ ] Optional: tone level high enough to shift NREM toward wake

@@ -432,3 +432,73 @@ for s in 0 1 2; do sbatch -A uab100 -q acc_resc --export=ALL,$C,HET_SEED=$s,EXTR
 ```
 
 Bring back `out/c12k_*.npz` and the `slurmout_ctx_*.txt` files.
+
+
+## C3 closed loop: stimulate at a delay after the detected UP (prepared 2026-10-13)
+
+`PLAN-auditory-input.md` D5/C3. The network runs `psolve` in 5 ms chunks,
+detects the slow-oscillation UP volley from the allreduced L5E + L6E count
+(`neuron/closed_loop.py`: 50 ms window, 6 Hz/cell; offline on the C1/C2 sham
+runs it finds 92% of UP onsets, 0% false positives, ~3 ms after the volley
+peak), and queues a tone at a delay `d` after it. `d` is drawn per detection
+from {0, 200, 400, 600, 800, 1000} ms, so one run samples all phases after the
+UP; every second detection is stimulated (tone spacing near the open-loop
+2-5 s). The sham arm runs the same detector and draws the same `d`, and plays
+nothing.
+
+Design: the C1/C2 configuration unchanged (Option 2 cortex, `SPINDLE=stage2`,
+`--cx-noise-rate 200`, **no K_Na**) so the results stay comparable with
+`res/2026-10-09/c1c2/`. 3 seeds x (stim, sham) = 6 jobs of ~20 min, 400 s
+each. The tone level is a single 45 dB (middle of the C1/C2 levels; TC
+response 1.7 spikes/cell). A level list would need a `,`, which `sbatch
+--export` truncates, so use `:` if you change `--cl-delays` or `--cl-level`
+(for example `--cl-delays 0:300:600`).
+
+Upload (new or changed since the C1/C2 runs; `mod/` is already current from
+the K_Na and sham runs):
+
+```bash
+rsync -avR neuron/closed_loop.py neuron/auditory_input.py neuron/ctx_thalamus_mpi.py USER@glogin1.bsc.es:/gpfs/projects/uab100/audCC/
+```
+
+Submit from `/gpfs/projects/uab100/audCC`:
+
+```bash
+C=SCALE=1.65,TSTOP=400000,G_I_E_L5=0.02,G_L5_REC=0.013,TAU2_L5_REC=200,TAUR_L5E_RS=120,L5_REC_MECH=nmda,SPINDLE=stage2
+for s in 0 1 2; do
+  sbatch -A uab100 -q acc_resc --export=ALL,$C,HET_SEED=$s,EXTRA_ARGS="--cx-noise-rate 200 --closed-loop stim --cl-level 45",TAG=cl_stim_s$s run_ctx_nrn.sh
+  sbatch -A uab100 -q acc_resc --export=ALL,$C,HET_SEED=$s,EXTRA_ARGS="--cx-noise-rate 200 --closed-loop sham --cl-level 45",TAG=cl_sham_s$s run_ctx_nrn.sh
+done
+```
+
+Bring back `out/cl_*.npz` and `slurmout_ctx_*.txt`.
+
+Two checks before reading the table:
+
+1. **Sham must equal the earlier sham, bit for bit.** `cl_sham_s$s` has the same
+   flags and `HET_SEED` as `c12_sham_s$s`, and the detector and chunked
+   `psolve` do not touch the dynamics (verified at scale 0.1 on one rank; this
+   is the first multi-rank check):
+
+   ```bash
+   python3 -c "
+   import numpy as np
+   for s in (0,1,2):
+       a=np.load(f'out/cl_sham_s{s}.npz',allow_pickle=True); b=np.load(f'res/2026-10-09/c1c2/c12_sham_s{s}.npz',allow_pickle=True)
+       print(s, np.array_equal(a['times'],b['times']) and np.array_equal(a['gids'],b['gids']))"
+   ```
+
+   If any is `False`, stop and report it: the loop is perturbing the run.
+2. **Wall time.** About 1170 s per job is expected (the C1/C2 runs). The loop
+   adds ~80,000 small allreduces per 400 s; a large increase would mean that
+   cost is not negligible.
+
+Then locally:
+
+```bash
+python3 neuron/cl_analyze.py --pair out/cl_stim_s0.npz=out/cl_sham_s0.npz --pair out/cl_stim_s1.npz=out/cl_sham_s1.npz --pair out/cl_stim_s2.npz=out/cl_sham_s2.npz --out-txt res/cl_table.txt
+```
+
+The table gives, per delay `d`, P(UP onset in 300 ms), P(spindle in 300 ms) and
+the TC response, stim vs sham, plus the whole-run SO rate, SO regularity and
+spindles per UP for each seed.
