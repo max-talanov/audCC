@@ -69,7 +69,7 @@ stand-in) and 5 are missing: SupFRB, SupAxAx, SupLTS, DeepAxAx, DeepLTS.
 | Axax23 (L2/3 axo-axonic) | — | ❌ |
 | LTS23 (L2/3 low-threshold-spiking) | — | ❌ |
 | Spinstel4 (L4 spiny stellate) | L4 E (`PYCell`) | ⚠️ pyramidal stand-in; its only input is TC |
-| LTS4 | — | not a Traub type: his layer 4 has no interneurons (its inhibition comes from the deep ones). An auditory-cortex addition, see Stage 2 |
+| LTS4 | — | in the cc model's `CC.png`, but not in Traub 2005: his layer 4 has no interneurons (its inhibition comes from the deep ones). Stage 2 adds it as an auditory-cortex SST population |
 | TuftRS5 / TuftIB5 | L5 RS / IB | ✅ |
 | Bask56 | L5 I, L6 I | ✅ |
 | Axax56 | — | ❌ |

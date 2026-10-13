@@ -4,6 +4,8 @@ Architecture diagrams of the thalamocortical model as PNG (figures/):
   figures/architecture_cortex.png          cortical column: 4 layers, E / I
   figures/architecture_thalamocortical.png TC <-> RE loop, L4 / L6, inputs
   figures/architecture_traub.png           Traub et al. 2005 cell types vs this model
+  figures/architecture_connectivity.png    the model as a connectivity graph, in the
+                                           style of CC.png (max-talanov/cc)
 
 Neuron and synapse counts are those of the full-scale configuration
 (SCALE=1.65, SPINDLE=stage2 + --cx-noise-rate 200 + K_Na in RE), counted by
@@ -221,6 +223,127 @@ def traub(path):
     plt.close(fig)
 
 
+# synapse counts per projection at scale 1.65 (the same numbers as the two diagrams above;
+# fixed convergence 100 per target, counted by building the network)
+CONN = [
+    # src, dst, synapses, "E" | "I"
+    ("L23E", "L23I", 26400, "E"), ("L23I", "L23E", 105600, "I"),
+    ("L4E", "L4I", 26400, "E"), ("L4I", "L4E", 105600, "I"),
+    ("L5E", "L5I", 21400, "E"), ("L5I", "L5E", 87400, "I"),
+    ("L6E", "L6I", 17300, "E"), ("L6I", "L6E", 69300, "I"),
+    ("L4E", "L23E", 105600, "E"), ("L23E", "L5E", 87400, "E"), ("L4E", "L5E", 87400, "E"),
+    ("L5E", "L6E", 69300, "E"), ("L5E", "L23E", 105600, "E"), ("L5E", "L5E", 87400, "E"),
+    ("TC", "L4E", 105600, "E"), ("L6E", "TC", 34600, "E"), ("L6E", "RE", 9100, "E"),
+    ("TC", "RE", 3458, "E"), ("RE", "TC", 3460, "I"), ("RE", "RE", 358, "I"),
+    ("IC", "TC", 2768, "X"),
+]
+
+
+def connectivity(path):
+    """The model as built, as a connectivity graph in the style of CC.png
+    (max-talanov/cc): cell-type boxes in layer bands, curved edges, red =
+    excitatory, blue = inhibitory, round ends on inhibition, width = strength.
+    Here width follows sqrt(number of synapses)."""
+    import numpy as np
+    from matplotlib.patches import Ellipse, Rectangle
+
+    W, H = 700, 800
+    fig, ax = setup(H, W)
+    # name, centre x, centre y, fill, text colour, line 2
+    N = {
+        "L23E": ("L2/3 E", 105, 128, "#d81b4a", "white", "1056"),
+        "L23I": ("L2/3 I", 520, 128, "#1e6fe0", "white", "264"),
+        "L4E": ("L4 E", 290, 262, "#ffb000", "black", "1056"),
+        "L4I": ("L4 I", 545, 262, "#a8dcf5", "black", "264"),
+        "L5E": ("L5 E", 330, 400, "#8cd13f", "black", "437 IB + 437 RS"),
+        "L5I": ("L5 I", 130, 470, "#c9b5f2", "black", "214"),
+        "L6E": ("L6 E", 330, 585, "#1f4d2b", "white", "693"),
+        "L6I": ("L6 I", 120, 585, "#b497f0", "black", "173"),
+        "TC": ("TC", 255, 722, "#ffc9d6", "black", "346"),
+        "RE": ("RE", 425, 722, "#9b4de0", "white", "91"),
+        "IC": ("IC fibres", 80, 722, "#d3d1c7", "#2c2c2a", "346"),
+    }
+    HW, HH = {"L5E": 62}, 17
+    hw = lambda k: HW.get(k, 38)
+
+    # layer bands, as in CC.png
+    for y in (196, 326, 655):
+        ax.plot([8, W - 8], [y, y], color="#b5636f", lw=1.1, ls=(0, (5, 4)))
+    for y, t in ((190, "L2/3"), (320, "L4"), (649, "L5/6")):   # inside each band, above its line
+        ax.text(10, y, t, fontsize=8.5, color="#8a8a85", va="bottom")
+    ax.text(10, 676, "thalamus", fontsize=8.5, color="#8a8a85", va="top")
+    ax.add_patch(Ellipse((340, 722), 360, 104, fc="none", ec="#b4b2a9", lw=1.2))
+
+    def anchor(a, b, extra=2):
+        (_, ax_, ay, *_), (_, bx, by, *_) = N[a], N[b]
+        dx, dy = bx - ax_, by - ay
+        t = min(hw(a) / abs(dx) if dx else 1e9, HH / abs(dy) if dy else 1e9)
+        return ax_ + dx * t * (1 + extra / max(np.hypot(dx, dy) * t, 1e-9) * 0), ay + dy * t
+
+    def bez(p0, c1, c2, p1, t):
+        u = 1 - t
+        return tuple(u**3 * a + 3 * u * u * t * b + 3 * u * t * t * c + t**3 * d
+                     for a, b, c, d in zip(p0, c1, c2, p1))
+
+    def draw(src, dst, n, kind, bend):
+        lw = 0.5 + 8.0 * np.sqrt(n / 105600.0)
+        col = {"E": "#e53935", "I": "#3d3df5", "X": "#888780"}[kind]
+        if src == dst:                           # self loop above the node
+            x, y = N[src][1], N[src][2] - HH
+            p0, p1 = (x - 16, y), (x + 16, y)
+            c1, c2 = (x - 50, y - 78), (x + 50, y - 78)
+        else:
+            p0, p1 = anchor(src, dst), anchor(dst, src)
+            dx, dy = p1[0] - p0[0], p1[1] - p0[1]
+            L = np.hypot(dx, dy)
+            nx, ny = -dy / L, dx / L
+            m = bend * L
+            c1 = (p0[0] + dx * 0.25 + nx * m, p0[1] + dy * 0.25 + ny * m)
+            c2 = (p0[0] + dx * 0.75 + nx * m, p0[1] + dy * 0.75 + ny * m)
+        path = Path([p0, c1, c2, p1], [Path.MOVETO, Path.CURVE4, Path.CURVE4, Path.CURVE4])
+        head = "-" if kind == "I" else "-|>"
+        ax.add_patch(FancyArrowPatch(path=path, arrowstyle=head, mutation_scale=9, color=col,
+                                     lw=lw, alpha=0.72 if kind != "X" else 0.9,
+                                     ls="--" if kind == "X" else "-",
+                                     shrinkA=0, shrinkB=0, zorder=2))
+        if kind == "I":                          # round end on inhibition
+            ax.add_patch(plt.Circle(p1, 2.2 + lw * 0.55, color=col, alpha=0.8, zorder=3))
+        mx, my = bez(p0, c1, c2, p1, 0.5)
+        ax.text(mx, my, "%.1fk" % (n / 1000.0) if n >= 1000 else str(n), fontsize=6.6,
+                color=col, ha="center", va="center", zorder=5,
+                bbox=dict(fc="white", ec="none", alpha=0.75, pad=0.8))
+
+    bends = {("L23E", "L23I"): 0.10, ("L23I", "L23E"): 0.10,
+             ("L4E", "L4I"): 0.12, ("L4I", "L4E"): 0.12,
+             ("L5E", "L5I"): 0.14, ("L5I", "L5E"): 0.14,
+             ("L6E", "L6I"): 0.12, ("L6I", "L6E"): 0.12,
+             ("L4E", "L23E"): -0.10, ("L5E", "L23E"): -0.42, ("L23E", "L5E"): 0.10,
+             ("L4E", "L5E"): 0.06, ("L5E", "L6E"): 0.08, ("TC", "L4E"): -0.12,
+             ("L6E", "TC"): 0.10, ("L6E", "RE"): -0.10, ("TC", "RE"): 0.14,
+             ("RE", "TC"): 0.14, ("IC", "TC"): 0.0}
+    for src, dst, n, kind in sorted(CONN, key=lambda r: -r[2]):
+        draw(src, dst, n, kind, bends.get((src, dst), 0.0))
+
+    for k, (name, x, y, fc, tc, sub) in N.items():
+        w = hw(k)
+        ax.add_patch(FancyBboxPatch((x - w, y - HH), 2 * w, 2 * HH,
+                                    boxstyle="round,pad=0,rounding_size=4", fc=fc, ec="black",
+                                    lw=0.9, zorder=6))
+        ax.add_patch(Rectangle((x - 9, y + HH), 18, 4, fc=fc, ec="black", lw=0.7, zorder=6))
+        ax.text(x, y - 3.5, name, ha="center", va="center", fontsize=9, color=tc,
+                fontweight="bold", zorder=7)
+        ax.text(x, y + 8, sub, ha="center", va="center", fontsize=6.8, color=tc, zorder=7)
+
+    ax.text(20, 16, "Thalamocortical model as built (scale 1.65): 5,031 neurons, 1.16 M synapses",
+            fontsize=11, color=TXT, fontweight="bold", va="center")
+    ax.text(20, 34, "Style after CC.png (max-talanov/cc). Red excitatory, blue inhibitory, "
+            "width = sqrt(synapses), labels = synapses.", fontsize=8.3, color=TXT, va="center")
+    ax.text(20, H - 14, "Not drawn: gap junctions (RE 715, L5 IB 3,481). IC fibres only with --stim.",
+            fontsize=8, color="#5f5e5a", va="center")
+    fig.savefig(path, dpi=150, facecolor="white")
+    plt.close(fig)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -230,7 +353,8 @@ def main():
     os.makedirs(a.outdir, exist_ok=True)
     for name, fn in (("architecture_cortex.png", cortex),
                      ("architecture_thalamocortical.png", loop),
-                     ("architecture_traub.png", traub)):
+                     ("architecture_traub.png", traub),
+                     ("architecture_connectivity.png", connectivity)):
         p = os.path.join(a.outdir, name)
         fn(p)
         print("Saved", os.path.normpath(p))

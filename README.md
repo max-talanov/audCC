@@ -14,7 +14,7 @@ that can be driven with sounds in sleep. The project has two lines:
 
 ## The NEURON model
 
-![Thalamocortical loop](figures/architecture_thalamocortical.png)
+![Connectivity of the model as built](figures/architecture_connectivity.png)
 
 Full-scale configuration (scale 1.65), counted by building the network:
 
@@ -32,7 +32,10 @@ bursting cells. Mechanisms (`neuron/mod/`): `IT`/`IT2` (T-type Ca2+ for relay
 and reticular cells), `sk2` and `cad` (SK2 and its Ca2+ pool), `ihca`
 (Ca-dependent I_h), `kna` (Na+-activated K+ in RE), `inap` (persistent Na+),
 `ical`, `nmda` (L5 recurrent excitation), `kleak` (the sleep/wake leak) and
-`gap`/`gapmpi`. Diagrams: [cortex](figures/architecture_cortex.png) and
+`gap`/`gapmpi`. The diagram above is drawn in the style of the cc model's
+`CC.png`: red excitatory, blue inhibitory, width = sqrt(synapses). Other
+diagrams: [thalamocortical loop](figures/architecture_thalamocortical.png),
+[cortex](figures/architecture_cortex.png) and
 [the Traub et al. 2005 cell types against this model](figures/architecture_traub.png)
 (9 of Traub's 14 types are present).
 
