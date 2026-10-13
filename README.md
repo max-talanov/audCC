@@ -1,4 +1,120 @@
-# Auditory thalamo-cortical sleep model (NEST)
+# Auditory thalamo-cortical sleep model
+
+A closed-loop thalamo-cortical column for the **auditory** system that produces
+the sleep **slow oscillation** with **spindles** nested on its UP states, and
+that can be driven with sounds in sleep. The project has two lines:
+
+- **NEURON** (`neuron/`, the current line): conductance-based neurons with
+  intrinsic currents, run in parallel with MPI. 5,031 neurons and 1.16 M
+  synapses at full scale, ~2.7-2.9x real time on 100 ranks of MareNostrum 5
+  (MN5).
+- **NEST** (the root-level `tc_*.py` scripts, the earlier line): point and
+  Hodgkin-Huxley (`ht_neuron`) networks. Kept, and documented in
+  [The earlier NEST model](#the-earlier-nest-model) below.
+
+## The NEURON model
+
+![Thalamocortical loop](figures/architecture_thalamocortical.png)
+
+Full-scale configuration (scale 1.65), counted by building the network:
+
+| population | neurons | cell model |
+|---|---|---|
+| L2/3 | 1056 E / 264 I | regular-spiking pyramid / fast-spiking basket |
+| L4 | 1056 E / 264 I | regular-spiking pyramid (a stand-in for the spiny stellate) / basket |
+| L5 | 874 E (437 intrinsically bursting + 437 RS) / 214 I | pyramid with persistent Na+ / basket |
+| L6 | 693 E / 173 I | regular-spiking pyramid, corticothalamic |
+| thalamus | TC 346, RE 91 | relay (I_T, Ca-dependent I_h) / reticular (I_T, SK2, K_Na) |
+
+Wiring is a fixed convergence of 100 random sources per target and projection;
+the thalamus is wired locally on a ring. Gap junctions couple RE cells and L5
+bursting cells. Mechanisms (`neuron/mod/`): `IT`/`IT2` (T-type Ca2+ for relay
+and reticular cells), `sk2` and `cad` (SK2 and its Ca2+ pool), `ihca`
+(Ca-dependent I_h), `kna` (Na+-activated K+ in RE), `inap` (persistent Na+),
+`ical`, `nmda` (L5 recurrent excitation), `kleak` (the sleep/wake leak) and
+`gap`/`gapmpi`. Diagrams: [cortex](figures/architecture_cortex.png) and
+[the Traub et al. 2005 cell types against this model](figures/architecture_traub.png)
+(9 of Traub's 14 types are present).
+
+The slow oscillation comes from the L5 bursting cells (persistent Na+ plus a
+slowed SK2 / Ca2+ pool) reinforced by NMDA recurrence within L5, with Poisson
+background input on cortical cells making it irregular. Spindles come from the
+RE-TC loop.
+
+### Where it stands
+
+![Full-scale run, noise 200](figures/stage3b_noise200_lfp.png)
+
+Full scale, 200 s (`PLAN-spindels.md`, Stage 3 round 2): slow oscillation
+0.77 Hz with interval CV 0.38; 63% of UP states carry a spindle; 93% of
+spindles are in 10-15 Hz and 98% waxing/waning, but the median length is 498 ms,
+about one cycle short of the 0.5 s target.
+
+- **Spindle refractoriness.** K_Na in RE gives a refractory period in the
+  isolated thalamus (a second spindle 1.5 s later is ~40% weaker, recovering
+  over 4-8 s). It has not yet been run at full scale.
+- **Sounds in sleep** (`PLAN-auditory-input.md`, C1/C2, 342 tones, sham-controlled):
+  tones in late DOWN start UP states more often (83% vs 50%); evoked spindles
+  are reliable; L4 firing falls ~50% and L2/3 ~65% during a spindle. The
+  thalamus is too excitable to sounds: the TC response is graded with level
+  but evoked spindles are nearly all-or-none even at 30 dB.
+  ![C1/C2](figures/c12_phase_final.png)
+- **Closed-loop stimulation (C3).** A causal detector of the UP volley
+  (`neuron/closed_loop.py`) triggers a tone at a chosen delay. Offline it
+  finds 92% of UP onsets with no false positives, ~3 ms after the volley peak.
+  The stim/sham run on MN5 is in progress.
+- **LFP at every level:** [per-level view](figures/c12_sham_s0_levels.png).
+  Each level is z-scored separately, and the 10-15 Hz band of a cortical level
+  is partly filter ringing; spindles are counted from spikes, not from the band.
+
+Not in the model yet: a calibrated wake state (`--state wake` is a
+placeholder), long-term synaptic plasticity (all synapses are static;
+short-term plasticity is planned in `PLAN-architecture.md` Stage 2), and the
+cell types and connection classes in the Traub comparison.
+
+### Plans
+
+| document | what | status |
+|---|---|---|
+| [`PLAN-spindels.md`](PLAN-spindels.md) | make the thalamus produce real spindles and an irregular SO | Stages 0-3 done; K_Na at full scale pending |
+| [`PLAN-auditory-input.md`](PLAN-auditory-input.md) | sounds into the loop, awake and asleep | Stage A, C1, C2 done; C3 closed loop built, MN5 run in progress; Stage B (wake) not started |
+| [`PLAN-architecture.md`](PLAN-architecture.md) | a Traub-like auditory column: more connections, SST/LTS, FRB, VIP, output splits | plan only, nothing implemented |
+| [`Edu-questions.md`](Edu-questions.md) | how spindles are detected, what the LFP proxy is, the architecture in numbers | reference |
+| [`neuron/README.md`](neuron/README.md) | the long history of the NEURON port | log |
+
+### Run
+
+NEURON comes from `pip install neuron` locally; on MN5 it is a module, never
+pip. Build the mechanisms once, then run (on a laptop, scale 0.1 took ~15x real
+time, measured with three runs in parallel):
+
+```bash
+python3 -m venv --system-site-packages .venv-neuron
+.venv-neuron/bin/pip install neuron
+(cd neuron && ../.venv-neuron/bin/nrnivmodl mod)
+.venv-neuron/bin/python neuron/ctx_thalamus_mpi.py --scale 0.1 --tstop 20000 --conv 100 \
+    --g-i-e-l5 0.02 --g-l5-rec 0.013 --tau2-l5-rec 200 --taur-l5e-rs 120 --l5-rec-mech nmda \
+    --taur-l5-ib 2000 --g-gap 0.001 --thal-footprint 10 --ek-re -95 --taur-re 5 --g-tc-re 0.06 \
+    --gh-tc 5e-6 --kl-scale-tc 1.422 --depth-tc 1 --taur-tc 5 --ginc-tc 4 --g-l6-tc 0.003 \
+    --g-l6-re 0.01 --cx-noise-rate 200 --out out/test.npz
+python3 neuron/ctx_analyze.py out/test.npz      # LFP, per-level, spindle and reconstruction figures
+```
+
+On MN5, `run_ctx_nrn.sh` bundles these settings (`SPINDLE=stage2`); the upload
+and submit commands for every run are in [`MN5_NEURON.md`](MN5_NEURON.md).
+
+### Layout
+
+| path | purpose |
+|---|---|
+| `neuron/` | the model (`ctx_thalamus_mpi.py`, `cortex_neuron.py`, `tc_neuron.py`, `mod/`), the auditory input and closed loop (`auditory_input.py`, `closed_loop.py`), analysis (`ctx_analyze.py`, `aud_phase.py`, `cl_analyze.py`, `volley_stats.py`) |
+| `figures/` | figures for the current model, including the architecture diagrams (`neuron/plot_architecture.py`) |
+| `run_ctx_nrn.sh` | MN5 job script for the NEURON model |
+| `config/`, `tc_*.py`, `run.sh` | the NEST line |
+| `docs/` | NEST model equations and the spindle-review mapping |
+| `res/`, `out/` | local only and git-ignored (job outputs, scratch figures). A few older figures remain tracked in `out/` |
+
+## The earlier NEST model
 
 A closed-loop thalamo-cortical column for the **auditory** system that, under
 sleep drives, produces the **slow oscillation (~1 Hz)** with **sleep spindles
@@ -24,7 +140,7 @@ Concretely, the column (from cc's `core/simulator.py`) is five stages of
 (Basket / LTS / Axoaxonic) — wired with `pairwise_bernoulli` connections. Here
 it is built once and run under sleep drives rather than optimised.
 
-## Results
+### Results
 
 ![Slow oscillations and sleep spindles in the auditory thalamo-cortical model](out/slow_waves_and_spindles.png)
 
@@ -45,7 +161,7 @@ Other figures each run writes: a five-panel overview, the SW/SP decomposition,
 and a **per-layer view of the spindle propagating up the column**
 (`out/tc_sleep_<tag>_layers.png`) — see [Run](#run).
 
-## Neuron model
+### Neuron model
 
 Two neuron models are selectable via `--neuron-model` (or `simulation.neuron_model`
 in a config):
@@ -85,7 +201,7 @@ Under `ht_neuron` the emergent spindle frequency depends on network size
 resonator) — all within the physiological spindle band, consistent with
 Mushtaq's finding that thalamic inhibition shifts spindle frequency.
 
-## What this adds over the cc column
+### What this adds over the cc column
 
 1. **A closed thalamo-cortical loop.** cc is feed-forward (thalamus→L4, L6→L5).
    We add the two missing return projections that close the loop:
@@ -107,7 +223,7 @@ The thalamus is read as the **MGB (medial geniculate body)**, the auditory
 relay; its background drive (`poisson_generator`) represents auditory-nerve /
 inferior-colliculus input (kept light, as the relay is rhythmic during sleep).
 
-### Honest scope
+#### Honest scope
 
 `iaf_cond_exp` has no intrinsic Ih / T-type Ca²⁺ currents, so spindles here are
 an **imposed-drive + loop-resonance hybrid**, not purely intrinsic thalamic
@@ -115,7 +231,7 @@ rhythmogenesis. Swapping the neuron model to NEST's `ht_neuron` (Hill–Tononi,
 with Ih/IT/INaP/IKNa) would make both rhythms fully emergent — a documented
 upgrade for future bio-plausible runs.
 
-## Parameters from Mushtaq et al. 2024
+### Parameters from Mushtaq et al. 2024
 
 The synaptic biophysics and network sizing are aligned with the conductance-based
 thalamocortical sleep model of **Mushtaq, Marshall, ul Haq & Martinez (2024),
@@ -151,7 +267,7 @@ area-based conductances (mS/cm²·area) are not transferable** to our point
   rhythms cleanly: **slow wave ≈ 1.00 Hz, spindle ≈ 13.0 Hz** (within Mushtaq's
   10–16 Hz control band).
 
-## Files
+### Files
 
 | file | purpose |
 |------|---------|
@@ -175,7 +291,7 @@ area-based conductances (mS/cm²·area) are not transferable** to our point
 | `MN5_UPLOAD.md` | what to scp to MareNostrum 5 (and what not to) |
 | `slurm/tc_sleep_mn5.sbatch` | MareNostrum 5 submission (single long, multi-threaded run) |
 
-## Run
+### Run
 
 Local sane test (seconds on a laptop with NEST 3.x installed):
 
@@ -233,7 +349,7 @@ MareNostrum 5 bio-plausible run:
 sbatch tc_sleep/slurm/tc_sleep_mn5.sbatch     # edit account/qos/partition + module loads first
 ```
 
-## Scaling (local ↔ MN5)
+### Scaling (local ↔ MN5)
 
 With fixed `pairwise_bernoulli` probability, per-neuron in-degree grows with
 population size, so a 10× larger column would saturate the cortex. Synaptic
