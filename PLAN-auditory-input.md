@@ -216,7 +216,7 @@ it.
 
 All at `--scale 0.1` (305 cells), 4 ranks, Option 2 flags. Raw output:
 `res/2026-09-24/stageA_summary.txt`; figure:
-`out/stageA_nrem60_tones_psth.png`.
+`figures/stageA_nrem60_tones_psth.png`.
 
 - **Leak split is exact per cell:** legacy vs `nrem` voltage traces differ by
   < 1e-8 mV, same spikes, for TC, RE, L5 IB, RS pyramidal and FS cells.
@@ -308,7 +308,7 @@ All at `--scale 0.1` (305 cells), 4 ranks, Option 2 flags. Raw output:
 ## C1/C2 results (provisional, 2026-10-03)
 
 Raw output: `res/2026-10-03/s3b/c12_table_provisional.txt` and the SLURM
-logs; figure `out/c12_phase_provisional.png`.
+logs; figure `figures/c12_phase_provisional.png`.
 - **Runs:** 3 tone runs on MN5 (seeds 0–2, 5031 cells, 400 s each,
   `SPINDLE=stage2 --cx-noise-rate 200`), 342 tones. All ran cleanly, with
   no drift (RE event rate first vs second half within ±5%).
@@ -390,7 +390,7 @@ silence-only criterion.
 
 Sham runs: `res/2026-10-09/c1c2/` (seeds 0–2, same flags and `HET_SEED` as
 the tone runs, no `--stim`; clean, no drift). Table:
-`res/2026-10-09/c1c2/c12_table_final.txt`; figure `out/c12_phase_final.png`.
+`res/2026-10-09/c1c2/c12_table_final.txt`; figure `figures/c12_phase_final.png`.
 342 tones, 3 seeds; the DOWN-early/late split falls 1273 ms after the
 last UP onset.
 

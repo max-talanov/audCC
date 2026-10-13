@@ -92,7 +92,7 @@ filter.
       runs (305 cells, with or without tones): 98% single, max 2 cycles.
       `--self-test` recovers an 8-cycle 12 Hz waxing/waning train, a single
       volley and a 3-cycle 10 Hz train from a synthetic raster.
-      Figure: `out/stage0_trains_vs_bandpass_20-30s.png` — every grey
+      Figure: `figures/stage0_trains_vs_bandpass_20-30s.png` — every grey
       band-pass "spindle" coincides with a single-volley tick.
 
 **Done when:** the measure reproduces "1 cycle per event" on both runs and
@@ -148,7 +148,7 @@ Then try the levers **one at a time**, keeping each that helps:
 ### Results so far (2026-09-24)
 
 Raw output: `res/2026-09-24/ring_gap_sweep.txt`, `ring_loop_sweep.txt`;
-figure `out/stage1_ring_thalamus_lfp.png`. `g_gap` is now a CLI flag
+figure `figures/stage1_ring_thalamus_lfp.png`. `g_gap` is now a CLI flag
 (`--g-gap`, default still 0.03); production is **not** changed, since
 lever 1 alone did not help.
 
@@ -189,7 +189,7 @@ more I_T available; (b) **RE → TC IPSP amplitude** (`g_re_tc`) at the
 ### Levers (a) sleep depth and (b) fast-inhibition strength (2026-09-24)
 
 Raw output: `res/2026-09-24/ring_depth_sweep.txt`, `ring_gretc_sweep.txt`,
-`ring_combo_sweep.txt`; figure `out/stage1_levers_ab_thalamus_lfp.png`.
+`ring_combo_sweep.txt`; figure `figures/stage1_levers_ab_thalamus_lfp.png`.
 All at g_gap 0.001, L6 kick. Sleep depth is the K⁺ leak scale
 (`kl_scale_tc` / `kl_scale_re`, new constructor options; 1 = the nrem
 preset, TC rest −75.6 → −84.5 mV and I_T availability 0.14 → 0.59 from
@@ -237,8 +237,8 @@ cell may be the limit (dendritic Ca_v3.3).
 ### Lever 2 (local wiring) and RE recovery: the thalamus rings (2026-09-28)
 
 Raw output: `res/2026-09-28/ring_*_sweep.txt`; figures
-`out/stage1_local_wiring_lfp.png`, `out/stage1_ringing_thalamus_lfp.png`,
-`out/stage1_localkick_kick2_lfp.png`. New options, all defaulting to the
+`figures/stage1_local_wiring_lfp.png`, `figures/stage1_ringing_thalamus_lfp.png`,
+`figures/stage1_localkick_kick2_lfp.png`. New options, all defaulting to the
 production behaviour: `thal_footprint` (`--thal-footprint`: each TC hears
 its F nearest RE on a ring, each RE the TC cells covering the same stretch),
 `ek_tc` / `ek_re`, `taur_re`; `thal_ring_test.py` gained `--kick-frac`
@@ -300,7 +300,7 @@ them is in production yet (all behind options).
 
 ### Lever 4: Ca²⁺-dependent I_h (2026-09-28)
 
-Raw output: `res/2026-09-28/ring_ih2_*.txt`; figure `out/stage1_ih_lfp.png`.
+Raw output: `res/2026-09-28/ring_ih2_*.txt`; figure `figures/stage1_ih_lfp.png`.
 Setting: the working point above (`ek_re −95`, `taur_re 5`, `g_tc_re 0.06`,
 F 10, g_gap 0.001), kicks at 3.0 s and 4.5 s (a 3 s settle, because I_h
 takes ~1 s to reach steady state), 5 seeds. New option `depth_tc` (TC Ca²⁺
@@ -347,7 +347,7 @@ Ca²⁺/Na⁺-dependent K⁺ hyperpolarisation).
 ### Refractoriness with a tone kick (2026-09-28)
 
 Raw output: `res/2026-09-28/ring_tone_refr.*.txt`; figure
-`out/stage1_tone_refractoriness_lfp.png`. Same working point, tone kick
+`figures/stage1_tone_refractoriness_lfp.png`. Same working point, tone kick
 (60 dB, 50 ms, IC → TC input; RE reached only via TC) at 3.0 s, a second
 identical tone Δ later, 5 seeds; without I_h and with I_h 5e-6
 (compensated, 1 µm pool).
@@ -383,7 +383,7 @@ None of the Stage 1 settings is in production yet.
 ### Option 1: stronger I_h locking — partial refractoriness (2026-09-28)
 
 Raw output: `res/2026-09-28/ring_ihlock.*.txt`; figure
-`out/stage1_ih_locking_lfp.png`. New options `taur_tc` (TC Ca²⁺ clearance)
+`figures/stage1_ih_locking_lfp.png`. New options `taur_tc` (TC Ca²⁺ clearance)
 and `ginc_tc` (locked-open conductance ratio); defaults unchanged.
 
 - **Why the previous I_h runs could not be refractory:** with the 1 µm pool
@@ -442,7 +442,7 @@ spindles are nested in UP states.
 ### Stage 2 results (2026-09-29)
 
 Raw output: `res/2026-09-29/stage2/stage2_report_*.txt`; figures
-`out/stage2_so_spindles_lfp.png`, `out/stage2_l6_kick_lfp.png`. Measure:
+`figures/stage2_so_spindles_lfp.png`, `figures/stage2_l6_kick_lfp.png`. Measure:
 `neuron/stage2_report.py` (UP-state onsets from the L5E + L6E rate; Stage 0
 RE volley trains; spindle = ≥ 6 cycles; "in an UP state" = starts −50 …
 +300 ms from an onset; `--pool` over seeds).
@@ -532,7 +532,7 @@ is testable in Stage 3 at `--scale 1.65`.
 ### Stage 2 follow-up: background input and weaker I_h locking (2026-09-30)
 
 Raw output: `res/2026-09-30/stage2/stage2_report_*.txt`; figure
-`out/stage2_ginc4_noise_lfp.png`. Same setup as above with `--taur-l5-ib
+`figures/stage2_ginc4_noise_lfp.png`. Same setup as above with `--taur-l5-ib
 2000`. New options (default off): `--cx-noise-rate` / `--cx-noise-w` and
 `--het-seed`. `stage2_report.py` now also prints the UP-onset spread (SD and
 10–90% range of L6E first spikes).
@@ -624,7 +624,7 @@ plus the Option 2 cortex flags.
 ### Stage 3 results: first MN5 runs (2026-10-01)
 
 Raw output: `res/2026-10-01/s3/stage3_report.txt`, `stage3_drift.txt` (the
-`.npz` files are local only); figure `out/stage3_mn5_lfp.png`. Setup:
+`.npz` files are local only); figure `figures/stage3_mn5_lfp.png`. Setup:
 - 5031 cells (`SCALE=1.65`), 200 s, 100 ranks on MN5, ~10 min wall each;
 - Option 2 cortex + `SPINDLE=stage2`;
 - three L5 IB clearances (`taur_l5_ib`).
@@ -689,7 +689,7 @@ longer the problem; the variability has to come from the cortex.
 
 Raw output: `res/2026-10-02/s3b/stage3b_report.txt`,
 `stage3b_drift_n200.txt` and the SLURM logs; figure
-`out/stage3b_noise200_lfp.png`. Same setup as round 1 (5031 cells, 200 s,
+`figures/stage3b_noise200_lfp.png`. Same setup as round 1 (5031 cells, 200 s,
 100 ranks, ~10 min each, `SPINDLE=stage2`, IB 2000 unless noted).
 
 | | preset (ref.) | noise 100 | **noise 200** | IB 1500 + noise 100 | gap 0.005 | gap 0.005 + noise 100 |

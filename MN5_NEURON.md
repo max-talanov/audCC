@@ -290,7 +290,7 @@ The job prints the full argument list (`args :` line) before `srun`; check
 it once.
 
 **Local full-scale preview (12 s, 5031 cells, 8 ranks, 18 min wall;
-`res/2026-09-30/stage3_preview/`, `out/stage3_preview_full_scale_lfp.png`):**
+`res/2026-09-30/stage3_preview/`, `figures/stage3_preview_full_scale_lfp.png`):**
 - **The thalamus carries over.** Every spindle has 8 cycles at 13.2–13.8 Hz
   and lasts 0.51–0.53 s; 75% wax and wane; TC participation is 56% per
   cycle; all start in UP states.

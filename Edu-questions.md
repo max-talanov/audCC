@@ -270,7 +270,7 @@ smoothed with a 5 ms moving average (`make_meanfield_figure` in
 
 ### Example: LFP proxy from two full-scale MN5 runs
 
-![MN5 LFP proxy: before L5 tuning vs Option 2](out/mn5_before_vs_option2_comparison.png)
+![MN5 LFP proxy: before L5 tuning vs Option 2](figures/mn5_before_vs_option2_comparison.png)
 
 Both runs are 5031 cells and 200 s on MN5; the plot shows 20–30 s, after the
 start-up period, on identical y-scales. For each run the upper trace is the
@@ -457,7 +457,7 @@ volleys are separated by 600–700 ms of near-silence. Nothing in the thalamus
 oscillates at spindle frequency (10–15 Hz): no volley is ever followed by
 another within 200 ms. At most there is a weak second bump about 90 ms later.
 
-![Population firing rates, MN5: before L5 tuning vs Option 2](out/mn5_population_rates_before_vs_option2.png)
+![Population firing rates, MN5: before L5 tuning vs Option 2](figures/mn5_population_rates_before_vs_option2.png)
 
 Full 200 s of each run (first second excluded):
 
@@ -527,7 +527,7 @@ one directly, without going through the band-pass filter.
 The figure and every number above come from `neuron/volley_stats.py`:
 
 ```bash
-python3 neuron/volley_stats.py "Before L5 tuning (MN5 job 45171023)=res/2026-08-31/ctx_nrn_45171023.npz" "Option 2 (MN5 job 45453403)=res/2026-09-07/ctx_nrn_45453403.npz" --plot out/mn5_population_rates_before_vs_option2.png
+python3 neuron/volley_stats.py "Before L5 tuning (MN5 job 45171023)=res/2026-08-31/ctx_nrn_45171023.npz" "Option 2 (MN5 job 45453403)=res/2026-09-07/ctx_nrn_45453403.npz" --plot figures/mn5_population_rates_before_vs_option2.png
 ```
 
 ## 6) What do the cortical cells do? (full raster of every population)
@@ -538,7 +538,7 @@ lighter-shaded I cells of each layer), then RE and TC. Rows are proportional
 to cell count, with a minimum height for small populations so they stay
 readable. MN5 job 45453403 (Option 2, 5031 cells), 20–30 s:
 
-![Spindle figure with the full raster, MN5 job 45453403](out/ctx_45453403_spindles.png)
+![Spindle figure with the full raster, MN5 job 45453403](figures/ctx_45453403_spindles.png)
 
 What the raster shows:
 
@@ -692,21 +692,21 @@ period it covers.
 
 ### 60–80 s
 
-![LFP reconstruction, 60-80 s](out/ctx_45453403_reconstructed_literature_style_60-80s.png)
+![LFP reconstruction, 60-80 s](figures/ctx_45453403_reconstructed_literature_style_60-80s.png)
 
-![Spindle analysis, 60-80 s](out/ctx_45453403_spindles_60-80s.png)
+![Spindle analysis, 60-80 s](figures/ctx_45453403_spindles_60-80s.png)
 
 ### 100–120 s
 
-![LFP reconstruction, 100-120 s](out/ctx_45453403_reconstructed_literature_style_100-120s.png)
+![LFP reconstruction, 100-120 s](figures/ctx_45453403_reconstructed_literature_style_100-120s.png)
 
-![Spindle analysis, 100-120 s](out/ctx_45453403_spindles_100-120s.png)
+![Spindle analysis, 100-120 s](figures/ctx_45453403_spindles_100-120s.png)
 
 ### 160–180 s
 
-![LFP reconstruction, 160-180 s](out/ctx_45453403_reconstructed_literature_style_160-180s.png)
+![LFP reconstruction, 160-180 s](figures/ctx_45453403_reconstructed_literature_style_160-180s.png)
 
-![Spindle analysis, 160-180 s](out/ctx_45453403_spindles_160-180s.png)
+![Spindle analysis, 160-180 s](figures/ctx_45453403_spindles_160-180s.png)
 
 ### Reproduce
 
@@ -718,8 +718,8 @@ python3 neuron/volley_stats.py "Option 2 (MN5 job 45453403)=res/2026-09-07/ctx_n
 
 The figures, one window at a time (shown for 60–80 s; `ctx_analyze.py` also
 writes the mean-field and LFP figures for the window). Rename the outputs to
-`out/ctx_45453403_spindles_60-80s.png` and
-`out/ctx_45453403_reconstructed_literature_style_60-80s.png`:
+`figures/ctx_45453403_spindles_60-80s.png` and
+`figures/ctx_45453403_reconstructed_literature_style_60-80s.png`:
 
 ```bash
 python3 neuron/ctx_analyze.py res/2026-09-07/ctx_nrn_45453403.npz --outdir out --tag w60 --window-start 60000 --window-len 20000 --stats-in-window --label "MN5 full-scale (5031 cells, 200s) -- job 45453403, 60-80s window"
