@@ -129,6 +129,8 @@ def fibre_train(fid, spec, tstop):
         n = rng.poisson(spec["r_spont"] * tstop / 1000.0)
         spikes.append(rng.uniform(0, tstop, n))
     for ev in spec["events"]:
+        if ev.get("dyn"):
+            continue    # closed-loop events are drawn by event_train at run time
         A = drive_amplitude(ev["level"], spec)
         if ev["type"] == "click":
             if rng.random() < A / spec["r_max"]:
@@ -145,6 +147,25 @@ def fibre_train(fid, spec, tstop):
     t = np.sort(np.concatenate([np.asarray(x, float) for x in spikes]))
     t = t[(t >= 0) & (t < tstop)]
     # absolute refractory period: drop spikes too close to the last kept one
+    keep, last = [], -np.inf
+    for x in t:
+        if x - last >= spec["refractory"]:
+            keep.append(x)
+            last = x
+    return np.asarray(keep)
+
+
+def event_train(fid, spec, ev, idx):
+    """Spike times (ms) of fibre `fid` for ONE tone event decided at run time
+    (closed loop). Deterministic in (seed, fid, idx) and independent of rank,
+    so every rank that owns a TC cell fed by this fibre draws the same train.
+    Same rate model as the tone branch of fibre_train."""
+    rng = np.random.default_rng([int(spec["seed"]), 3, int(fid), int(idx)])
+    A = drive_amplitude(ev["level"], spec)
+    win = ev["dur"] + 6 * spec["tau_off"]
+    s = np.arange(0.0, win, spec["dt"])
+    p = A * rate_envelope(s, ev["dur"], spec) * spec["dt"] / 1000.0
+    t = ev["t"] + s[rng.random(len(s)) < p]
     keep, last = [], -np.inf
     for x in t:
         if x - last >= spec["refractory"]:
@@ -171,7 +192,7 @@ class AuditoryInput:
         self.tstop = tstop
         lo, hi = net.ranges["tc"]
         self.n_fibres = self.spec["n_fibres"] or (hi - lo)
-        self.syns, self.ncs = [], []
+        self.syns, self.ncs, self.nc_fid = [], [], []
         trains = {}
         for gid in range(lo, hi):
             if int(net.pc.gid_exists(gid)) == 0:
@@ -185,6 +206,7 @@ class AuditoryInput:
                 nc = h.NetCon(None, syn)
                 nc.weight[0] = self.spec["w"]
                 self.ncs.append((nc, trains[fid]))
+                self.nc_fid.append(int(fid))
         self._fih = h.FInitializeHandler(self._queue)
 
     def _queue(self):
@@ -193,13 +215,33 @@ class AuditoryInput:
             for t in train:
                 nc.event(float(t) + d)
 
+    def queue_tone(self, t_onset, dur, level):
+        """Closed loop: queue one tone starting at t_onset (ms, must not be in
+        the past) onto this rank's TC cells, between psolve chunks. The event
+        joins spec["events"] (flagged "dyn") so log() reports it."""
+        idx = sum(1 for e in self.spec["events"] if e.get("dyn"))
+        ev = {"t": float(t_onset), "type": "tone", "dur": float(dur),
+              "level": float(level), "dyn": True}
+        self.spec["events"].append(ev)
+        d = self.spec["delay"]
+        cache = {}
+        for (nc, _), fid in zip(self.ncs, self.nc_fid):
+            if fid not in cache:
+                cache[fid] = event_train(fid, self.spec, ev, idx)
+            for t in cache[fid]:
+                nc.event(float(t) + d)
+
     def log(self):
         """Arrays for the run's .npz: the stimulus schedule and every fibre's
         spikes (call on one rank; it recomputes all fibres)."""
         ev = self.spec["events"]
         ids, times = [], []
+        dyn = [(i, e) for i, e in enumerate(e for e in ev if e.get("dyn"))]
         for fid in range(self.n_fibres):
             t = fibre_train(fid, self.spec, self.tstop)
+            for i, e in dyn:
+                t = np.concatenate([t, event_train(fid, self.spec, e, i)])
+            t = np.sort(t)
             times.append(t)
             ids.append(np.full(len(t), fid))
         return {

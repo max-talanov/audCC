@@ -1037,6 +1037,23 @@ def main():
                          "auditory_input.py): IC -> TC driver input. The "
                          "schedule and every IC fibre's spikes are saved in "
                          "the --out .npz.")
+    ap.add_argument("--closed-loop", choices=["stim", "sham"], default="",
+                    help="C3 closed loop (PLAN-auditory-input.md D5, closed_loop.py): "
+                         "run psolve in 5 ms chunks, detect the SO UP volley "
+                         "causally from the allreduced L5E+L6E count, and queue "
+                         "a tone at a delay after it ('stim'), or log the same "
+                         "detections and draw the same delays but play nothing "
+                         "('sham', the matched control).")
+    ap.add_argument("--cl-delays", default="0,200,400,600,800,1000",
+                    help="delays (ms) after the detected UP; one is drawn per "
+                         "detection, seeded by (--cl-seed, detection index)")
+    ap.add_argument("--cl-every", type=int, default=2,
+                    help="stimulate every N-th detection (keeps the tone spacing "
+                         "near the open-loop 2-5 s)")
+    ap.add_argument("--cl-level", default="60",
+                    help="tone level(s) in dB, comma-separated; drawn per tone")
+    ap.add_argument("--cl-dur", type=float, default=50.0, help="tone duration, ms")
+    ap.add_argument("--cl-seed", type=int, default=1)
     ap.add_argument("--gh-tc", type=float, default=0.0,
                     help="TC's Ca2+-dependent I_h (ihca.mod) conductance. "
                          "Declared but never actually wired to TCCell until "
@@ -1310,7 +1327,21 @@ def main():
                                       g_gap=a.g_gap, thal_footprint=a.thal_footprint,
                                       het_seed=a.het_seed, g_l5_gap=a.g_l5_gap, **extra)
     aud = AI.AuditoryInput(net, a.stim, a.tstop) if a.stim else None
-    wall = net.run(tstop=a.tstop)
+    cl_extra = {}
+    if a.closed_loop:
+        import closed_loop as CL
+        if aud is None and a.closed_loop == "stim":
+            aud = AI.AuditoryInput(net, {"seed": a.cl_seed}, a.tstop)  # no preset events
+        wall, cl_extra = CL.run_closed_loop(
+            net, aud, a.closed_loop,
+            [float(x) for x in a.cl_delays.split(",")], every=a.cl_every,
+            level=[float(x) for x in a.cl_level.split(",")], dur=a.cl_dur,
+            seed=a.cl_seed, tstop=a.tstop)
+        if net.rank == 0:
+            print("closed loop (%s): %d UP detections, %d scheduled for a tone"
+                  % (a.closed_loop, len(cl_extra["cl_t_det"]), int(cl_extra["cl_stim"].sum())))
+    else:
+        wall = net.run(tstop=a.tstop)
     t, g = net.gather()
     if net.rank == 0:
         _report(net, t, g, wall, a.tstop)
@@ -1334,6 +1365,7 @@ def main():
         if a.out:
             os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
             extra = aud.log() if aud else {}
+            extra.update(cl_extra)
             np.savez_compressed(a.out.replace(".h5", ".npz"),
                                  times=t, gids=g, sizes=net.sizes,
                                  ranges=net.ranges, tstop=a.tstop, wall=wall,

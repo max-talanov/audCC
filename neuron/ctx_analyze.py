@@ -424,6 +424,61 @@ def _detect_spindles(spin, bins, k_sd=1.5, skip_ms=1000.0):
     return starts, ends
 
 
+def make_levels_figure(npz, out_png, window=(60000, 70000)):
+    """One row per level (L2/3, L4, L5, L6, TC, RE) plus a consolidated row.
+    Left: the level's LFP proxy with its 0.5-2 Hz slow-oscillation band
+    overlaid. Right: its 10-15 Hz spindle band with Hilbert envelope.
+    Each level is z-scored on its own, so amplitudes are NOT comparable
+    across levels (a level that barely fires looks as big as one that
+    fires a lot) -- compare timing and shape, not size."""
+    fs = 1000.0
+    lfps, composite, thal, bins, _ = _composite_lfp(npz, fs=fs)
+    levels = [("L2/3", "l23e", "#1b4965"), ("L4", "l4e", "#2471a3"),
+              ("L5", "l5e", "#5fa8d3"), ("L6", "l6e", "#7f8c8d"),
+              ("TC", "tc", "#2f8f6f"), ("RE", "re", "#c0392b")]
+    w = (bins >= window[0]) & (bins < window[1])
+    tsec = bins[w] / 1000.0
+    fig, axes = plt.subplots(len(levels) + 1, 2, figsize=(15, 13.5), sharex=True)
+
+    def so_spin(x):
+        return _bandpass(x, fs, 0.5, 2.0), _bandpass(x, fs, 10.0, 15.0)
+
+    for i, (lab, key, col) in enumerate(levels):
+        so, spin = so_spin(lfps[key])
+        env = np.abs(hilbert(spin))
+        axes[i, 0].plot(tsec, lfps[key][w], color=col, lw=0.6, alpha=0.8)
+        axes[i, 0].plot(tsec, so[w] * 3, color="#8e44ad", lw=1.2,
+                        label="0.5-2 Hz SO band (x3)" if i == 0 else None)
+        axes[i, 0].set_ylabel(lab, fontsize=11, rotation=0, labelpad=22, va="center")
+        axes[i, 1].plot(tsec, spin[w], color=col, lw=0.7)
+        axes[i, 1].plot(tsec, env[w], color="k", lw=0.6, alpha=0.5)
+        axes[i, 1].plot(tsec, -env[w], color="k", lw=0.6, alpha=0.5)
+    axes[0, 0].legend(fontsize=8, loc="upper right")
+
+    r = len(levels)
+    so_c, spin_c = so_spin(composite)
+    so_t, spin_t = so_spin(thal)
+    axes[r, 0].plot(tsec, composite[w], color="0.3", lw=0.7, label="cortex (L2/3+L4+L5+L6)")
+    axes[r, 0].plot(tsec, thal[w] - 5, color="#2471a3", lw=0.7, label="thalamus (TC+RE), offset")
+    axes[r, 0].plot(tsec, so_c[w] * 3 + 4, color="#8e44ad", lw=1.2)
+    axes[r, 0].set_ylabel("all", fontsize=11, rotation=0, labelpad=22, va="center")
+    axes[r, 0].legend(fontsize=8, loc="upper right")
+    axes[r, 1].plot(tsec, spin_c[w], color="0.3", lw=0.7, label="cortex")
+    axes[r, 1].plot(tsec, spin_t[w] - 0.8, color="#2471a3", lw=0.7, label="thalamus, offset")
+    axes[r, 1].legend(fontsize=8, loc="upper right")
+
+    axes[0, 0].set_title("LFP proxy + slow-oscillation band", fontsize=11, loc="left")
+    axes[0, 1].set_title("10-15 Hz spindle band + envelope", fontsize=11, loc="left")
+    for ax in axes[-1]:
+        ax.set_xlabel("time (s)")
+    fig.suptitle("LFP proxy at every level of cortex and thalamus, and consolidated "
+                 "(each level z-scored separately)", fontsize=13, y=0.995)
+    fig.tight_layout(rect=[0, 0, 1, 0.98])
+    fig.savefig(out_png, dpi=130)
+    plt.close(fig)
+    print(f"Saved per-level LFP figure to {out_png}")
+
+
 def make_literature_reconstruction_figure(npz, out_png, window=(20000, 40000),
                                            label=None, so_band=(0.5, 2.0),
                                            spindle_band=(10.0, 15.0)):
@@ -637,6 +692,7 @@ def main(argv=None):
     s = make_spindle_figure(npz, outdir / f"{tag}_spindles.png", window=window,
                             stats_in_window=args.stats_in_window)
     make_lfp_figure(npz, outdir / f"{tag}_lfp.png", window=window)
+    make_levels_figure(npz, outdir / f"{tag}_levels.png", window=window)
     if not args.no_reconstruction:
         make_literature_reconstruction_figure(
             npz, outdir / f"{tag}_reconstructed_literature_style.png", window=window,
