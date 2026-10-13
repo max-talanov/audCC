@@ -334,6 +334,37 @@ def connectivity(path):
                 fontweight="bold", zorder=7)
         ax.text(x, y + 8, sub, ha="center", va="center", fontsize=6.8, color=tc, zorder=7)
 
+    # legend, in the empty area right of L5/L6; widths use the same formula as the edges
+    lx, ly, lw_, lh = 492, 425, 198, 222
+    ax.add_patch(FancyBboxPatch((lx, ly), lw_, lh, boxstyle="round,pad=0,rounding_size=6",
+                                fc="white", ec="#b4b2a9", lw=0.9, zorder=8))
+    ax.text(lx + 10, ly + 16, "Legend", fontsize=9, color=TXT, fontweight="bold", va="center",
+            zorder=9)
+    def sample(y, col, kind, text):
+        path = Path([(lx + 12, y), (lx + 62, y)], [Path.MOVETO, Path.LINETO])
+        ax.add_patch(FancyArrowPatch(path=path, arrowstyle="-" if kind == "I" else "-|>",
+                                     mutation_scale=9, color=col, lw=3.0, alpha=0.8,
+                                     ls="--" if kind == "X" else "-", shrinkA=0, shrinkB=0,
+                                     zorder=9))
+        if kind == "I":
+            ax.add_patch(plt.Circle((lx + 62, y), 4.0, color=col, alpha=0.85, zorder=9))
+        ax.text(lx + 74, y, text, fontsize=8, color=TXT, va="center", zorder=9)
+    sample(ly + 38, "#e53935", "E", "excitatory")
+    sample(ly + 58, "#3d3df5", "I", "inhibitory")
+    sample(ly + 78, "#888780", "X", "external input")
+    ax.text(lx + 10, ly + 103, "A loop on a box = recurrence", fontsize=7.6, color=TXT,
+            va="center", zorder=9)
+    ax.text(lx + 10, ly + 117, "within that population", fontsize=7.6, color=TXT,
+            va="center", zorder=9)
+    ax.text(lx + 10, ly + 140, "Width = sqrt(synapses):", fontsize=8, color=TXT, va="center",
+            zorder=9)
+    for i, n in enumerate((358, 3500, 35000, 105600)):
+        y = ly + 158 + i * 15
+        ax.plot([lx + 12, lx + 62], [y, y], color="#555555", lw=0.5 + 8.0 * np.sqrt(n / 105600.0),
+                solid_capstyle="butt", zorder=9)
+        ax.text(lx + 74, y, "%s synapses" % ("%.1fk" % (n / 1000.0) if n >= 1000 else n),
+                fontsize=7.6, color=TXT, va="center", zorder=9)
+
     ax.text(20, 16, "Thalamocortical model as built (scale 1.65): 5,031 neurons, 1.16 M synapses",
             fontsize=11, color=TXT, fontweight="bold", va="center")
     ax.text(20, 34, "Style after CC.png (max-talanov/cc). Red excitatory, blue inhibitory, "
