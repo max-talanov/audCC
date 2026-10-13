@@ -1,7 +1,8 @@
 # macOS / generated simulation output
 .DS_Store
 out/
-res/**/*.npz
+# MN5 job outputs (logs, tables, npz) live on disk only, never in the repo
+res/
 
 # Reference papers / dragged clippings kept locally, never committed
 *.pdf
