@@ -57,6 +57,10 @@ by building the network; diagrams in `figures/architecture_cortex.png`,
 
 ### Against Traub et al. 2005
 
+Diagram: `figures/architecture_traub.png` (`neuron/plot_architecture.py`). Counts are from the
+paper's Fig. 1 legend: 14 types, 3,560 neurons. Of the 14, 9 are present (one as a pyramidal
+stand-in) and 5 are missing: SupFRB, SupAxAx, SupLTS, DeepAxAx, DeepLTS.
+
 | Traub type | Ours | Status |
 |---|---|---|
 | SyppyrRS (L2/3 RS pyramid) | L2/3 E | ✅, but no L2/3 → L2/3 recurrence |
@@ -65,7 +69,7 @@ by building the network; diagrams in `figures/architecture_cortex.png`,
 | Axax23 (L2/3 axo-axonic) | — | ❌ |
 | LTS23 (L2/3 low-threshold-spiking) | — | ❌ |
 | Spinstel4 (L4 spiny stellate) | L4 E (`PYCell`) | ⚠️ pyramidal stand-in; its only input is TC |
-| LTS4 | — | ❌ |
+| LTS4 | — | not a Traub type: his layer 4 has no interneurons (its inhibition comes from the deep ones). An auditory-cortex addition, see Stage 2 |
 | TuftRS5 / TuftIB5 | L5 RS / IB | ✅ |
 | Bask56 | L5 I, L6 I | ✅ |
 | Axax56 | — | ❌ |
