@@ -105,6 +105,54 @@ def table(stim, sham, delays):
     return lines
 
 
+def _wilson(k, n, z=1.96):
+    if n == 0:
+        return np.nan, np.nan
+    p = k / n
+    c = (p + z * z / (2 * n)) / (1 + z * z / n)
+    h = z * np.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / (1 + z * z / n)
+    return c - h, c + h
+
+
+def make_figure(stim, sham, delays, out_png):
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    panels = [("evoked_up", "P(UP onset within 300 ms)", True),
+              ("evoked_sp", "P(spindle within 300 ms)", True),
+              ("tc", "TC spikes per cell in 50 ms", False)]
+    fig, axs = plt.subplots(1, 3, figsize=(13, 3.8))
+    x = np.arange(len(delays))
+    for ax, (key, title, binary) in zip(axs, panels):
+        for rows, lab, col, off in ((sham, "sham (fake tone)", "tab:gray", -0.12),
+                                    (stim, "stim (tone)", "tab:red", 0.12)):
+            m, lo, hi = [], [], []
+            for d in delays:
+                v = np.array([r[key] for r in rows if r["d"] == d], float)
+                m.append(v.mean())
+                if binary:
+                    a, b = _wilson(v.sum(), len(v))
+                else:
+                    se = v.std(ddof=1) / np.sqrt(len(v)) if len(v) > 1 else 0.0
+                    a, b = v.mean() - 1.96 * se, v.mean() + 1.96 * se
+                lo.append(a), hi.append(b)
+            m, lo, hi = map(np.array, (m, lo, hi))
+            ax.errorbar(x + off, m, yerr=[np.clip(m - lo, 0, None), np.clip(hi - m, 0, None)], fmt="o-", color=col,
+                        label=lab, capsize=3, lw=1.5)
+        ax.set_xticks(x)
+        ax.set_xticklabels([f"{int(d)}" for d in delays])
+        ax.set_xlabel("tone delay d after detected UP onset (ms)")
+        ax.set_title(title, fontsize=10)
+        ax.spines[["top", "right"]].set_visible(False)
+        if binary:
+            ax.set_ylim(-0.02, 1.05)
+    axs[0].legend(frameon=False, fontsize=8, loc="upper left")
+    fig.suptitle(f"C3 closed loop: stim vs sham, 3 seeds ({len(stim)} tones / {len(sham)} fake tones); "
+                 "bars = 95% CI", fontsize=10)
+    fig.tight_layout()
+    fig.savefig(out_png, dpi=150)
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -113,10 +161,20 @@ def main(argv=None):
     ap.add_argument("--skip", type=float, default=2000.0)
     ap.add_argument("--up-thr", type=float, default=2.0)
     ap.add_argument("--out-txt", default="")
+    ap.add_argument("--cache", default="", help="pickle of the per-tone rows (skips the slow measure step)")
+    ap.add_argument("--out-png", default="", help="P(UP), P(spindle), TC vs d figure")
     a = ap.parse_args(argv)
 
     pairs = [p.split("=", 1) for p in a.pair]
-    stim, sham, so_stim, so_sham = collect(pairs, a.skip, a.up_thr)
+    import os
+    import pickle
+    cache = a.cache
+    if cache and os.path.exists(cache):
+        stim, sham, so_stim, so_sham = pickle.load(open(cache, "rb"))
+    else:
+        stim, sham, so_stim, so_sham = collect(pairs, a.skip, a.up_thr)
+        if cache:
+            pickle.dump((stim, sham, so_stim, so_sham), open(cache, "wb"))
     delays = sorted({r["d"] for r in stim + sham})
 
     out = [f"C3 closed loop: {len(pairs)} stim/sham pair(s); {len(stim)} tones (stim), "
@@ -129,6 +187,8 @@ def main(argv=None):
                    f"{x['sp_per_up']:6.2f} | {y['sp_per_up']:5.2f} | {x['sp_hz']:6.3f} | {y['sp_hz']:5.3f}")
     txt = "\n".join(out)
     print(txt)
+    if a.out_png:
+        make_figure(stim, sham, delays, a.out_png)
     if a.out_txt:
         with open(a.out_txt, "w") as f:
             f.write(txt + "\n")
