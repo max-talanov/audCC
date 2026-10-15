@@ -69,7 +69,7 @@ New module `neuron/stim_phase.py` (offline, from the sham `.npz`):
 
 1. `so_phase(npz)`: composite cortical LFP, band-pass, Hilbert, phase at every ms. Validate: phase distribution vs UP onsets (UP onset should fall at the "rising" bin).
 2. `spindle_events(npz)`: onset, end, envelope peak from RE volleys (`volley_stats`); spindle count by spikes, not LFP, because the LFP spindle band partly reflects filter ringing.
-3. `classify_tone(t)`: SO phase bin, spindle present/absent, spindle phase bin, all from the **sham** run at t.
+3. `classify_tone(t)`: SO phase bin, spindle present/absent, spindle phase bin. Each arm is classified from **its own pre-tone data**, because the arms diverge after the first tone and the sham is no longer the counterfactual at later tones. This needs a causal phase estimate (an acausal filter would leak the tone's response); `stim_phase.py` has one and validates it against the acausal phase on sham runs.
 4. Measures M3-M6 per tone and per arm (stim at t, sham at t): SO amplitude, P(spindle), spindle power (RE/TC rate in 10-15 Hz plus cortical LFP), spindle phase after the stimulus; the effect is the paired difference stim minus sham.
 5. `stim_figures.py`: ERPs per layer and thalamus by SO phase bin (M1), PSTHs per cell type (M2), Graph A heat-map plus 3D-bar version for M3-M6, with counts per cell printed and cells with n below threshold greyed out.
 6. Thalamic field potential: not a measured LFP. Define a proxy (TC+RE summed synaptic current, or filtered population rate) and label it as such.
@@ -99,13 +99,13 @@ Why not a phase-locked closed loop as the main mode:
 
 - SO is irregular (CV ~0.4), so an online phase predictor has large error; calibrating one is a project of its own.
 - Edo's Graph A needs the whole phase range *and* all spindle relationships, including ones that happen rarely. Random tones sample the natural distribution; phase and spindle state are then read from the sham.
-- The sham is exact, so no phase estimation noise enters the classification.
+- ~~The sham is exact, so no phase estimation noise enters the classification.~~ Corrected during WP2: only the first tone of a run has an exact sham counterfactual. Later tones are classified with a causal phase estimate: median error 25 deg, 64% of tones in the correct 90-deg bin (3 sham runs; trough tones are often called rising because the DOWN-to-UP transition is unpredictable). Matched sham tones are still useful as the control arm, classified the same way.
 
 Constraints on the schedule:
 
 - The spindle refractory period is 4-8 s (K_Na), and an evoked response lasts about 1 s. Use gaps drawn uniformly from 5-9 s, so ~57 tones per 400 s run.
 - The first 2 s are skipped (as before).
-- Arms diverge after the first tone, so every tone is compared against the sham's counterfactual *at that time*, as in C1/C2/C3, not against the sham of the same state history.
+- Arms diverge after the first tone, so stim tones are compared with sham fake tones of the same class (SO phase bin, spindle state), not tone by tone.
 
 A phase-targeted closed loop (online SO phase predictor, plus spindle onset detector) is a later top-up for cells that stay empty. Its feasibility is evaluated offline first on the sham runs: circular error of predicted vs true phase.
 
