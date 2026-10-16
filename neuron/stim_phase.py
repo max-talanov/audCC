@@ -241,14 +241,79 @@ def validate(paths, n=400, seed=0):
           + ", ".join(SO_NAMES) + f"\n{conf}")
 
 
+# --------------------------------------------------------------- statistics
+def _cell_values(rows, key, i, j):
+    return {k: np.array([float(r[key]) for r in rows
+                        if r["so_bin"] == i and r["sp_bin"] == j and r.get("seed", 0) == k])
+            for k in sorted({r.get("seed", 0) for r in rows})}
+
+
+def bootstrap_effect(stim, sham, key, i, j, n_boot=2000, seed=0):
+    """Effect (mean stim - mean sham) of `key` in cell (SO bin i, spindle bin j)
+    with a 95% percentile CI from a two-level bootstrap: seeds are resampled with
+    replacement, then tones within each drawn seed and arm. Returns
+    (effect, lo, hi, n_stim, n_sham); nan if a cell is empty in an arm.
+    With few seeds the seed level makes the CI wide on purpose."""
+    a, b = _cell_values(stim, key, i, j), _cell_values(sham, key, i, j)
+    na, nb = sum(len(v) for v in a.values()), sum(len(v) for v in b.values())
+    if na == 0 or nb == 0:
+        return np.nan, np.nan, np.nan, na, nb
+    eff = np.nanmean(np.concatenate(list(a.values()))) - np.nanmean(np.concatenate(list(b.values())))
+    rng = np.random.default_rng(seed)
+    ks = sorted(set(a) | set(b))
+    out = np.empty(n_boot)
+    for n in range(n_boot):
+        pa, pb = [], []
+        for k in rng.choice(ks, len(ks)):
+            va, vb = a.get(k, np.empty(0)), b.get(k, np.empty(0))
+            if len(va):
+                pa.append(va[rng.integers(0, len(va), len(va))])
+            if len(vb):
+                pb.append(vb[rng.integers(0, len(vb), len(vb))])
+        out[n] = (np.nanmean(np.concatenate(pa)) - np.nanmean(np.concatenate(pb))
+                  if pa and pb else np.nan)
+    lo, hi = np.nanpercentile(out, [2.5, 97.5])
+    return float(eff), float(lo), float(hi), na, nb
+
+
+def circ_summary(phases):
+    """(circular mean in rad, resultant length R, Rayleigh p, n) of the finite
+    phases; Rayleigh p from Zar's approximation."""
+    ph = np.asarray(phases, float)
+    ph = ph[np.isfinite(ph)]
+    n = len(ph)
+    if n == 0:
+        return np.nan, np.nan, np.nan, 0
+    z = np.mean(np.exp(1j * ph))
+    R = float(np.abs(z))
+    p = float(np.exp(np.sqrt(1 + 4 * n + 4 * (n * n - (n * R) ** 2)) - (1 + 2 * n)))
+    return float(np.angle(z)), R, min(1.0, p), n
+
+
+def effect_table(stim, sham, keys=("so_amp", "sp_any", "sp_pow"), min_n=5, n_boot=2000):
+    lines = [f"{'measure':<8}{'SO bin':<9}{'spindle':<9}{'n stim/sham':>12}{'effect':>10}{'95% CI':>22}"]
+    for key in keys:
+        for i in range(4):
+            for j in range(5):
+                e, lo, hi, na, nb = bootstrap_effect(stim, sham, key, i, j, n_boot)
+                if na < min_n or nb < min_n:
+                    continue
+                flag = " *" if lo > 0 or hi < 0 else ""
+                lines.append(f"{key:<8}{SO_NAMES[i]:<9}{SP_NAMES[j]:<9}{na:>6}/{nb:<5}{e:>10.3g}"
+                             f"{'[%.3g, %.3g]' % (lo, hi):>22}{flag}")
+    return lines
+
+
 # ----------------------------------------------------------------- Graph A
 def collect_pairs(pairs, skip=2000.0):
     stim, sham = [], []
-    for sp, sh in pairs:
+    for k, (sp, sh) in enumerate(pairs):
         for path, rows in ((sp, stim), (sh, sham)):
             run = Run(path)
             t, _ = CLA.tones_of(run.z)
-            rows.extend(tone_rows(run, t, skip))
+            for r in tone_rows(run, t, skip):
+                r["seed"] = k
+                rows.append(r)
     return stim, sham
 
 
@@ -292,13 +357,18 @@ def graph_a(stim, sham, out_png, min_n=5):
             for i in range(4):
                 for j in range(5):
                     n = (Na[i, j], Nb[i, j]) if lab == "stim - sham" else ((Na if lab == "stim" else Nb)[i, j],)
-                    ax.text(j, i, "/".join(str(k) for k in n), ha="center", va="center",
+                    txt = "/".join(str(k) for k in n)
+                    if lab == "stim - sham" and not bad[i, j]:
+                        _, lo, hi, _, _ = bootstrap_effect(stim, sham, key, i, j, 2000)
+                        if lo > 0 or hi < 0:
+                            txt += " *"
+                    ax.text(j, i, txt, ha="center", va="center",
                             fontsize=6, color="w" if lab != "stim - sham" else "k")
     axs[-1][0].set_xlabel("spindle phase relative to SO (none = no spindle)", fontsize=8)
     for row in axs:
         row[0].set_ylabel("SO phase at tone", fontsize=8)
     fig.suptitle(f"Graph A (grid view): cells with n < {min_n} in either arm are blank; "
-                 "numbers = tones per cell", fontsize=9)
+                 "numbers = tones per cell; * = 95% bootstrap CI of stim - sham excludes 0", fontsize=9)
     fig.tight_layout()
     fig.savefig(out_png, dpi=140)
 
@@ -311,6 +381,7 @@ def main(argv=None):
     ap.add_argument("--rows", default="", help="pickle for the per-tone rows")
     ap.add_argument("--out-png", default="")
     ap.add_argument("--min-n", type=int, default=5)
+    ap.add_argument("--out-txt", default="", help="effect table with bootstrap CIs")
     a = ap.parse_args(argv)
     if a.validate:
         validate(a.validate)
@@ -322,6 +393,10 @@ def main(argv=None):
         for lab, rows in (("stim", stim), ("sham", sham)):
             _, N = grid(rows, "so_amp")
             print(f"{lab} tones per cell (rows {SO_NAMES}, cols {SP_NAMES}):\n{N}")
+        tab = "\n".join(effect_table(stim, sham, min_n=a.min_n))
+        print(tab)
+        if a.out_txt:
+            open(a.out_txt, "w").write(tab + "\n")
         if a.out_png:
             graph_a(stim, sham, a.out_png, a.min_n)
     return 0
