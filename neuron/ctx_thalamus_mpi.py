@@ -1057,6 +1057,21 @@ def main():
                     help="tone level(s) in dB, comma-separated; drawn per tone")
     ap.add_argument("--cl-dur", type=float, default=50.0, help="tone duration, ms")
     ap.add_argument("--cl-seed", type=int, default=1)
+    ap.add_argument("--open-loop", choices=["stim", "sham"], default="",
+                    help="stimulation experiments (PLAN-stimulation-experiments.md "
+                         "WP3, closed_loop.tone_schedule): random open-loop tone "
+                         "schedule, 5-9 s apart, with the number of stimuli, "
+                         "duration and level drawn per tone. 'stim' plays it, "
+                         "'sham' logs the same schedule and plays nothing "
+                         "(bit-identical to a plain run).")
+    ap.add_argument("--ol-gap", default="5000:9000",
+                    help="min:max gap (ms) between the end of one tone and the next")
+    ap.add_argument("--ol-n", default="1:2", help="number of stimuli per tone, drawn per tone")
+    ap.add_argument("--ol-isi", type=float, default=1075.0,
+                    help="onset-to-onset interval of a two-stimulus tone, ms")
+    ap.add_argument("--ol-dur", default="25:50:100:200", help="stimulus duration(s), ms")
+    ap.add_argument("--ol-level", default="30:45:60:75", help="stimulus level(s), dB")
+    ap.add_argument("--ol-seed", type=int, default=1)
     ap.add_argument("--gh-tc", type=float, default=0.0,
                     help="TC's Ca2+-dependent I_h (ihca.mod) conductance. "
                          "Declared but never actually wired to TCCell until "
@@ -1067,6 +1082,8 @@ def main():
                          "spindle and setting the ~2.5 s refractory period. "
                          "Default 0.0 keeps it off (untested territory).")
     a = ap.parse_args()
+    if a.open_loop and a.closed_loop:
+        ap.error("--open-loop and --closed-loop are mutually exclusive")
 
     if a.sweep_g_re_re:
         pc = h.ParallelContext()
@@ -1343,6 +1360,19 @@ def main():
         if net.rank == 0:
             print("closed loop (%s): %d UP detections, %d scheduled for a tone"
                   % (a.closed_loop, len(cl_extra["cl_t_det"]), int(cl_extra["cl_stim"].sum())))
+    elif a.open_loop:
+        import closed_loop as CL
+        lst = lambda x: [float(v) for v in x.replace(",", ":").split(":")]
+        gap = lst(a.ol_gap)
+        sched = CL.tone_schedule(a.ol_seed, a.tstop, gap=(gap[0], gap[1]),
+                                 n_choices=[int(v) for v in lst(a.ol_n)], isi=a.ol_isi,
+                                 durs=lst(a.ol_dur), levels=lst(a.ol_level))
+        if aud is None and a.open_loop == "stim":
+            aud = AI.AuditoryInput(net, {"seed": a.ol_seed}, a.tstop)  # no preset events
+        wall, cl_extra = CL.run_open_loop(net, aud, a.open_loop, sched, a.tstop)
+        if net.rank == 0:
+            print("open loop (%s): %d tones, %d stimuli"
+                  % (a.open_loop, len(sched), sum(x["n"] for x in sched)))
     else:
         wall = net.run(tstop=a.tstop)
     t, g = net.gather()

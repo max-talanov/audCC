@@ -76,7 +76,7 @@ New module `neuron/stim_phase.py` (offline, from the sham `.npz`):
 
 Tests: unit tests on synthetic sinusoid+burst data; check on the existing 3 `c12_sham` and 3 `cl_*` runs that classification reproduces the known ~25% spindle occupancy and ~68% UP time.
 
-### WP3 - Stimulus protocol in the simulator
+### WP3 - Stimulus protocol in the simulator (done 2026-10-16; E0 prepared in `MN5_NEURON.md`)
 
 Small changes in `closed_loop.py`, `auditory_input.py`, `ctx_thalamus_mpi.py`:
 

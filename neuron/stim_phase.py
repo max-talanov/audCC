@@ -198,13 +198,28 @@ class Run:
                 "sp_phase_after": float(self.phase_a[self.at(peaks[0]["t_peak"])]) if peaks else np.nan}
 
 
-def tone_rows(run, tones, skip=2000.0, w=WIN_MS):
+def tones_of_run(npz):
+    """(times, info) of a run's scheduled tones. info is one dict per tone with
+    the experimental factors: n (stimuli), dur, level, isi for open-loop runs
+    (--open-loop), d (delay after the detected UP) for closed-loop runs."""
+    if "ol_t" in npz.files:
+        t = npz["ol_t"]
+        info = [{"n": int(n), "dur": float(d), "level": float(lv), "isi": float(i)}
+                for n, d, lv, i in zip(npz["ol_n"], npz["ol_dur"], npz["ol_level"], npz["ol_isi"])]
+        return t, info
+    t, d = CLA.tones_of(npz)
+    return t, [{"d": float(x)} for x in d]
+
+
+def tone_rows(run, tones, skip=2000.0, w=WIN_MS, info=None):
     rows = []
-    for t in tones:
+    for i, t in enumerate(tones):
         if t < skip or t > run.T - w - 100.0:
             continue
         r = run.classify(t)
         r.update(run.respond(t, w))
+        if info is not None:
+            r.update(info[i])
         rows.append(r)
     return rows
 
@@ -310,8 +325,8 @@ def collect_pairs(pairs, skip=2000.0):
     for k, (sp, sh) in enumerate(pairs):
         for path, rows in ((sp, stim), (sh, sham)):
             run = Run(path)
-            t, _ = CLA.tones_of(run.z)
-            for r in tone_rows(run, t, skip):
+            t, info = tones_of_run(run.z)
+            for r in tone_rows(run, t, skip, info=info):
                 r["seed"] = k
                 rows.append(r)
     return stim, sham

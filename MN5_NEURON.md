@@ -502,3 +502,58 @@ python3 neuron/cl_analyze.py --pair out/cl_stim_s0.npz=out/cl_sham_s0.npz --pair
 The table gives, per delay `d`, P(UP onset in 300 ms), P(spindle in 300 ms) and
 the TC response, stim vs sham, plus the whole-run SO rate, SO regularity and
 spindles per UP for each seed.
+
+## Stimulation experiments, WP3 and E0 calibration (prepared 2026-10-16)
+
+`PLAN-stimulation-experiments.md`. New run mode `--open-loop {stim,sham}`
+(`neuron/closed_loop.py`: `tone_schedule`, `run_open_loop`): a random tone
+schedule with no detector. A tone starts 5-9 s after the end of the previous
+one (the spindle refractory period is 4-8 s); per tone the number of stimuli
+(`--ol-n 1:2`, second stimulus `--ol-isi` ms later, default 1075), the duration
+(`--ol-dur`) and the level (`--ol-level`) are drawn from lists, so one run
+covers every factor combination at random SO phase. The schedule is
+deterministic in `--ol-seed`, so the stim run and its sham share it. All
+stimuli are queued after `finitialize` and the run is one `psolve`, so **sham
+is bit-identical to a plain run** (verified locally at scale 0.1, 60 s, one
+rank: 228,911 spikes identical; stim differs and plays 12 stimuli for 7 tones).
+Lists use `:` (a `,` is truncated by `sbatch --export`).
+
+**E0 calibration** (WP1 gate): level dose-response with one stimulus, 50 ms:
+`--ol-n 1 --ol-dur 50 --ol-level 25:35:45:55:65:75`, 4 seeds x (stim, sham) =
+8 jobs of ~20 min, ~57 tones per run, ~38 per level over the 4 seeds. Same
+network configuration as C1/C2/C3 (no K_Na), so the thalamic excitability is
+the one being calibrated.
+
+Upload (changed since the C3 runs: `closed_loop.py` and `ctx_thalamus_mpi.py`):
+
+```bash
+rsync -avR neuron/closed_loop.py neuron/ctx_thalamus_mpi.py USER@glogin1.bsc.es:/gpfs/projects/uab100/audCC/
+```
+
+Submit from `/gpfs/projects/uab100/audCC`:
+
+```bash
+C=SCALE=1.65,TSTOP=400000,G_I_E_L5=0.02,G_L5_REC=0.013,TAU2_L5_REC=200,TAUR_L5E_RS=120,L5_REC_MECH=nmda,SPINDLE=stage2
+OL="--ol-n 1 --ol-dur 50 --ol-level 25:35:45:55:65:75"
+for s in 0 1 2 3; do
+  for m in stim sham; do
+    sbatch -A uab100 -q acc_resc --export=ALL,$C,HET_SEED=$s,EXTRA_ARGS="--cx-noise-rate 200 --open-loop $m --ol-seed $s $OL",TAG=ol_cal_${m}_s$s run_ctx_nrn.sh
+  done
+done
+```
+
+Bring back `out/ol_cal_*.npz` and `slurmout_ctx_*.txt`. Checks before reading
+anything:
+
+1. **Sham = plain.** `ol_cal_sham_s0..2` have the flags and `HET_SEED` of
+   `c12_sham_s0..2` (seeds 0-2), so they must equal those runs bit for bit
+   (same one-liner as in the C3 section with the file names changed). Seed 3 has
+   no earlier run.
+2. **Wall time** about 1,190 s as before (one `psolve`, no chunking, so it should
+   be a little faster than the closed loop).
+3. **Schedule** `ol_t`, `ol_level` identical between `ol_cal_stim_s$s` and
+   `ol_cal_sham_s$s`.
+
+The dose-response analysis (TC spikes/cell, P(evoked spindle), P(evoked UP) per
+level, stim vs sham) needs `neuron/stim_phase.py` rows split by `level`; that
+script already reads the schedule (`tones_of_run`).

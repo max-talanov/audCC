@@ -218,5 +218,64 @@ class Stats(unittest.TestCase):
         self.assertEqual(N.sum(), 3)
 
 
+class Schedule(unittest.TestCase):
+    kw = dict(gap=(5000.0, 9000.0), n_choices=(1, 2), isi=1075.0, durs=(25.0, 50.0, 100.0, 200.0),
+              levels=(30.0, 45.0, 60.0, 75.0))
+
+    def test_deterministic_and_seed_dependent(self):
+        import closed_loop as CL
+        a = CL.tone_schedule(1, 400000.0, **self.kw)
+        self.assertEqual(a, CL.tone_schedule(1, 400000.0, **self.kw))
+        self.assertNotEqual(a, CL.tone_schedule(2, 400000.0, **self.kw))
+
+    def test_spacing_bounds_and_choices(self):
+        import closed_loop as CL
+        T = 400000.0
+        sch = CL.tone_schedule(3, T, **self.kw)
+        self.assertGreater(len(sch), 40)
+        self.assertGreaterEqual(sch[0]["t"], 2000.0 + 5000.0)
+        for a, b in zip(sch, sch[1:]):
+            end = a["t"] + (a["n"] - 1) * a["isi"]
+            self.assertGreaterEqual(b["t"] - end, 5000.0 - 1e-6)
+            self.assertLessEqual(b["t"] - end, 9000.0 + 1e-6)
+        last = sch[-1]
+        self.assertLessEqual(last["t"] + (last["n"] - 1) * last["isi"] + 1500.0, T)
+        for x in sch:
+            self.assertIn(x["n"], (1, 2))
+            self.assertIn(x["dur"], self.kw["durs"])
+            self.assertIn(x["level"], self.kw["levels"])
+        self.assertEqual({x["n"] for x in sch}, {1, 2})
+
+    def test_factors_are_balanced_over_many_tones(self):
+        import closed_loop as CL
+        lv = [x["level"] for sd in range(12) for x in CL.tone_schedule(sd, 400000.0, **self.kw)]
+        for v in self.kw["levels"]:
+            self.assertGreater(lv.count(v) / len(lv), 0.18)
+
+    def test_shorter_run_is_a_prefix(self):
+        import closed_loop as CL
+        long = CL.tone_schedule(5, 400000.0, **self.kw)
+        short = CL.tone_schedule(5, 100000.0, **self.kw)
+        self.assertEqual(short, long[:len(short)])
+
+
+class ToneInfo(unittest.TestCase):
+    def test_open_loop_and_closed_loop_tone_sources(self):
+        d = tempfile.mkdtemp()
+        p = os.path.join(d, "ol.npz")
+        np.savez(p, ol_t=np.array([8000.0, 20000.0]), ol_n=np.array([1, 2]),
+                 ol_dur=np.array([50.0, 100.0]), ol_level=np.array([45.0, 60.0]),
+                 ol_isi=np.array([1075.0, 1075.0]), tstop=40000.0)
+        t, info = SP.tones_of_run(np.load(p, allow_pickle=True))
+        self.assertEqual(list(t), [8000.0, 20000.0])
+        self.assertEqual(info[1], {"n": 2, "dur": 100.0, "level": 60.0, "isi": 1075.0})
+        p = os.path.join(d, "cl.npz")
+        np.savez(p, cl_t_det=np.array([3000.0, 6000.0]), cl_d=np.array([200.0, 400.0]),
+                 cl_stim=np.array([1, 0]), tstop=40000.0)
+        t, info = SP.tones_of_run(np.load(p, allow_pickle=True))
+        self.assertEqual(list(t), [3200.0])
+        self.assertEqual(info, [{"d": 200.0}])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

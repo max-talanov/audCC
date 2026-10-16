@@ -136,6 +136,64 @@ def run_closed_loop(net, aud, mode, delays, every=2, level=60.0, dur=50.0,
     return wall, out
 
 
+def tone_schedule(seed, tstop, gap=(5000.0, 9000.0), n_choices=(1,), isi=1075.0,
+                  durs=(50.0,), levels=(45.0,), skip=2000.0, end_guard=1500.0):
+    """Open-loop tone schedule for the stimulation experiments
+    (PLAN-stimulation-experiments.md WP3). Deterministic in `seed`, so a stim
+    run and its sham run share the schedule, and independent of rank count.
+
+    Tone k starts 5-9 s (uniform over `gap`) after the END of the previous one
+    (the last stimulus of tone k-1), long enough for the spindle refractory
+    period (4-8 s) and the ~1 s evoked response. Per tone, the number of
+    stimuli (1 or 2, spaced `isi` ms apart, onset to onset), the duration and
+    the level are drawn from the choice lists, so one run covers every
+    combination of the experimental factors in random SO phase.
+    Returns a list of dicts t (first stimulus), n, isi, dur, level."""
+    out, t, k = [], float(skip), 0
+    while True:
+        r = np.random.default_rng([int(seed), 17, k])
+        t += float(r.uniform(*gap))
+        n = int(r.choice(n_choices))
+        dur = float(r.choice(durs))
+        lv = float(r.choice(levels))
+        if t + (n - 1) * isi + end_guard > tstop:
+            return out
+        out.append({"t": t, "n": n, "isi": float(isi), "dur": dur, "level": lv})
+        t += (n - 1) * isi
+        k += 1
+
+
+def run_open_loop(net, aud, mode, sched, tstop, celsius=36.0, dt=0.025):
+    """Drop-in replacement for net.run() that plays the scheduled tones
+    ("stim") or logs the same schedule and plays nothing ("sham"). Every
+    stimulus is queued up front (after finitialize), so a sham run is the same
+    single psolve as a plain run and is bit-identical to it. Returns
+    (wall_seconds, log_dict)."""
+    import time
+    assert mode in ("stim", "sham")
+    if mode == "stim":
+        assert aud is not None, "stim mode needs an AuditoryInput"
+    from neuron import h
+    pc = net.pc
+    pc.set_maxstep(10)
+    h.celsius, h.dt = celsius, dt
+    h.finitialize(-70)
+    if mode == "stim":
+        for tone in sched:
+            for j in range(tone["n"]):
+                aud.queue_tone(tone["t"] + j * tone["isi"], tone["dur"], tone["level"])
+    t0 = time.time()
+    pc.psolve(tstop)
+    wall = pc.allreduce(time.time() - t0, 2)
+    out = {"ol_mode": mode,
+           "ol_t": np.array([x["t"] for x in sched]),
+           "ol_n": np.array([x["n"] for x in sched], int),
+           "ol_isi": np.array([x["isi"] for x in sched]),
+           "ol_dur": np.array([x["dur"] for x in sched]),
+           "ol_level": np.array([x["level"] for x in sched])}
+    return wall, out
+
+
 def chunk_counts(t, g, ranges, tstop, chunk_ms=5.0):
     """Per-chunk L5E+L6E spike counts from recorded spikes, and n_cx."""
     m = np.zeros(len(t), bool)

@@ -41,7 +41,7 @@ def collect(pairs, skip=2000.0):
     for sp, sh in pairs:
         for arm, path in (("stim", sp), ("sham", sh)):
             run = SPH.Run(path)
-            tones, _ = CLA.tones_of(run.z)
+            tones, _ = SPH.tones_of_run(run.z)
             rows = [r for r in SPH.tone_rows(run, tones, skip)
                     if r["t"] - PRE >= 0 and r["t"] + POST <= run.T]
             S[arm].append((rows, arm_psth(run, rows)))

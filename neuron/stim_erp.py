@@ -61,7 +61,7 @@ def collect(pairs, skip=2000.0):
         lf_sham, st = channels(runs["sham"].z)
         lf = {"sham": lf_sham, "stim": channels(runs["stim"].z, st)[0]}
         for arm in ("stim", "sham"):
-            tones, _ = CLA.tones_of(runs[arm].z)
+            tones, _ = SPH.tones_of_run(runs[arm].z)
             rows = SPH.tone_rows(runs[arm], tones, skip)
             S[arm].append(erps(lf[arm], rows))
     return S
