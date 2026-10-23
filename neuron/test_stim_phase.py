@@ -252,6 +252,21 @@ class Schedule(unittest.TestCase):
         for v in self.kw["levels"]:
             self.assertGreater(lv.count(v) / len(lv), 0.18)
 
+    def test_isi_list_and_scalar_compat(self):
+        import closed_loop as CL
+        kw = dict(self.kw)
+        kw.pop("isi")
+        a = CL.tone_schedule(7, 400000.0, isi=1075.0, **kw)
+        b = CL.tone_schedule(7, 400000.0, isi=[1075.0], **kw)
+        self.assertEqual(a, b)
+        many = CL.tone_schedule(7, 400000.0, isi=[600.0, 1000.0, 1250.0, 2000.0],
+                                gap=(5000.0, 9000.0), n_choices=(2, 5, 10), durs=(50.0,), levels=(35.0,))
+        self.assertEqual({x["isi"] for x in many}, {600.0, 1000.0, 1250.0, 2000.0})
+        for x, y in zip(many, many[1:]):
+            gap = y["t"] - (x["t"] + (x["n"] - 1) * x["isi"])
+            self.assertGreaterEqual(gap, 5000.0 - 1e-6)
+            self.assertLessEqual(gap, 9000.0 + 1e-6)
+
     def test_shorter_run_is_a_prefix(self):
         import closed_loop as CL
         long = CL.tone_schedule(5, 400000.0, **self.kw)

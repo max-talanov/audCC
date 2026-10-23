@@ -557,3 +557,48 @@ anything:
 The dose-response analysis (TC spikes/cell, P(evoked spindle), P(evoked UP) per
 level, stim vs sham) needs `neuron/stim_phase.py` rows split by `level`; that
 script already reads the schedule (`tones_of_run`).
+
+## F1 frequency comparison (prepared 2026-10-23)
+
+Trains of 50 ms stimuli at the stimulation rates of the sleep-stimulation
+literature (`PLAN-stimulation-experiments.md`, section 9). `--open-loop` with a
+list of inter-stimulus intervals (`--ol-isi`, rate = 1000/isi Hz, drawn per
+train) and n = 1 or 10 stimuli per train. The schedule scalar behaviour is
+unchanged (the E0 schedule is reproduced exactly), so earlier runs stay valid.
+
+Level 35 dB, 50 ms; rates 0.5, 0.8, 1.0, 1.67 Hz; 8 seeds x (stim, sham) = 16
+jobs (about 32 trains per rate; add seeds 8-15 for more). `HET_SEED` 0-7 so seeds
+0-2 can still be checked against `c12_sham_s0..2` (bit identity); schedule seeds
+`--ol-seed 10+s` differ from E0.
+
+Upload (changed since E0: `closed_loop.py`, `ctx_thalamus_mpi.py`):
+
+```bash
+cd /Users/maxtalanov/Projects/memBrain/audCC/audCC
+rsync -avR neuron/closed_loop.py neuron/ctx_thalamus_mpi.py uom971204@glogin1.bsc.es:/gpfs/projects/uab100/audCC/
+```
+
+Check on MN5 that both files landed (the E0 batch failed once because they did
+not): `grep -c "ol-isi" neuron/ctx_thalamus_mpi.py` must be at least 2, and
+`md5sum` must match your local `md5 -r neuron/closed_loop.py neuron/ctx_thalamus_mpi.py`.
+
+Submit from `/gpfs/projects/uab100/audCC`:
+
+```bash
+cd /gpfs/projects/uab100/audCC
+C=SCALE=1.65,TSTOP=400000,G_I_E_L5=0.02,G_L5_REC=0.013,TAU2_L5_REC=200,TAUR_L5E_RS=120,L5_REC_MECH=nmda,SPINDLE=stage2
+OL="--ol-n 1:10 --ol-isi 2000:1250:1000:600 --ol-dur 50 --ol-level 35"
+for s in 0 1 2 3 4 5 6 7; do
+  for m in stim sham; do
+    sbatch -A uab100 -q acc_resc --export=ALL,$C,HET_SEED=$s,EXTRA_ARGS="--cx-noise-rate 200 --open-loop $m --ol-seed $((10+s)) $OL",TAG=f1_${m}_s$s run_ctx_nrn.sh
+  done
+done
+```
+
+Bring back `out/f1_*.npz` and `slurmout_ctx_*.txt` to a new folder under `res/`.
+Checks: sham seeds 0-2 equal `c12_sham_s0..2` bit for bit, wall time about
+1,190 s, schedules identical between stim and sham. Then:
+
+```bash
+python3 neuron/stim_train.py $(for s in 0 1 2 3 4 5 6 7; do echo --pair out/f1_stim_s$s.npz=out/f1_sham_s$s.npz; done) --cache res/f1_rows.pkl --out-prefix figures/f1 --out-txt res/f1_table.txt
+```

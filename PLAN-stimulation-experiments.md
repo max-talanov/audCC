@@ -150,3 +150,45 @@ About 57 node-hours for E0-E2, to be checked against the MN5 allocation. E1 give
 | Thalamic LFP proxy not comparable to a measured field | label as proxy; show also the TC/RE rate |
 | Evoked responses overlapping in time | gaps of 5-9 s; skip tones inside the previous response window |
 | Model SO phase convention differs from the experiment | WP0.1, documented once in the methods |
+
+## 9. Stimulation rates from the literature (added 2026-10-23)
+
+Focus 2 of the current work: compare stimulation frequencies used in human
+sleep studies, in the model. What the literature search gave (only what was
+confirmed in the sources; the rest is marked "not verified"):
+
+| Protocol | Source | Rate / structure |
+|---|---|---|
+| Rhythmic, fixed rate | Ngo et al. 2013 (J Sleep Res), [arXiv 1407.7999](https://ar5iv.labs.arxiv.org/html/1407.7999) | 0.8 Hz tones, compared with random tones and sham; entrains SO once sleep is established, delays sleep onset if started before sleep |
+| Rhythmic, fixed rate, in blocks | Tononi group (Bellesi et al. 2014, as described in [Frontiers 2017](https://www.frontiersin.org/journals/human-neuroscience/articles/10.3389/fnhum.2017.00109/text)) | 50 ms tones at a fixed 1 Hz, 15-tone blocks alternating with silence |
+| Phase-locked pair | Ngo et al. 2013 (Neuron) | clicks in phase with the SO up state enhance SO, spindles and memory; out of phase ineffective. The 1.075 s click interval is **not verified** from the sources found |
+| Phase-locked, more clicks | Ngo et al. 2015 (J Neurosci), as cited in [Debellemanière et al. 2022](https://pmc.ncbi.nlm.nih.gov/articles/PMC9788124) | little added benefit beyond two clicks, attributed to a refractory period, especially for fast spindles |
+| Phase-locked 5-click sequence | Papalambros et al. 2017, same citation | a five-click sequence benefited SO and fast spindles for each click |
+| Trains with SO-matched interval | Debellemanière et al. 2022 | 10 clicks of 50 ms, 40 dB; only the first is closed-loop, the others follow at a fixed interval matched to each subject's mean SO frequency; 10 s pause after each train |
+| Single phase-locked stimuli | Koller et al. 2025 ([bioRxiv](https://www.biorxiv.org/content/10.1101/2025.03.04.639851.full.pdf)) | one 286 ms sound per stimulation, timed to the SO negative-to-positive transition (0 deg in their convention); 4.5 s pause after each; SO and delta rise, **fast spindles fall**, partly because the sound interrupts ongoing spindles; the response to later pulses of a train "quickly fades out" |
+
+Open point for Edo: "Hongi's paper" is probably by Hong-Viet Ngo (the Ngo
+papers above) but that is a guess; which paper's ERP layout should we copy?
+Koller et al. use ERP epochs from -1.5 to 3.5 s around the stimulus.
+
+### What the model can compare
+
+The model's SO rate is 0.77 Hz (period about 1.3 s), so 0.8 Hz stimulation is
+almost resonant with it, 1 Hz drifts through all phases, 0.5 Hz is slower than
+the SO and 1.67 Hz is about twice as fast. The questions: does a rhythmic train
+entrain the UP states (vector strength of UP onsets in the stimulation period),
+does the response fade along the train (the refractory period of the
+literature), does the UP and spindle rate change during and after the train.
+
+**F1 design** (`MN5_NEURON.md`, "F1 frequency comparison"): 50 ms stimuli at 35
+dB, trains of n = 1 (the single-stimulus reference) or n = 10, stimulation rates
+0.5 / 0.8 / 1.0 / 1.67 Hz (`--ol-isi 2000:1250:1000:600`), 5-9 s after the end
+of each train. 8 seeds x (stim, sham) = 16 jobs, about 32 trains per rate. The
+level follows E0: TC response is graded (0.62 to 2.38 spikes/cell from 25 to 75
+dB), the evoked-spindle probability is already 60-80% at 25-75 dB, so 35 dB is
+low but not subthreshold; the K_Na variant is a later control.
+
+Analysis: `neuron/stim_train.py` (per pulse index: TC response, P(UP),
+P(spindle); per train: UP rate, entrainment vector strength with Rayleigh test,
+UP and spindle rate 1-6 s after the train; stim vs sham), tested on synthetic
+data (`neuron/test_stim_train.py`).

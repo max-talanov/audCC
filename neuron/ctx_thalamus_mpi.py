@@ -1067,8 +1067,9 @@ def main():
     ap.add_argument("--ol-gap", default="5000:9000",
                     help="min:max gap (ms) between the end of one tone and the next")
     ap.add_argument("--ol-n", default="1:2", help="number of stimuli per tone, drawn per tone")
-    ap.add_argument("--ol-isi", type=float, default=1075.0,
-                    help="onset-to-onset interval of a two-stimulus tone, ms")
+    ap.add_argument("--ol-isi", default="1075",
+                    help="onset-to-onset interval(s) of a multi-stimulus tone, ms "
+                         "(stimulation rate = 1000/isi Hz); a ':' list is drawn per tone")
     ap.add_argument("--ol-dur", default="25:50:100:200", help="stimulus duration(s), ms")
     ap.add_argument("--ol-level", default="30:45:60:75", help="stimulus level(s), dB")
     ap.add_argument("--ol-seed", type=int, default=1)
@@ -1365,7 +1366,7 @@ def main():
         lst = lambda x: [float(v) for v in x.replace(",", ":").split(":")]
         gap = lst(a.ol_gap)
         sched = CL.tone_schedule(a.ol_seed, a.tstop, gap=(gap[0], gap[1]),
-                                 n_choices=[int(v) for v in lst(a.ol_n)], isi=a.ol_isi,
+                                 n_choices=[int(v) for v in lst(a.ol_n)], isi=lst(a.ol_isi),
                                  durs=lst(a.ol_dur), levels=lst(a.ol_level))
         if aud is None and a.open_loop == "stim":
             aud = AI.AuditoryInput(net, {"seed": a.ol_seed}, a.tstop)  # no preset events

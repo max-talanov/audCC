@@ -41,8 +41,8 @@ def collect(pairs, skip=2000.0):
     for sp, sh in pairs:
         for arm, path in (("stim", sp), ("sham", sh)):
             run = SPH.Run(path)
-            tones, _ = SPH.tones_of_run(run.z)
-            rows = [r for r in SPH.tone_rows(run, tones, skip)
+            tones, info = SPH.tones_of_run(run.z)
+            rows = [r for r in SPH.tone_rows(run, tones, skip, info=info)
                     if r["t"] - PRE >= 0 and r["t"] + POST <= run.T]
             S[arm].append((rows, arm_psth(run, rows)))
     return S
@@ -96,16 +96,26 @@ def main(argv=None):
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--pair", action="append", required=True)
     ap.add_argument("--out-prefix", required=True)
+    ap.add_argument("--split", default="phase,spindle",
+                    help="comma list of column splits: phase, spindle, level (open-loop runs)")
     a = ap.parse_args(argv)
     S = collect([p.split("=", 1) for p in a.pair])
     ttl = ("Tone-locked population rate per cell type (20 ms bins), mean +/- SEM over tones\n"
            "stim = real tone, sham = fake tone at the same point of the closed loop")
-    cols = [("all tones", lambda r: True)] + [
-        (f"SO {n}", (lambda b: lambda r: r["so_bin"] == b)(b)) for b, n in enumerate(SPH.SO_NAMES)]
-    figure(S, cols, a.out_prefix + "_by_so_phase.png", ttl + "\ncolumns: SO phase at the tone (causal estimate)")
-    cols = [("no spindle at tone", lambda r: not r["sp_present"]),
-            ("spindle present at tone", lambda r: r["sp_present"])]
-    figure(S, cols, a.out_prefix + "_by_spindle.png", ttl + "\ncolumns: spindle at the tone")
+    sp = a.split.split(",")
+    if "phase" in sp:
+        cols = [("all tones", lambda r: True)] + [
+            (f"SO {n}", (lambda b: lambda r: r["so_bin"] == b)(b)) for b, n in enumerate(SPH.SO_NAMES)]
+        figure(S, cols, a.out_prefix + "_by_so_phase.png", ttl + "\ncolumns: SO phase at the tone (causal estimate)")
+    if "spindle" in sp:
+        cols = [("no spindle at tone", lambda r: not r["sp_present"]),
+                ("spindle present at tone", lambda r: r["sp_present"])]
+        figure(S, cols, a.out_prefix + "_by_spindle.png", ttl + "\ncolumns: spindle at the tone")
+    if "level" in sp:
+        levels = sorted({r["level"] for arm in S.values() for rows, _ in arm for r in rows})
+        cols = [("all tones", lambda r: True)] + [
+            (f"{lv:g} dB", (lambda v: lambda r: r["level"] == v)(lv)) for lv in levels]
+        figure(S, cols, a.out_prefix + "_by_level.png", ttl + "\ncolumns: stimulus level")
     return 0
 
 

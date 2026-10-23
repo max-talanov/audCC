@@ -147,7 +147,9 @@ def tone_schedule(seed, tstop, gap=(5000.0, 9000.0), n_choices=(1,), isi=1075.0,
     period (4-8 s) and the ~1 s evoked response. Per tone, the number of
     stimuli (1 or 2, spaced `isi` ms apart, onset to onset), the duration and
     the level are drawn from the choice lists, so one run covers every
-    combination of the experimental factors in random SO phase.
+    combination of the experimental factors in random SO phase. `isi` may be a
+    list (stimulation rate = 1000/isi Hz, drawn per tone, after all other
+    draws, so a scalar `isi` gives the same schedule as before).
     Returns a list of dicts t (first stimulus), n, isi, dur, level."""
     out, t, k = [], float(skip), 0
     while True:
@@ -156,10 +158,11 @@ def tone_schedule(seed, tstop, gap=(5000.0, 9000.0), n_choices=(1,), isi=1075.0,
         n = int(r.choice(n_choices))
         dur = float(r.choice(durs))
         lv = float(r.choice(levels))
-        if t + (n - 1) * isi + end_guard > tstop:
+        isi_k = float(r.choice(np.atleast_1d(isi)))
+        if t + (n - 1) * isi_k + end_guard > tstop:
             return out
-        out.append({"t": t, "n": n, "isi": float(isi), "dur": dur, "level": lv})
-        t += (n - 1) * isi
+        out.append({"t": t, "n": n, "isi": isi_k, "dur": dur, "level": lv})
+        t += (n - 1) * isi_k
         k += 1
 
 
