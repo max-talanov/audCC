@@ -579,8 +579,12 @@ rsync -avR neuron/closed_loop.py neuron/ctx_thalamus_mpi.py uom971204@glogin1.bs
 ```
 
 Check on MN5 that both files landed (the E0 batch failed once because they did
-not): `grep -c "ol-isi" neuron/ctx_thalamus_mpi.py` must be at least 2, and
-`md5sum` must match your local `md5 -r neuron/closed_loop.py neuron/ctx_thalamus_mpi.py`.
+not): `grep -c "lst(a.ol_isi)" neuron/ctx_thalamus_mpi.py` must print 1 and
+`md5sum neuron/closed_loop.py neuron/ctx_thalamus_mpi.py` must give
+`4d6db5547e73318f97d598037533b327` and `5715327ff9be5b625d0a1bb348f3f0c7`
+(the files of commit `af842dc`; compare with your local `md5 -r` if they change).
+Then submit seed 0 stim alone and wait until its `slurmout_ctx_*.txt` shows
+`open loop (stim): N tones` before submitting the rest.
 
 Submit from `/gpfs/projects/uab100/audCC`:
 
