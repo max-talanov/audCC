@@ -38,9 +38,12 @@ cluster**. File paths are relative to the repository root.
   level alone.
 - **Frequencies from the literature** (0.8 Hz rhythmic, 1 Hz blocks,
   phase-locked pairs, 5- and 10-click trains, single stimuli with pauses) are
-  summarised in section 5. The simulator now takes the stimulation rate per
-  train, the analysis (`neuron/stim_train.py`) measures fading along the train,
-  UP entrainment and post-train effects, and a 16-job batch (F1) is ready.
+  summarised in section 5. The F1 batch (10-pulse trains at 0.5, 0.8, 1.0 and
+  1.67 Hz, 7 seeds) shows that stimulation locks UP onsets to the pulses at
+  every rate, more strongly and with more UP states at higher rates (R 0.38 and
+  0.94 UP/s at 1.67 Hz vs R 0.23 and 0.75 at 0.5 Hz; sham 0.1 and 0.7). The
+  lock at the model's own SO rate (0.8 Hz) is the weakest, the response does not
+  fade along the train, and there is no clear effect 1-6 s after it.
 
 ## 2. Methods in brief
 
@@ -210,28 +213,72 @@ onto four measures:
 | no lasting effect after the train | UP and spindle rate 1-6 s after the train, stim vs sham |
 | fast spindles are depressed | spindle rate during and after the train; spindle continuation after a stimulus (not yet implemented) |
 
-### F1 design (ready, not yet submitted)
+### F1 design
 
-- 50 ms stimuli at 35 dB (TC response 1.05 spikes/cell, in the graded range of
+- 50 ms stimuli at 35 dB (TC response about 1 spike/cell, in the graded range of
   figure 1);
 - trains of n = 1 (the single-stimulus reference, as in Koller et al.) or n = 10
   (as in Debellemanière et al.);
 - rates 0.5, 0.8, 1.0 and 1.67 Hz (`--ol-isi 2000:1250:1000:600`), drawn per
   train, with 5-9 s between the end of a train and the next;
-- 8 seeds x (stim, sham) = 16 jobs of about 20 minutes, about 32 trains per rate;
+- 8 seeds x (stim, sham) = 16 jobs of about 20 minutes;
 - recipe, upload and checks in `MN5_NEURON.md` ("F1 frequency comparison").
 
-The tone schedule with a list of intervals reproduces the E0 schedule exactly,
-so earlier runs remain valid. The analysis code passes 4 synthetic-data tests
-(entrainment at the SO rate gives a vector strength above 0.9, a drifting rate a
-lower one), and the schedule code 5. The local NEURON cannot be started now
-(the venv's Python 3.14 is not supported by this NEURON build), so the F1 batch
-is the first real run of multi-stimulus trains; check that the first jobs start
-before submitting all 16.
+Run on MN5 on 100 ranks (jobs 47997979-47997993, 1,170-1,210 s each, one sham
+run 1,442 s). 15 of 16 files came back: the seed-0 stim test job stayed in the
+queue for days and was skipped, so the analysis uses seeds 1-7 (7 pairs, 23-33
+trains of n = 10 per rate). Each stim run has 29-35 trains and 152-204 stimuli,
+and the stim and sham schedules are identical. The sham runs of seeds 0-2 are
+bit-identical to the earlier plain runs. The n = 1 trains are not analysed here.
+
+### F1 results
+
+![Response along the train](../figures/f1_per_pulse.png)
+
+![Entrainment and post-train rates](../figures/f1_entrainment.png)
+
+Stim vs sham, n = 10 trains (sham uses the same pulse times without sound):
+
+| Rate | Trains | UP onsets/s in train | UP vector strength R | UP/s 1-6 s after | spindles/s 1-6 s after |
+|---|---|---|---|---|---|
+| 1.67 Hz | 33 | 0.94 vs 0.68 | 0.38 (p < 0.001) vs 0.09 (p = 0.30) | 0.76 vs 0.69 | 0.50 vs 0.43 |
+| 1.00 Hz | 32 | 0.86 vs 0.72 | 0.24 (p < 0.001) vs 0.03 (p = 0.81) | 0.75 vs 0.66 | 0.51 vs 0.41 |
+| 0.80 Hz | 26 | 0.83 vs 0.72 | 0.19 (p < 0.001) vs 0.01 (p = 0.97) | 0.72 vs 0.75 | 0.48 vs 0.46 |
+| 0.50 Hz | 23 | 0.75 vs 0.71 | 0.23 (p < 0.001) vs 0.01 (p = 0.96) | 0.69 vs 0.70 | 0.46 vs 0.43 |
+
+What it shows:
+
+- **Stimulation locks UP onsets to the pulses at every rate.** Vector strength is
+  significant for stim and not for sham at all four rates.
+- **The faster the rate, the stronger the lock and the more UP states.** At 1.67
+  Hz the UP rate in the train rises from 0.68 to 0.94 per second; at 0.5 Hz it
+  barely changes (0.71 to 0.75). The model's own SO rate is 0.77 Hz, so the
+  expected resonance at 0.8 Hz is **not** seen: 0.8 Hz has the weakest lock.
+  Part of the high-rate effect is that a pulse every 0.6 s has more chances to
+  start an UP state within 300 ms; the table does not separate this from true
+  rhythm entrainment.
+- **No fading along the train.** The TC response is flat across pulses 1-10 at
+  every rate (about 1.0 spikes/cell, sham 0.1). The literature reports fading
+  (refractoriness, Ngo 2015, Koller 2025); the model does not show it, which fits
+  the over-excitable thalamus found in E0. P(UP) and P(spindle) per pulse are
+  noisy (23-33 trains per point) with no clear trend, and sit above sham
+  throughout (P(spindle) 0.35-0.9 vs 0.1-0.2).
+- **No clear lasting effect.** UP and spindle rates 1-6 s after the train differ
+  from sham by a few hundredths to a tenth per second, in both directions (UP at
+  0.8 and 0.5 Hz is slightly below sham). No confidence intervals are computed
+  for these rates, so none of these differences should be read as an effect.
+- **Fast spindles are not depressed** in this measure: the spindle rate after the
+  train is equal to or above sham. The spindle-interruption measure (does a
+  stimulus end an ongoing spindle?) is still not implemented, so this claim is
+  open.
+
+Limits: seed 0 is missing; the rates have no bootstrap confidence intervals;
+the vector-strength comparison is between stim and the sham clock, not between
+rates; the pulses are not phase-locked to the SO (open loop).
 
 ## 6. Next steps
 
-1. Run F1 on MN5 and analyse it (section 5).
+1. Add bootstrap confidence intervals to the F1 rates, seed 0, and the n = 1 trains; phase-locked trains.
 2. Reduce the thalamic excitability (K_Na at full scale, IC-to-TC weight, levels
    below 25 dB) and repeat E0, since stimulation rate comparisons depend on it.
 3. Add the spindle-interruption measure (does the stimulus end an ongoing
@@ -249,5 +296,5 @@ before submitting all 16.
 | Simulator | `neuron/closed_loop.py` (`tone_schedule`, `run_open_loop`), `neuron/ctx_thalamus_mpi.py` (`--open-loop`, `--ol-*`) |
 | Recipes | `MN5_NEURON.md` (E0, F1) |
 | Plan | `PLAN-stimulation-experiments.md` (section 9: rates from the literature) |
-| Figures | `figures/e0_*.png` |
+| Figures | `figures/e0_*.png`, `figures/f1_*.png` |
 | Commits | `bb7fb9b` (open-loop mode), `acdff0f` (E0 analysis and rate tools) |
