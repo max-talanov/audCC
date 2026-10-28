@@ -113,6 +113,60 @@ def summary(D, min_n=1):
     return lines
 
 
+def _stats(rs):
+    """UP rate in the train, vector strength, post-train UP and spindle rates of train rows."""
+    if not rs:
+        return [np.nan] * 4
+    up = sum(r["n_up"] for r in rs) / (sum(r["span"] for r in rs) / 1000.0)
+    ph = np.concatenate([r["phases"] for r in rs])
+    R = rayleigh(ph)[1] if len(ph) else np.nan
+    return [up, R, np.mean([r["post_up_hz"] for r in rs]), np.mean([r["post_sp_hz"] for r in rs])]
+
+
+def bootstrap_summary(D, n_boot=2000, seed=0, level=95.0):
+    """Two-level bootstrap (seeds, then trains within a seed) of the rates in `summary`.
+
+    The same seed resample is used for stim and sham, so the stim - sham difference is paired.
+    Returns lines: per protocol and measure the stim, sham and difference with a percentile CI."""
+    names = ["UP/s in train", "UP vector strength R", "UP/s after", "spindles/s after"]
+    lo, hi = (100 - level) / 2, 100 - (100 - level) / 2
+    rng = np.random.default_rng(seed)
+    lines = [f"{level:.0f}% bootstrap CI, {n_boot} resamples of seeds then trains (stim, sham, stim - sham)"]
+    for n, isi in protocols(D):
+        if n < 2:
+            continue
+        by = {}
+        for arm in ("stim", "sham"):
+            for r in D[arm][1]:
+                if (r["n"], r["isi"]) == (n, isi):
+                    by.setdefault(arm, {}).setdefault(r["seed"], []).append(r)
+        seeds = sorted(set(by.get("stim", {})) & set(by.get("sham", {})))
+        if not seeds:
+            continue
+        draws = np.empty((n_boot, 3, 4))
+        for b in range(n_boot):
+            pick = rng.choice(seeds, len(seeds))
+            arms = {}
+            for arm in ("stim", "sham"):
+                rs = []
+                for sd in pick:
+                    g = by[arm][sd]
+                    rs.extend(g[i] for i in rng.integers(0, len(g), len(g)))
+                arms[arm] = _stats(rs)
+            draws[b, 0], draws[b, 1] = arms["stim"], arms["sham"]
+            draws[b, 2] = np.array(arms["stim"]) - np.array(arms["sham"])
+        pt = [_stats([r for sd in seeds for r in by[arm][sd]]) for arm in ("stim", "sham")]
+        lines.append(f"{n} @ {1000/isi:4.2f} Hz ({len(seeds)} seeds)")
+        for m, name in enumerate(names):
+            cells = []
+            for k, v in enumerate([pt[0][m], pt[1][m], pt[0][m] - pt[1][m]]):
+                a, c = np.nanpercentile(draws[:, k, m], [lo, hi])
+                cells.append(f"{v:5.2f} [{a:5.2f}, {c:5.2f}]")
+            sig = "*" if np.nanpercentile(draws[:, 2, m], lo) > 0 or np.nanpercentile(draws[:, 2, m], hi) < 0 else " "
+            lines.append(f"   {name:>22} | " + " | ".join(cells) + f" {sig}")
+    return lines
+
+
 def figures(D, out_prefix):
     import matplotlib
     matplotlib.use("Agg")
@@ -181,7 +235,7 @@ def main(argv=None):
         D = collect([p.split("=", 1) for p in a.pair])
         if a.cache:
             pickle.dump(D, open(a.cache, "wb"))
-    txt = "\n".join(summary(D))
+    txt = "\n".join(summary(D) + [""] + bootstrap_summary(D))
     print(txt)
     if a.out_txt:
         open(a.out_txt, "w").write(txt + "\n")

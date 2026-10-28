@@ -246,17 +246,38 @@ Stim vs sham, n = 10 trains (sham uses the same pulse times without sound):
 | 0.80 Hz | 26 | 0.83 vs 0.72 | 0.19 (p < 0.001) vs 0.01 (p = 0.97) | 0.72 vs 0.75 | 0.48 vs 0.46 |
 | 0.50 Hz | 23 | 0.75 vs 0.71 | 0.23 (p < 0.001) vs 0.01 (p = 0.96) | 0.69 vs 0.70 | 0.46 vs 0.43 |
 
+Bootstrap confidence intervals (95%, 2,000 resamples of seeds, then trains
+within each seed; the same seed resample is used for stim and sham, so the
+difference is paired). Stim - sham, with the interval in brackets; * = interval
+excludes 0:
+
+| Rate | UP/s in train | UP vector strength R | UP/s after | spindles/s after |
+|---|---|---|---|---|
+| 1.67 Hz (6 seeds) | 0.26 [0.15, 0.40] * | 0.28 [0.10, 0.41] * | 0.07 [-0.04, 0.18] | 0.07 [-0.06, 0.17] |
+| 1.00 Hz | 0.14 [0.04, 0.25] * | 0.21 [0.10, 0.29] * | 0.09 [-0.04, 0.21] | 0.11 [0.01, 0.22] * |
+| 0.80 Hz | 0.11 [0.02, 0.19] * | 0.18 [-0.11, 0.24] | -0.03 [-0.19, 0.13] | 0.02 [-0.07, 0.13] |
+| 0.50 Hz | 0.04 [-0.03, 0.12] | 0.22 [0.11, 0.27] * | -0.02 [-0.15, 0.12] | 0.03 [-0.08, 0.12] |
+
+Stim and sham values with their own intervals are in `res/2026-10-27/f1_table.txt`.
+The 1.67 Hz row has 6 seeds because one seed had no 1.67 Hz train in both arms.
+The vector-strength intervals are biased: resampling repeats phases, which
+raises R for small samples (the sham value of 0.01 at 0.8 Hz lies below its own
+interval). Use the Rayleigh tests in the table above for whether R differs from
+chance, and read the R intervals only as a rough size.
+
 What it shows:
 
 - **Stimulation locks UP onsets to the pulses at every rate.** Vector strength is
-  significant for stim and not for sham at all four rates.
-- **The faster the rate, the stronger the lock and the more UP states.** At 1.67
-  Hz the UP rate in the train rises from 0.68 to 0.94 per second; at 0.5 Hz it
-  barely changes (0.71 to 0.75). The model's own SO rate is 0.77 Hz, so the
-  expected resonance at 0.8 Hz is **not** seen: 0.8 Hz has the weakest lock.
-  Part of the high-rate effect is that a pulse every 0.6 s has more chances to
-  start an UP state within 300 ms; the table does not separate this from true
-  rhythm entrainment.
+  significant for stim and not for sham at all four rates (Rayleigh); the paired
+  intervals agree at 1.67, 1.0 and 0.5 Hz, and at 0.8 Hz the interval includes 0
+  but is affected by the bias above.
+- **More UP states per second at 1.67, 1.0 and 0.8 Hz, not at 0.5 Hz.** The gain
+  is +0.26 [0.15, 0.40] at 1.67 Hz, +0.14 at 1.0 Hz, +0.11 at 0.8 Hz and +0.04
+  [-0.03, 0.12] at 0.5 Hz. The model's own SO rate is 0.77 Hz, so the expected
+  resonance at 0.8 Hz is **not** seen: 0.8 Hz has the weakest lock. Part of the
+  high-rate effect is that a pulse every 0.6 s has more chances to start an UP
+  state within 300 ms; the table does not separate this from true rhythm
+  entrainment.
 - **No fading along the train.** The TC response is flat across pulses 1-10 at
   every rate (about 1.0 spikes/cell, sham 0.1). The literature reports fading
   (refractoriness, Ngo 2015, Koller 2025); the model does not show it, which fits
@@ -264,16 +285,16 @@ What it shows:
   noisy (23-33 trains per point) with no clear trend, and sit above sham
   throughout (P(spindle) 0.35-0.9 vs 0.1-0.2).
 - **No clear lasting effect.** UP and spindle rates 1-6 s after the train differ
-  from sham by a few hundredths to a tenth per second, in both directions (UP at
-  0.8 and 0.5 Hz is slightly below sham). No confidence intervals are computed
-  for these rates, so none of these differences should be read as an effect.
+  from sham by -0.03 to +0.11 per second, in both directions, and every interval
+  includes 0 except spindles/s at 1.0 Hz (+0.11 [0.01, 0.22]), which is one of
+  eight intervals and not corrected for multiple comparisons. Read it as no
+  clear lasting effect.
 - **Fast spindles are not depressed** in this measure: the spindle rate after the
   train is equal to or above sham. The spindle-interruption measure (does a
   stimulus end an ongoing spindle?) is still not implemented, so this claim is
   open.
 
-Limits: seed 0 is missing; the rates have no bootstrap confidence intervals;
-the vector-strength comparison is between stim and the sham clock, not between
+Limits: seed 0 is missing; the vector-strength comparison is between stim and the sham clock, not between
 rates; the pulses are not phase-locked to the SO (open loop).
 
 ## 6. Next steps
