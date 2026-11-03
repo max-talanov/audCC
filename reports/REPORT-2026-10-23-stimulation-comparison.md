@@ -96,17 +96,39 @@ finding and now covers a lower range (25 dB).
 
 *Figure 2. Tone-locked LFP proxies, mean +/- SEM over tones. Columns: all tones
 and the SO phase at the tone. Counts (sham/stim): rising 82/105, peak 37/31,
-falling 50/39, trough 58/52.*
+falling 50/39, trough 58/52 (one stim tone had too little history for a phase
+estimate, so the bins sum to 227 of 228). The dotted line at 0 ms is the tone
+onset; the stimulus lasts 50 ms. The y axis is the LFP proxy in units of the
+sham run's SD, not mV.*
+
+Each tone is one 50 ms stimulus. "Peak" as a column is the SO phase bin
+(Hilbert phase -45 to 45 deg, 0 = UP-state maximum), not a response peak. The
+response peaks below are measured: for each population, the largest deviation
+from zero of the stim-arm mean trace in 0-300 ms after the tone, in sham SD,
+with its latency in ms.
+
+| SO phase | n (stim) | L2/3 | L4 | L5 | L6 | TC | RE |
+|---|---|---|---|---|---|---|---|
+| all | 228 | +7.4 @ 34 | +3.0 @ 26 | -0.7 @ 144 | -0.7 @ 49 | +5.0 @ 62 | -3.1 @ 71 |
+| rising | 105 | +9.6 @ 34 | +3.5 @ 198 | -1.6 @ 143 | -1.5 @ 50 | +5.2 @ 64 | -3.8 @ 144 |
+| peak | 31 | +3.8 @ 34 | +2.7 @ 25 | +1.2 @ 273 | +1.4 @ 280 | +5.6 @ 57 | -2.5 @ 62 |
+| falling | 39 | +5.4 @ 33 | +1.8 @ 25 | +0.6 @ 270 | +0.5 @ 279 | +3.8 @ 57 | -1.7 @ 65 |
+| trough | 52 | +6.9 @ 37 | +3.4 @ 195 | -0.8 @ 145 | -0.9 @ 154 | +5.1 @ 62 | -3.6 @ 140 |
 
 - Sham shows the natural SO waveform at each phase; the stimulus adds a response
   on top of it.
-- L2/3 peaks at about 10 SD (rising), 7 (trough) and 5 (falling). At the SO peak
-  the added response is small (about 4 SD above a baseline already rising).
-- L4 (about 3 SD) and TC (4-5 SD) respond at every phase.
-- RE dips by -3 to -4 SD at rising and trough phases and rebounds after about
-  0.8 s, the thalamic signature of the evoked spindle.
-- L5 and L6 deflect by about -1.5 SD at rising phase, about -0.5 at trough, and
-  barely at the peak and falling phases.
+- L2/3 peaks at 9.6 SD (rising), 6.9 (trough) and 5.4 (falling), all at about
+  35 ms. At the SO peak the added response is small (3.8 SD above a baseline
+  already rising).
+- L4 (1.8-3.5 SD) and TC (3.8-5.6 SD) respond at every phase. L4 has an early
+  response at about 25 ms at every phase; at rising and trough a later
+  deflection at about 195 ms is larger.
+- RE dips by -3.6 to -3.8 SD at rising and trough phases (-1.7 to -2.5 at
+  peak and falling) and rebounds after about 0.8 s, the thalamic signature of
+  the evoked spindle.
+- L5 and L6 deflect by about -1.5 SD at rising phase and about -0.9 at trough.
+  At the peak and falling phases the 0-300 ms extreme is positive and late
+  (about 275 ms), most likely the ongoing SO wave rather than a tone response.
 
 ### 3.3 Field potentials with and without a spindle
 
