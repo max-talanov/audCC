@@ -8,9 +8,20 @@ questions of the current focus:
 2. how different stimulation frequencies found in the sleep-stimulation
    literature compare in the model.
 
-Part 1 has results (the E0 dose-response batch, finished 22 October). Part 2 is
-designed, implemented and tested on synthetic data, but **not yet run on the
-cluster**. File paths are relative to the repository root.
+Part 1 has results (the E0 dose-response batch, finished 22 October). Part 2
+was designed and tested on synthetic data on 23 October; its F1 batch has
+since been run (results in section 5). File paths are relative to the
+repository root.
+
+> **Extended after 23 October.** The report was first written on 23 October
+> 2026 and has been extended since:
+>
+> - 27 October: F1 frequency-comparison results and figures (section 5,
+>   "F1 results");
+> - 28 October: bootstrap confidence intervals for the F1 train rates;
+> - 3 November: y-axis labels on every figure; section 3.2 now gives the
+>   measured response peaks per SO phase and defines the y axis, the tone
+>   marker and the "peak" phase bin.
 
 ## 1. Summary
 
