@@ -80,7 +80,7 @@ def figure(S, cols, out_png, title):
             ax.set_ylim(bottom=0)
             ax.spines[["top", "right"]].set_visible(False)
             if j == 0:
-                ax.set_ylabel(f"{nm}\nHz/cell", fontsize=7)
+                ax.set_ylabel(f"{nm}\nrate (Hz/cell)", fontsize=7)
             if i == 0:
                 ax.set_title(lab, fontsize=9)
                 ax.legend(frameon=False, fontsize=6, loc="upper right")

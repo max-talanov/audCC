@@ -80,6 +80,7 @@ def figure(rows, levels, out_png):
         ax.set_xticklabels([f"{int(l)}" for l in levels])
         ax.set_xlabel("stimulus level (dB)")
         ax.set_title(title, fontsize=10)
+        ax.set_ylabel("probability" if binary else "spikes per cell")
         ax.spines[["top", "right"]].set_visible(False)
         if binary:
             ax.set_ylim(-0.02, 1.05)

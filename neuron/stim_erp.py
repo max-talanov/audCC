@@ -97,7 +97,7 @@ def figure(S, cols, out_png, title):
             ax.axvline(0, color="k", lw=0.6, ls=":")
             ax.spines[["top", "right"]].set_visible(False)
             if j == 0:
-                ax.set_ylabel(nm, fontsize=8)
+                ax.set_ylabel(f"{nm}\nLFP proxy (z, sham SD)", fontsize=7)
             if i == 0:
                 ax.set_title(lab, fontsize=9)
                 ax.legend(frameon=False, fontsize=6, loc="upper right")

@@ -174,9 +174,9 @@ def figures(D, out_prefix):
     isis = sorted({r["isi"] for r in D["stim"][0] if r["n"] >= 2})
     cmap = plt.get_cmap("viridis")
     fig, axs = plt.subplots(1, 3, figsize=(13, 3.8))
-    for ax, (key, title) in zip(axs, (("tc", "TC spikes/cell, 50 ms after the pulse"),
-                                      ("evoked_up", "P(UP onset within 300 ms)"),
-                                      ("evoked_sp", "P(spindle within 300 ms)"))):
+    for ax, (key, title, ylab) in zip(axs, (("tc", "TC spikes/cell, 50 ms after the pulse", "spikes per cell"),
+                                            ("evoked_up", "P(UP onset within 300 ms)", "probability"),
+                                            ("evoked_sp", "P(spindle within 300 ms)", "probability"))):
         for i, isi in enumerate(isis):
             for arm, ls in (("stim", "-"), ("sham", ":")):
                 ks = sorted({r["k"] for r in D[arm][0] if r["isi"] == isi})
@@ -185,6 +185,7 @@ def figures(D, out_prefix):
                         label=f"{1000/isi:.2f} Hz {arm}" if arm == "stim" or i == 0 else None)
         ax.set_xlabel("pulse index in the train")
         ax.set_title(title, fontsize=10)
+        ax.set_ylabel(ylab)
         ax.spines[["top", "right"]].set_visible(False)
     axs[0].legend(frameon=False, fontsize=6, ncol=2)
     fig.suptitle("Response along the train, by stimulation rate (solid = stim, dotted = sham fake pulses)", fontsize=10)
@@ -214,6 +215,8 @@ def figures(D, out_prefix):
         ax.set_title({"up": "UP-onset rate during the train (Hz)",
                       "R": "UP vector strength in the stimulus period",
                       "post": "UP rate 1-6 s after the train (Hz)"}[key], fontsize=10)
+        ax.set_ylabel({"up": "UP onsets per s (Hz)", "R": "vector strength R (0-1)",
+                       "post": "UP onsets per s (Hz)"}[key])
         ax.spines[["top", "right"]].set_visible(False)
     axs[0].legend(frameon=False, fontsize=8)
     axs[1].set_xlabel("protocol: n stimuli @ rate (Hz)", fontsize=8)
