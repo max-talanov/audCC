@@ -606,3 +606,62 @@ Checks: sham seeds 0-2 equal `c12_sham_s0..2` bit for bit, wall time about
 ```bash
 python3 neuron/stim_train.py $(for s in 0 1 2 3 4 5 6 7; do echo --pair out/f1_stim_s$s.npz=out/f1_sham_s$s.npz; done) --cache res/f1_rows.pkl --out-prefix figures/f1 --out-txt res/f1_table.txt
 ```
+
+## F2: longer frequency comparison (prepared 2026-10-28)
+
+F1 repeated with 1,200 s per run (F1: 400 s) so each rate gets about 100 trains
+instead of 23-33, which cuts the bootstrap intervals roughly in half. Changes
+against F1, all on the schedule side (no code change, the files of F1 still apply):
+
+- only trains of n = 10 (the analysis does not use n = 1);
+- 8-12 s between the end of a train and the next (F1: 5-9 s), so the 1-6 s
+  after-train window no longer reaches the next train;
+- `TSTOP=1200000`, 8 seeds x (stim, sham) = 16 jobs, about 3,600 s wall each
+  (F1: 1,190 s for 400 s; the job limit is 2 h, so there is a margin of 2x);
+- schedule seeds `--ol-seed 20+s`, `HET_SEED` 0-7 as in F1.
+
+Expected per run: about 56 trains (a train of 10 at the mean interval takes
+about 11 s, plus about 10 s gap), so about 14 per rate and about 110 per rate
+over 8 seeds.
+
+This runs on the current network (thalamus over-excitable, the response does
+not fade along the train). If the thalamic excitability is changed first, rerun
+E0 and use the new parameters in `$C` below.
+
+No new upload is needed if F1 ran. To be sure the files on MN5 are current,
+run on MN5 `cd /gpfs/projects/uab100/audCC; grep -c "lst(a.ol_isi)" neuron/ctx_thalamus_mpi.py`
+(must print 1) and `md5sum neuron/closed_loop.py neuron/ctx_thalamus_mpi.py`
+(must give `4d6db5547e73318f97d598037533b327` and `5715327ff9be5b625d0a1bb348f3f0c7`).
+Otherwise upload them:
+
+```bash
+cd /Users/maxtalanov/Projects/memBrain/audCC/audCC
+rsync -avR neuron/closed_loop.py neuron/ctx_thalamus_mpi.py uom971204@glogin1.bsc.es:/gpfs/projects/uab100/audCC/
+```
+
+Submit from `/gpfs/projects/uab100/audCC` (16 jobs; the job time limit is 2 h
+from `run_ctx_nrn.sh`):
+
+```bash
+cd /gpfs/projects/uab100/audCC
+C=SCALE=1.65,TSTOP=1200000,G_I_E_L5=0.02,G_L5_REC=0.013,TAU2_L5_REC=200,TAUR_L5E_RS=120,L5_REC_MECH=nmda,SPINDLE=stage2
+OL="--ol-gap 8000:12000 --ol-n 10 --ol-isi 2000:1250:1000:600 --ol-dur 50 --ol-level 35"
+for s in 0 1 2 3 4 5 6 7; do
+  for m in stim sham; do
+    sbatch -A uab100 -q acc_resc --time=02:00:00 --export=ALL,$C,HET_SEED=$s,EXTRA_ARGS="--cx-noise-rate 200 --open-loop $m --ol-seed $((20+s)) $OL",TAG=f2_${m}_s$s run_ctx_nrn.sh
+  done
+done
+```
+
+Check the first job that starts: its `slurmout_ctx_*.txt` must show
+`open loop (stim): N tones` with N about 54-62 (seeds 20-22 give 62, 56, 54 locally).
+
+Bring back `out/f2_*.npz` and `slurmout_ctx_*.txt` to a new folder under `res/`.
+Checks: all 16 files present; schedules identical between stim and sham; wall
+time about 3,600 s; the first 400 s of `f2_sham_s0..2` have the same spikes as
+`c12_sham_s0..2` (the runs are longer, so compare the spikes with t < 400,000 ms).
+Analyse (the run takes about three times longer than for F1, so use the cache):
+
+```bash
+python3 neuron/stim_train.py $(for s in 0 1 2 3 4 5 6 7; do echo --pair res/<folder>/f2_stim_s$s.npz=res/<folder>/f2_sham_s$s.npz; done) --cache res/<folder>/f2_rows.pkl --out-prefix figures/f2 --out-txt res/<folder>/f2_table.txt
+```
