@@ -54,7 +54,12 @@ repository root.
   every rate, more strongly and with more UP states at higher rates (R 0.38 and
   0.94 UP/s at 1.67 Hz vs R 0.23 and 0.75 at 0.5 Hz; sham 0.1 and 0.7). The
   lock at the model's own SO rate (0.8 Hz) is the weakest, the response does not
-  fade along the train, and there is no clear effect 1-6 s after it.
+  fade along the train, and there is no clear effect 1-6 s after it. A longer
+  run (F2, 8 seeds x 1,200 s, about 110 trains per rate, section 5) confirms
+  this with intervals half as wide: the extra UP states per second fall from
+  +0.18 [0.11, 0.24] at 1.67 Hz to +0.03 [0.00, 0.07] at 0.5 Hz, and the sham
+  arm is itself locked at 0.8 Hz (R 0.09) because the model's SO runs near that
+  rate.
 
 ## 2. Methods in brief
 
@@ -330,9 +335,60 @@ What it shows:
 Limits: seed 0 is missing; the vector-strength comparison is between stim and the sham clock, not between
 rates; the pulses are not phase-locked to the SO (open loop).
 
+### F2 results (longer run, 1,200 s, about 110 trains per rate)
+
+F1 repeated with 3x the simulated time (`MN5_NEURON.md`, "F2"): only n = 10
+trains, 8-12 s between trains (so the 1-6 s after-train window no longer reaches
+the next train), 8 seeds x (stim, sham), schedule seeds 20-27. All 16 jobs
+finished (3,504-4,363 s wall, 2.9-3.6x real time); each stim run has 54-62 trains
+and 540-620 stimuli, stim and sham schedules are identical, and the sham runs of
+seeds 0-2 match the earlier plain runs spike for spike over the first 400 s.
+Both figures: `figures/f2_per_pulse.png`, `figures/f2_entrainment.png`.
+
+![F2 response along the train](../figures/f2_per_pulse.png)
+
+![F2 entrainment and post-train rates](../figures/f2_entrainment.png)
+
+Stim vs sham, with the 95% bootstrap interval of the difference (seeds, then
+trains; the same seed resample for both arms); * = interval excludes 0:
+
+| Rate | Trains | UP/s in train (stim vs sham) | difference | UP vector strength R (stim vs sham) | difference | after-train UP/s | after-train spindles/s |
+|---|---|---|---|---|---|---|---|
+| 1.67 Hz | 114 | 0.91 vs 0.74 | +0.18 [0.11, 0.24] * | 0.31 vs 0.01 | +0.30 [0.18, 0.35] * | -0.01 [-0.06, 0.04] | +0.06 [-0.01, 0.14] |
+| 1.00 Hz | 106 | 0.83 vs 0.73 | +0.10 [0.05, 0.15] * | 0.21 vs 0.03 | +0.18 [0.11, 0.24] * | +0.03 [-0.05, 0.11] | +0.06 [0.00, 0.12] * |
+| 0.80 Hz | 117 | 0.82 vs 0.75 | +0.07 [0.01, 0.13] * | 0.20 vs 0.09 | +0.11 [0.01, 0.19] * | 0.00 [-0.06, 0.06] | +0.02 [-0.04, 0.09] |
+| 0.50 Hz | 115 | 0.75 vs 0.72 | +0.03 [0.00, 0.07] | 0.13 vs 0.02 | +0.11 [0.06, 0.14] * | -0.01 [-0.07, 0.06] | -0.01 [-0.06, 0.05] |
+
+What F2 changes against F1:
+
+- **The F1 findings hold with half the interval width.** Stimulation locks UP
+  onsets to the pulses at every rate (Rayleigh p < 0.001 for stim), the lock and
+  the extra UP states per second both fall with the rate (+0.18 at 1.67 Hz to
+  +0.03 at 0.5 Hz), and the intervals are now about half as wide.
+- **0.8 Hz is not resonant in the stimulation sense, and the reason is visible.**
+  The sham arm is itself locked to the 0.8 Hz clock (R = 0.09, p < 0.001, the only
+  sham rate that is), because the model's own SO has a period of about 1.3 s and
+  stays in phase with a 1.25 s clock over a 10-cycle train. The stimulus adds
+  only +0.11 to R at that rate. At the other rates the sham R is near 0.
+- **No fading along the train**, now clearer: the TC response stays at about 1
+  spike/cell from pulse 1 to 10 at all rates, P(spindle) rises over the first
+  pulses at 0.8 and 1.0 Hz and stays high (0.55-0.95, sham 0.1-0.2), and P(UP)
+  is flat within noise. The literature's refractoriness is not reproduced.
+- **No lasting effect after the train.** After-train UP/s differs from sham by
+  -0.01 to +0.03 (every interval includes 0). After-train spindles/s is higher
+  by 0.06 at 1.67 and 1.0 Hz (the 1.0 Hz interval excludes 0 by a hair, [0.00,
+  0.12], the 1.67 Hz one does not) and not at 0.8 and 0.5 Hz; this is weak and
+  uncorrected for eight comparisons.
+- **Fast spindles are not depressed**: the spindle rate after a train is never
+  below sham. The spindle-interruption measure is still not implemented.
+
+The vector-strength interval caveat (resampling repeats phases and biases R
+upward for small samples) still applies; use the Rayleigh tests for "locked or
+not".
+
 ## 6. Next steps
 
-1. Add bootstrap confidence intervals to the F1 rates, seed 0, and the n = 1 trains; phase-locked trains.
+1. Phase-locked trains (stimulus at the detected SO phase, then the rest of the train at a fixed rate); the n = 1 trains.
 2. Reduce the thalamic excitability (K_Na at full scale, IC-to-TC weight, levels
    below 25 dB) and repeat E0, since stimulation rate comparisons depend on it.
 3. Add the spindle-interruption measure (does the stimulus end an ongoing
@@ -350,5 +406,5 @@ rates; the pulses are not phase-locked to the SO (open loop).
 | Simulator | `neuron/closed_loop.py` (`tone_schedule`, `run_open_loop`), `neuron/ctx_thalamus_mpi.py` (`--open-loop`, `--ol-*`) |
 | Recipes | `MN5_NEURON.md` (E0, F1) |
 | Plan | `PLAN-stimulation-experiments.md` (section 9: rates from the literature) |
-| Figures | `figures/e0_*.png`, `figures/f1_*.png` |
+| Figures | `figures/e0_*.png`, `figures/f1_*.png`, `figures/f2_*.png` |
 | Commits | `bb7fb9b` (open-loop mode), `acdff0f` (E0 analysis and rate tools) |
