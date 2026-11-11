@@ -665,3 +665,47 @@ Analyse (the run takes about three times longer than for F1, so use the cache):
 ```bash
 python3 neuron/stim_train.py $(for s in 0 1 2 3 4 5 6 7; do echo --pair res/<folder>/f2_stim_s$s.npz=res/<folder>/f2_sham_s$s.npz; done) --cache res/<folder>/f2_rows.pkl --out-prefix figures/f2 --out-txt res/<folder>/f2_table.txt
 ```
+
+## B120: 120 s without auditory stimulation (prepared 2026-11-11)
+
+The model alone: no `--stim`, no `--open-loop`, no `--closed-loop`, so no sound
+input is built. Same parameters, noise and `HET_SEED` as `c12_sham_s0..2` and
+the F1/F2 shams, so a run is the undisturbed network of that seed.
+
+- `TSTOP=120000` (120 s), about 3x real time, so about 360 s wall per job
+  (the slowest jobs of F2 took 1.2x the median); `--time=00:40:00` is enough
+  and queues faster than the 2 h default;
+- 8 seeds (`HET_SEED` 0-7), 8 jobs. The first 120 s of `f2_sham_s0..7` are the
+  same network and must match spike for spike (the F2 shams were run with a
+  sound-free schedule), and seeds 0-2 also match the first 120 s of
+  `c12_sham_s0..2`. Use that as the check.
+
+Files on MN5 need no change if F1 or F2 ran (`closed_loop.py`,
+`ctx_thalamus_mpi.py` current; no upload). Submit from `/gpfs/projects/uab100/audCC`:
+
+```bash
+cd /gpfs/projects/uab100/audCC
+C=SCALE=1.65,TSTOP=120000,G_I_E_L5=0.02,G_L5_REC=0.013,TAU2_L5_REC=200,TAUR_L5E_RS=120,L5_REC_MECH=nmda,SPINDLE=stage2
+for s in 0 1 2 3 4 5 6 7; do
+  sbatch -A uab100 -q acc_resc --time=00:40:00 --export=ALL,$C,HET_SEED=$s,EXTRA_ARGS="--cx-noise-rate 200",TAG=b120_s$s run_ctx_nrn.sh
+done
+```
+
+Each `slurmout_ctx_*.txt` must show `tstop 120000 ms`, `total cells 5031`, wall
+about 360 s, and no `open loop` or `closed loop` line. Bring back
+`out/b120_s*.npz` and the logs to a new folder under `res/`.
+
+Check against the existing runs (locally, after copying):
+
+```bash
+python3 - <<'PY'
+import numpy as np
+for s in range(8):
+    a = np.load(f'res/<folder>/b120_s{s}.npz', allow_pickle=True)
+    b = np.load(f'res/2026-11-10/f2_stim/f2_sham_s{s}.npz', allow_pickle=True)
+    ta, tb = np.sort(a['times']), np.sort(b['times'][b['times'] < float(a['tstop'])])
+    n = min(len(ta), len(tb))
+    print(s, len(ta), len(tb), bool((ta[:n] == tb[:n]).all()))
+PY
+```
+Counts may differ by 1-2 spikes at the run-end boundary; everything before must be equal.
