@@ -170,10 +170,23 @@ What the graphs show:
   is there, but the phase (-88°) is on the rising flank, earlier than the human -32°/-20°. The earlier
   estimate of -47° used the spindle start, this one the envelope maximum.
 
-Figures: `figures/b120_eeg_traces.png` (raw proxy, SO band with detected troughs, sigma band with detected
-spindles), `figures/b120_eeg_spectra.png` (spectrum over 8 runs, spectrogram of run 0),
-`figures/b120_eeg_so_average.png` (SO-triggered averages), `figures/b120_eeg_spindles.png` (duration,
-frequency, SO phase, density per run).
+Figures (files in `figures/`):
+
+![EEG proxy traces](../figures/b120_eeg_traces.png)
+
+Raw proxy, SO band with detected troughs, sigma band with detected spindles (run 0, 30 s).
+
+![EEG proxy spectra](../figures/b120_eeg_spectra.png)
+
+Spectrum over 8 runs (mean ± SD) and spectrogram of run 0.
+
+![SO-triggered averages](../figures/b120_eeg_so_average.png)
+
+SO-triggered averages of the EEG proxy and the sigma envelope, locked to the trough and to the positive peak.
+
+![Detected spindles](../figures/b120_eeg_spindles.png)
+
+Spindle duration, frequency, SO phase of the maximum, and density per run.
 
 ## 4. Comparison with the literature
 
