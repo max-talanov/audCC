@@ -122,6 +122,59 @@ Each layer and neuron group is in `res/2026-11-16/b120_table.txt`. In short:
 The latency is the time at which the rate crosses half of the rise from the DOWN level to the peak,
 in 10 ms bins. The L5 and L6 values are 0 by construction, because the UP onset is defined on them.
 
+### 3.4 Scalp-EEG proxy (added 17 November)
+
+The model has no geometry, so there is no head model. The EEG proxy is a simple chain, built to give the
+usual sleep-EEG graphs, not microvolts: the spikes of the four cortical excitatory populations (L2/3, L4,
+L5, L6) are convolved with a faster PSP kernel (2 ms rise, 20 ms decay), z-scored, L5 and L6 sign-flipped,
+averaged, passed through a first-order low-pass at 40 Hz (skull and scalp attenuation, an assumed value) and
+the 0.3-35 Hz recording band. Averaging all cells stands in for the spatial smoothing over a large patch.
+Not modelled: head geometry, source orientation, other generators, measurement noise. Detection follows the
+human criteria: SO as in Staresina et al. (0.16-1.25 Hz, negative-to-negative cycle of 0.8-2 s, trough in the
+lowest quartile); spindles on the 11-16 Hz envelope with a two-threshold rule (peak above mean + 1.5 SD,
+edges where the envelope crosses its mean, 0.5-3 s). Code `neuron/eeg_proxy.py`; 8 runs of 120 s.
+
+| Measure (EEG proxy, mean ± SD over 8 runs) | Model | Human literature (source in section 4) |
+|---|---|---|
+| SO cycles, all 0.8-2 s | 34.7 ± 2.8 per min | not taken from the eight papers |
+| SO after the lowest-quartile trough criterion | 9.0 ± 0.7 per min, cycle 1.45 ± 0.12 s | criterion by construction keeps 25% |
+| Spindle density | 22.5 ± 1.4 per min | 1.6-2.3 per min (Gonzalez, Andrillon) |
+| Spindle duration | 0.67 ± 0.04 s | 0.70 s (Gonzalez) |
+| Spindle frequency (FFT peak, 9-20 Hz) | 14.7 ± 0.4 Hz | cortex mean 12.3 Hz; fast centroparietal 13-15 Hz |
+| SO phase of the spindle maximum | -88° (R = 0.84, n = 354, Rayleigh p < 1e-100) | about -32° (Cz), -20° (hippocampus) (Staresina) |
+| Spindles starting 0-1.5 s after an SO trough | 21% | about 10% closely follow an SO (Malerba, definition differs) |
+| SOs followed by a spindle within 1.5 s | 54% | not in the eight papers |
+
+Relative power, 0.3-35 Hz: SO 0.10, delta 0.25, theta 0.21, alpha (8-11 Hz) 0.09, sigma (11-16 Hz) 0.12,
+beta (16-30 Hz) 0.20.
+
+What the graphs show:
+
+- The raw proxy is dominated by sharp transients at each UP onset (a synchronous spike volley), not by a
+  smooth slow wave. A scalp EEG slow wave is a smooth 0.5-1 Hz deflection of tens of microvolts. The model
+  has the cycle but not the waveform; the SO band has 10% of the power, against 32% in the 100 ms-kernel
+  proxy of section 3.2, so the SO share depends strongly on the kernel.
+- The spectrum has two sigma-range peaks, at about 10 Hz and about 16 Hz, and no 1/f-like slope up to 10 Hz
+  (flat 1-5 Hz). Human NREM scalp spectra fall steeply with frequency and show one spindle bump at
+  12-14 Hz. I have not compared the slope quantitatively, since no spectrum from the eight papers was
+  digitised.
+- With a human-style amplitude detector the density does not change (22.5 per min against 25.8 per min with
+  the volley-train criterion), so the 11-16 times excess in density is not a detector effect. The duration
+  is now close to the human value (0.67 against 0.70 s), which means the earlier "shorter" verdict came
+  from the volley-train criterion, not from the model.
+- Spindle frequency in the cortical signal is 14.7 Hz, above the 13.8 Hz of the RE volley trains and at the
+  upper edge of the detection band (16 Hz). The distribution is cut at 16 Hz by the band, so the true
+  frequency may be higher. This is the main disagreement in frequency with the human cortical mean.
+- Locked to the SO, the sigma envelope has a peak about 0.8 s before the trough and a smaller one just
+  after it, and in the peak-locked average it peaks about 0.25 s before the SO positive peak. The nesting
+  is there, but the phase (-88°) is on the rising flank, earlier than the human -32°/-20°. The earlier
+  estimate of -47° used the spindle start, this one the envelope maximum.
+
+Figures: `figures/b120_eeg_traces.png` (raw proxy, SO band with detected troughs, sigma band with detected
+spindles), `figures/b120_eeg_spectra.png` (spectrum over 8 runs, spectrogram of run 0),
+`figures/b120_eeg_so_average.png` (SO-triggered averages), `figures/b120_eeg_spindles.png` (duration,
+frequency, SO phase, density per run).
+
 ## 4. Comparison with the literature
 
 The eight papers in `~/Downloads` were read for the numbers below (page-level values from the full
@@ -191,9 +244,9 @@ What the comparison says:
 ## 6. Next steps
 
 1. Redo the onset latencies with an onset detected from a signal that does not use L5 or L6.
-2. Detect spindles on the cortical LFP proxy with an amplitude criterion (sigma-band envelope), to
-   compare density and duration with the human numbers on equal terms, and measure the spread of the
-   spindle phase on that detector.
+2. Done in section 3.4 (amplitude detector on the EEG proxy). Left to do: a head model or at least a
+   per-layer dipole weighting for the proxy, and the same detector on human-like spectra with measurement
+   noise.
 3. Find NREM firing rates per cell type (pyramidal, interneuron; UP and DOWN) in papers with unit
    recordings, and compare with the table in section 3.3. Look at the L5 tonic rhythm and the L5
    DOWN-state activity in the model (L5 recurrence and IB cells), since Chauvette et al. found that
@@ -207,7 +260,8 @@ What the comparison says:
 
 | What | Where |
 |---|---|
-| Analysis and tests | `neuron/lfp_baseline.py`, `neuron/test_lfp_baseline.py` |
+| Analysis and tests | `neuron/lfp_baseline.py`, `neuron/test_lfp_baseline.py`, `neuron/eeg_proxy.py`, `neuron/test_eeg_proxy.py` |
+| EEG-proxy table | `res/2026-11-16/b120_eeg_table.txt` (local) |
 | Recipe (B120) | `MN5_NEURON.md` |
 | Table | `res/2026-11-16/b120_table.txt` (local) |
 | Figures | `figures/b120_traces.png`, `figures/b120_spectra.png`, `figures/b120_rates.png` |
