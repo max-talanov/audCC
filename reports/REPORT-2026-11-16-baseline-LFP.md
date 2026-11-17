@@ -10,11 +10,12 @@ network that every stimulation experiment is compared with. The recipe is in `MN
 
 - **Slow oscillation:** 0.70 ± 0.07 UP onsets per second, irregular (CV 0.44). This is inside the
   usual range for the slow oscillation (about 0.75 Hz in human recordings, 0.5-1.5 Hz as a band).
-- **Spindles:** the model produces them at 13.8 Hz, which fits fast human spindles, and they start
-  at a fixed SO phase just before the UP-state peak (-47°, vector strength 0.99). But there are 26
-  per minute against 2-5 per minute in human recordings, they are short (0.51 s, the lower edge of
-  the 0.5-2 s range) and the phase lock is far tighter than a statistical preference. See section 4
-  for how much of this is the definition.
+- **Spindles:** at 13.8 Hz they are slightly faster than the human mean (12.3 Hz) but inside the fast
+  centroparietal range (13-15 Hz). They start at -47° of the slow oscillation, close to the preferred
+  phase in the human data (about -20° to -32°). But there are 26 per minute against 1.6-2.3 per minute in the
+  intracranial and scalp recordings, they are shorter (0.51 s against 0.70 s), and every one of them is
+  locked to the SO (vector strength 0.99), whereas in human scalp EEG only about 10% of spindles
+  closely follow an SO. See section 4 for how much of this is the definition.
 - **Field potentials:** the cumulative cortical proxy has 32% of its 0.3-40 Hz power in the SO band
   (0.3-1.5 Hz) and 30% in delta (1.5-4 Hz); the thalamic proxy has 56% in the SO band. L4, TC and RE
   are the most SO-dominated traces (82-89%).
@@ -22,10 +23,12 @@ network that every stimulation experiment is compared with. The recipe is in `MN
   construction. After them, L2/3 interneurons (10 ms), RE (22 ms), L2/3 pyramidal cells (66 ms), TC
   (80 ms) and L4 (85-90 ms) follow.
 - **Two things that do not look like sleep data:** L5 fires all the time in the DOWN state (L5 E 2.8
-  Hz, L5 I 37 Hz) with a tonic 17.5 Hz rhythm, so the DOWN state is not silent in L5; and the
-  interneuron rates are high (L5 I 44 Hz mean, L4 I 15 Hz, L6 I 17 Hz).
-- **No reference rates in section 4:** I did not find verified NREM firing rates per cell type, so the
-  rates are not compared numerically.
+  Hz, L5 I 37 Hz) with a tonic 17.5 Hz rhythm, which Chauvette et al. (2010) found only in slices and
+  "never ... in vivo in anesthetized or naturally sleeping cats"; and the interneuron rates are high (L5 I
+  44 Hz mean, L4 I 15 Hz, L6 I 17 Hz).
+- **Firing rates:** the only cortical reference in the eight papers is the mean rate of recorded
+  human units, 3.1 ± 0.3 Hz (Andrillon et al. 2011); none gives rates per cell type, so the model's
+  rates per group are not compared numerically.
 
 ## 2. Methods
 
@@ -121,41 +124,53 @@ in 10 ms bins. The L5 and L6 values are 0 by construction, because the UP onset 
 
 ## 4. Comparison with the literature
 
-Only values I found in the sources below are quoted; where a source did not give the number, that is
-said. Human values come from scalp and intracranial recordings and the numbers depend on the
-detection method, so they are ranges, not targets.
+The eight papers in `~/Downloads` were read for the numbers below (page-level values from the full
+texts). Human numbers come from intracranial and scalp recordings, and depend on the detector, so
+they are ranges, not targets.
 
-| Feature | Model | Literature | Verdict |
+| Reference | What it is |
+|---|---|
+| Andrillon et al. 2011, J Neurosci 31:17821 (`zns17821.pdf`) | intracranial EEG and single units in 13 patients; spindle density, frequency, SO coupling, unit firing |
+| Gonzalez et al. 2022, J Neurosci 42:4517 (`zns4517.pdf`) | 20 patients, 357 cortical sEEG channels; spindle density, duration, frequency (Table 2) |
+| Staresina et al. 2015, Nat Neurosci 18:1679 (`emss-64810.pdf`) | SO-spindle-ripple nesting in human intracranial recordings |
+| Malerba et al. 2022, Sleep (`zsac132.pdf`) | scalp EEG, 34 subjects; spindle types and coupling to SOs |
+| Coppieters 't Wallant et al. 2016, Neural Plast (`NP2016-6783812.pdf`) | review of spindle definition and detection |
+| Chauvette et al. 2010, Cereb Cortex 20:2660 | origin of active states, cat, multisite recordings |
+| Miyawaki and Diba 2016, Curr Biol 26:893 (`nihms-767564.pdf`) | hippocampal firing across NREM (rodent); defines DOWN states |
+| Halonen et al. 2021, Front Behav Neurosci 15:712774 (`fnbeh-15-712774.pdf`) | SO-spindle coupling and memory; background only |
+
+| Feature | Model | Literature (source) | Verdict |
 |---|---|---|---|
-| Slow oscillation frequency | 0.70 UP/s | about 0.75 Hz ([Staresina et al. 2015](https://pmc.ncbi.nlm.nih.gov/articles/PMC4625581)); about 1 Hz in non-REM ([Miyawaki and Diba 2016](https://pmc.ncbi.nlm.nih.gov/articles/PMC4821660)); detection bands 0.5-1.5 or 0.5-4 Hz | inside the range |
-| Spindle frequency | 13.8 Hz (volley trains); LFP/rate peaks at 9-17 Hz | 10-16 Hz; fast spindles 12-14 Hz; intracranial mean about 12.3 Hz ([PMC9172080](https://pmc.ncbi.nlm.nih.gov/articles/PMC9172080)) | inside the fast-spindle range |
-| Spindle duration | 0.51 s (8 cycles) | 0.5-2 s | at the lower edge |
-| Spindle density | 25.8 per min | scalp about 4.4-4.6 per min ([PMC8439423](https://pmc.ncbi.nlm.nih.gov/articles/PMC8439423)); intracranial about 1.6-2.3 per min ([PMC9172080](https://pmc.ncbi.nlm.nih.gov/articles/PMC9172080)); hippocampal about 5.4 per min as reported for Staresina et al. 2015 | 5-15 times too many |
-| Spindles and the SO up-state | start at -47°, R = 0.99 | spindle amplitude modulated by the SO up-state ([Staresina et al. 2015](https://pmc.ncbi.nlm.nih.gov/articles/PMC4625581)); fast spindles occur with slow-wave up-states, slow ones about 200 ms later (one of the sources found) | right preference, far too deterministic |
-| Spindle grouping | not measured | spindles recur about every 4 s (one source found) | not tested |
-| Where an UP state starts | L5/L6 first by construction; then L2/3 I, RE, L2/3 E, TC, L4 | in cats, active states usually start deep, then involve superficial cells, and reach the middle layers later ([Chauvette et al. 2010](https://volgushev.lab.uconn.edu/wp-content/uploads/sites/2605/2019/02/Chauvette_CerCortex2010v20p2660.pdf)) | same order, but circular (see caveats) |
-| DOWN state | L5 E 2.8 Hz, L5 I 37 Hz in the DOWN window | DOWN states are defined in recordings as more than 50 ms without population spikes (Miyawaki and Diba 2016) | L5 never goes quiet |
-| Firing rates per cell type | table in 3.3 | not found in a verified source | not compared |
+| SO frequency | 0.70 UP/s | about 0.75 Hz (Staresina); slow waves 0.5-4 Hz and "about 1 Hz" in NREM (Miyawaki and Diba) | inside the range |
+| Spindle frequency | 13.8 Hz (volley trains) | cortex mean 12.28 Hz NREM (Gonzalez, Table 2); fast centroparietal 13-15 Hz, slow frontal 9-12 Hz (Andrillon); AASM 11-16 Hz, most commonly 12-14 Hz (Coppieters) | in the fast range, about 1.5 Hz above the cortical mean |
+| Spindle duration | 0.51 s | cortex 0.70 s NREM, 0.68-0.72 s per region (Gonzalez, Table 2); minimum 0.5 s "seemingly without any firm objective physiological" basis, some authors use 0.3 s (Coppieters) | shorter |
+| Spindle density | 25.8 per min | cortex 1.64 per min NREM (frontal 2.12, parietal 2.30; Gonzalez); scalp 1.9 per min, frontal 1.8, parietal 1.3 (Andrillon) | 11-16 times too many |
+| Intraspindle frequency | not measured | decreases within a spindle, about -0.8 Hz/s (Andrillon) and more in frontal than parietal spindles (Gonzalez) | not tested |
+| Spindles and the SO up-state | start at -47°, R = 0.99, all spindles | spindles occur more often after the transition to the up-state; preferred SO phase of spindle power 328° (about -32°) at Cz and 160° with the up-state at 180° in the hippocampus, i.e. about -20° (Staresina); only about 10% of S2 spindles closely follow an SO (Malerba) | right phase, far too many coupled |
+| Spindle activity of units | not measured | firing rates "are not consistently modulated" during spindles, although 19.5% of units are phase-locked (Andrillon) | not tested |
+| Where an UP state starts | L5/L6 first (by construction), then L2/3 I, RE, L2/3 E, TC, L4 | deep cells fire first on average by a few ms (-1.1 ± 7.4 ms for deep and +0.5 ± 4.4 ms for middle cells in the sigmoid-fit method, superficial cells positive and close to zero), but activity "may start in any neuron" (Chauvette) | the same direction but a much larger spread in the data; the model result is circular (section 5) |
+| Layer 5 in the DOWN state | L5 E 2.8 Hz, L5 I 37 Hz, tonic 17.5 Hz rhythm | L5 cells firing continuously in the silent state was seen only in slices; "never observed in vivo" in anesthetized or naturally sleeping cats (Chauvette) | disagrees |
+| DOWN state | population never silent in L5 | defined as more than 50 ms without unit spikes (Miyawaki and Diba, citing refs 8 and 9) | the L5 population never satisfies it |
+| Mean firing rate | per group 0.18-44 Hz (table 3.3) | recorded human units 3.1 ± 0.3 Hz on average; phase-locked units 5.9 ± 1.2 Hz (Andrillon); no rates per cell type in the eight papers | not comparable per group |
 
 What the comparison says:
 
-1. **The slow oscillation and the spindle frequency are right.** The UP rate is in the human range
-   and the 13.8 Hz of the spindles matches fast spindles.
-2. **The spindle count is too high, partly by definition.** A volley train of at least 6 volleys
-   within 150 ms intervals in RE is a looser criterion than amplitude detection in a band-passed LFP,
-   which requires a minimum amplitude and a duration; it counts events that would fall below a
-   detection threshold. The 0.51 s duration sits at the floor that the criterion allows (6 cycles at
-   13.8 Hz is 0.43 s), so this number mostly reflects the criterion. A fair density comparison needs
-   the same detector on the model's cortical LFP proxy, which I have not done.
-3. **The phase lock (R = 0.99) is almost certainly too strong.** The literature reports spindles
-   preferentially in the up-state, not at one phase; the exact strength in human data is not in the
-   sources I opened. That nearly every spindle starts at the same phase suggests that spindle onset in
-   the model is set by the UP-state volley, so spindles do not appear on their own in the DOWN state
-   as they do in recordings. This is my interpretation.
-4. **L5 behaves differently from the other layers.** It fires at 2.8 Hz (E) and 37 Hz (I) between UP
-   states, with a 17.5 Hz tonic rhythm and the beta-range share of its LFP (0.21). The L5 I mean of
-   44 Hz and the L4 I and L6 I means (15-17 Hz) are high for interneurons, but I did not find a
-   verified reference, so this is a flag, not a finding.
+1. **The slow oscillation is right and the spindle phase is right.** The UP rate is in the human range,
+   and the spindle start at -47° of the SO is close to the preferred phases found in humans (-32° and
+   -20°).
+2. **The spindle count is too high.** The density is 11-16 times the human values (1.6-2.3 per min), and
+   only part of that is the definition. The model counts RE volley trains of at least 6 volleys at
+   intervals up to 150 ms, which is a looser criterion than amplitude detection in a band-passed LFP; I
+   have not run the same detector on the model's LFP proxy. A threshold of 6 cycles also puts a floor
+   under the duration (6 cycles at 13.8 Hz is 0.43 s), so the 0.51 s is mostly the criterion.
+3. **The coupling to the SO is far too deterministic.** In humans spindles are only partly coupled to
+   SOs (about 10% of S2 spindles closely follow an SO in the scalp data, Malerba), and the model has
+   one fixed phase for all of them (R = 0.99). This suggests that spindles in the model are triggered by
+   the UP-state volley and do not appear on their own, as they do in recordings. This is my
+   interpretation.
+4. **Layer 5 behaves unlike cortex in vivo.** Its tonic firing between UP states is the pattern that
+   Chauvette et al. found only in slices. The L5 I mean of 44 Hz is high against the human unit mean of
+   3.1 Hz, but that mean mixes cell types, so I treat it as a flag, not a result.
 
 ## 5. Caveats
 
@@ -167,10 +182,11 @@ What the comparison says:
   proxy are lower than in a real LFP.
 - Runs are 120 s (about 85 UP states each) and 8 seeds; the SD between runs is shown, not a
   bootstrap interval. The latency of L2/3 E varies a lot between runs (66 ± 44 ms).
-- The literature numbers come from web searches of abstracts and tables, not full-text reading, and
-  several values were reported by the search results rather than checked in the papers. Rates per cell
-  type were not found.
-- One source on spindle recurrence and the slow-spindle delay was not identified in the results.
+- The literature numbers were read in the full texts of the eight papers (in the Downloads folder). Malerba et al. 2022 was only partly readable (the PDF is mostly images; the abstract was
+  read, the results were not). Spindle recurrence every 4 s, which I mentioned before, is not in any of
+  the eight papers, so it is dropped. Rates per cell type are not in them either.
+- The human values are from patients with epilepsy (intracranial) and scalp EEG; Chauvette is in cats;
+  Miyawaki and Diba is in rodents. The comparison is order-of-magnitude, not a fit.
 
 ## 6. Next steps
 
@@ -178,9 +194,12 @@ What the comparison says:
 2. Detect spindles on the cortical LFP proxy with an amplitude criterion (sigma-band envelope), to
    compare density and duration with the human numbers on equal terms, and measure the spread of the
    spindle phase on that detector.
-3. Find verified NREM firing rates per cell type (pyramidal, interneuron; UP and DOWN) and compare
-   with the table in section 3.3. The L5 rhythm and the L5 DOWN-state activity should be looked at
-   in the model (L5 recurrence and IB cells).
+3. Find NREM firing rates per cell type (pyramidal, interneuron; UP and DOWN) in papers with unit
+   recordings, and compare with the table in section 3.3. Look at the L5 tonic rhythm and the L5
+   DOWN-state activity in the model (L5 recurrence and IB cells), since Chauvette et al. found that
+   pattern only in slices.
+3b. Measure spindle coupling per spindle (fraction of spindles that follow an UP within a window, as in
+   the scalp analysis) to compare with the 10% value.
 4. Repeat after any change in the thalamic excitability (K_Na, IC-to-TC weight), since the same
    network is used for all stimulation experiments.
 
