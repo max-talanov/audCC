@@ -188,6 +188,88 @@ SO-triggered averages of the EEG proxy and the sigma envelope, locked to the tro
 
 Spindle duration, frequency, SO phase of the maximum, and density per run.
 
+### 3.5 Graphs in the format of the literature (added 19 November, after the discussion with Eduard Kelemen)
+
+Requested: graphs like those in Moelle et al. 2002 (J Neurosci 22:10941, human scalp EEG, 13 subjects) and in the
+N3 slides of the sleep-scoring course (30 s epochs, 1 s grid). `neuron/eeg_literature.py` repeats the paper's
+procedure on the EEG proxy of section 3.4: slow-oscillation signal 0.16-4 Hz, spindle 12-15 Hz, beta 15-25 Hz,
+alpha 8-12 Hz, theta 4-8 Hz, rms in a 0.1 s window; half-waves between two zero crossings 0.125-1 s apart; averages
+over ±1 s around the half-wave peak, around the spindle centre, and the cross-correlation within ±2 s. Amplitudes
+are z-units, so only shapes, timing and unit-free ratios are compared. Two deviations from the paper, both because
+the proxy has no microvolts and the model bursts are short: (1) half-waves are the larger half (above the median
+peak) of each polarity per run, where the paper used 80 µV raised per subject until more than 50 were found;
+(2) spindles are 0.4-1.3 s events of the 12-15 Hz rms with the edges at its mean and the peak above mean + 1.5 SD
+(with a single threshold only 2 per run were found).
+
+**The result depends on one choice, the sign of the deep layers.** The proxy of section 3.4 sums L2/3, L4, L5 and
+L6 excitatory cells with L5 and L6 sign-flipped. In this version the negative half-waves are not the DOWN state:
+they are the sharp negative transient of the L5/L6 volley at each UP onset, so the spindle rms is high at both
+polarities. I then tried the one alternative that scalp EEG argues for, superficial layers only (L2/3 and L4
+excitatory, no flip), since scalp EEG is dominated by superficial dipoles. That is two variants tried, the second
+chosen after seeing the first, so it is a modelling assumption, not a fit; both are shown.
+
+| Measure | Moelle et al. 2002 (Cz) | Model, all four E layers (L5, L6 flipped) | Model, superficial E only (L2/3 + L4) |
+|---|---|---|---|
+| Half-waves per run | 114-122 per subject (larger ones, SWS) | 56 negative, 57 positive | 12 negative, 30 positive |
+| Spindle rms, positive / negative half-wave peak | 3.32 / 2.30 µV, ratio 1.44 | 0.181 / 0.237 z, ratio 0.77 ± 0.02 | 0.489 / 0.210 z, ratio 2.43 ± 0.19 |
+| Spindle rms change against the first 0.2 s | -22% (negative), +23% (positive) | +472% / +519% | -8 ± 9% / +1197% |
+| Rebound of spindle rms after the negative half-wave | peak 400-500 ms after the trough, higher than at the positive peak | peak at +0.20 s, lower (0.127 vs 0.181) | peak at +0.20 s, lower (0.374 vs 0.489) |
+| Beta rms, positive vs negative | increase at the positive half-wave, rebound at Cz | ratio 0.61 | ratio 14.8 |
+| Alpha, theta rms | no similar change | ratios 0.80, 0.71 | ratios 4.3, 4.8 (changes as large as in spindle and beta) |
+| Cross-correlation SO vs spindle rms | positive peak at -0.1 s, strongest (negative) peak at +0.4 s, moderate coefficients | positive peak -0.25 s (r = 0.41) | positive peak -0.10 s (r = 0.81); negative peaks at about ±0.7-0.8 s (r = -0.26) |
+| Spindle-triggered SO signal | negative shift just before the spindle, positive with it, negative after | no pre-spindle negativity | positive peak +0.07 s after the centre; the dip before is only the flat baseline |
+| Peak of the 0.16-4 Hz spectrum | 0.7-0.8 Hz | 1.17 ± 0.16 Hz | 0.57 ± 0.07 Hz |
+
+What agrees, and what does not (superficial variant, which is closer):
+
+- Spindle activity is grouped by the slow oscillation: much higher at positive half-waves, no increase at negative
+  ones (-8% against -22%), and the cross-correlation peaks at -0.10 s, the lag Moelle et al. found (spindle rms
+  peaks before the SO positive peak). The spindle-triggered average shows the spindle centred 0.07 s before the
+  SO peak.
+- The spindle-to-SO relation is far too strong and clean: the positive-peak ratio is 2.4 against 1.4, the
+  correlation 0.81 against "moderate", and the +1197% rise against +23%. The model's spindle activity exists only
+  at the UP states; the human data have spindle power at all phases. This is the same fact as the SO-spindle
+  coupling R = 0.84-0.99 of sections 3.1 and 3.4.
+- Alpha and theta rms change as much as spindle and beta rms (ratios 4-5), where Moelle et al. found no change.
+  So the model's UP onset raises power in all bands: the modulation seen in the model is that of broadband
+  UP-state activity, not specific to the spindle band. This is the main difference to the paper.
+- The rebound after the negative half-wave (a spindle peak 400-500 ms after the trough, higher than at the positive
+  peak) is not reproduced: the model peaks at +0.20 s and lower than at the positive peak. In the model the
+  negative half-wave lies in the quiet baseline just before an UP onset, so the "rebound" at +0.2 s is the next UP
+  state, and the structure of a rate-based proxy explains it without a thalamic rebound.
+- No pre-spindle negative shift: a proxy built from spikes cannot go below the DOWN-state baseline, so the hyperpolarising
+  negative half-wave of the scalp EEG (and with it the suppression of spindles, the rebound and the negative DC shift
+  before spindles) is outside what this proxy can show. This limits all of the comparisons above that involve negative
+  half-waves. A membrane-potential or synaptic-current proxy would be needed.
+- The 0.16-4 Hz spectrum peaks at 0.57 Hz (superficial) or 1.17 Hz (all layers), around the human 0.7-0.8 Hz; the
+  paper's small peak at about 0.25 Hz is not present.
+- The epoch figure (the layout of the N3 slides) shows isolated large pulses with flat stretches between them, at
+  about 0.7 per second. The N3 epochs on the slides show continuous, irregular, symmetric slow waves in all
+  derivations. The AASM N3 amplitude criterion (75 µV) cannot be tested without a calibration of the proxy.
+
+Figures (superficial variant, the closer one):
+
+![Epoch](../figures/b120_litsup_epoch.png)
+
+30 s epoch: EEG proxy, SO signal with the larger half-waves, 12-15 Hz band, spindle rms with detected centres, beta rms.
+
+![Spectrum of the SO signal](../figures/b120_litsup_spectrum.png)
+
+![Half-wave-triggered averages](../figures/b120_litsup_halfwave_avg.png)
+
+![Spindle-triggered averages](../figures/b120_litsup_spindle_avg.png)
+
+![Cross-correlation](../figures/b120_litsup_xcorr.png)
+
+All four layers (L5, L6 sign-flipped), for comparison:
+
+![Epoch, all layers](../figures/b120_lit_epoch.png)
+
+![Half-wave-triggered averages, all layers](../figures/b120_lit_halfwave_avg.png)
+
+Other files: `figures/b120_lit_{spectrum,spindle_avg,xcorr}.png`, tables `res/2026-11-16/b120_lit_table.txt` and
+`b120_litsup_table.txt` (local).
+
 ## 4. Comparison with the literature
 
 The eight papers in `~/Downloads` were read for the numbers below (page-level values from the full
@@ -273,7 +355,7 @@ What the comparison says:
 
 | What | Where |
 |---|---|
-| Analysis and tests | `neuron/lfp_baseline.py`, `neuron/test_lfp_baseline.py`, `neuron/eeg_proxy.py`, `neuron/test_eeg_proxy.py` |
+| Analysis and tests | `neuron/lfp_baseline.py`, `neuron/test_lfp_baseline.py`, `neuron/eeg_proxy.py`, `neuron/test_eeg_proxy.py`, `neuron/eeg_literature.py`, `neuron/test_eeg_literature.py` |
 | EEG-proxy table | `res/2026-11-16/b120_eeg_table.txt` (local) |
 | Recipe (B120) | `MN5_NEURON.md` |
 | Table | `res/2026-11-16/b120_table.txt` (local) |

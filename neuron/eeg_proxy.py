@@ -46,11 +46,13 @@ FS = 1000.0
 SKIP_MS = 2000.0
 
 
-def source(z, tau_decay=20.0):
+def source(z, tau_decay=20.0, use=None):
     """Mean of the z-scored, sign-corrected PSP traces of the four E populations."""
     t, g, R, T = z["times"], z["gids"], z["ranges"].item(), float(z["tstop"])
     xs = []
     for _, k, flip in E_LAYERS:
+        if use is not None and k not in use:
+            continue
         x, _ = A._synaptic_lfp(L._pool(t, g, R, [k])[0], T, tau_decay=tau_decay,
                                kernel_ms=10 * tau_decay)
         x = (x - x.mean()) / (x.std() + 1e-9)
