@@ -270,6 +270,55 @@ All four layers (L5, L6 sign-flipped), for comparison:
 Other files: `figures/b120_lit_{spectrum,spindle_avg,xcorr}.png`, tables `res/2026-11-16/b120_lit_table.txt` and
 `b120_litsup_table.txt` (local).
 
+### 3.6 Adding a background of non-modelled sources (added 19 November)
+
+Eduard Kelemen's trace (a real N3 epoch, F4/F3/C4/C3/O2/O1) is irregular everywhere, with no flat stretches,
+where the proxy is a clean periodic pulse train. A real scalp EEG also contains activity of sources the model does
+not have (other cortical areas, other generators, instrumental noise). I added a background with a 1/f power
+spectrum (exponent 1) to the superficial-layer proxy, with its rms set relative to the proxy rms (0.05-35 Hz). The
+ratio is a **free parameter**: I have no measured value for it, so I scanned three values (0.5, 1, 2; 0 = before)
+and show the result for each. `neuron/eeg_literature.py --noise R`.
+
+| Measure | Moelle et al. 2002 (Cz) | no noise | noise 0.5 | noise 1 | noise 2 |
+|---|---|---|---|---|---|
+| Spindle rms, positive / negative half-wave, ratio | 1.44 | 2.43 | 3.72 | 2.35 | 1.48 |
+| Spindle rms change, negative / positive | -22% / +23% | -8% / +1197% | -25% / +447% | -17% / +161% | -10% / +47% |
+| Beta ratio positive / negative | increase | 14.8 | 8.6 | 4.0 | 1.9 |
+| Alpha, theta ratios | no change | 4.3, 4.8 | 4.3, 4.4 | 2.5, 2.3 | 1.4, 1.3 |
+| Cross-correlation, positive peak | -0.1 s, "moderate" | -0.10 s, r = 0.81 | -0.10 s, 0.70 | -0.10 s, 0.49 | -0.05 s, 0.19 |
+| Rebound after the negative half-wave | +0.4-0.5 s, higher than at the positive peak | +0.20 s, lower | +0.23 s, lower | +0.22 s, lower | +0.30 s, lower |
+| Peak of the 0.16-4 Hz spectrum | 0.7-0.8 Hz | 0.57 Hz | 0.58 Hz | 0.55 Hz | 0.40 Hz |
+
+Reading the table:
+
+- With noise 2 the unit-free ratios come into the human range (spindle ratio 1.48 against 1.44, change -10%/+47%
+  against -22%/+23%, correlation 0.19 as a moderate coefficient). But I chose which value to look at by scanning,
+  so this shows that one parameter can bring the amplitudes to the human size, not that the model is right at
+  that value. The numbers that do not depend on the noise are the ones to trust: the lag of the correlation peak
+  (-0.05 to -0.10 s in all four columns), and the failures that remain at every level: the rebound is at +0.2-0.3
+  s and lower than at the positive peak (human: 0.4-0.5 s and higher), and alpha and theta still change with the
+  slow oscillation (ratios 1.3-1.4 at noise 2, where the paper found no change).
+- The SO spectral peak moves to 0.40 Hz at noise 2, because 1/f noise adds power below 0.5 Hz, so it is further
+  from the human 0.7-0.8 Hz.
+- Visually (`figures/b120_litnoise_noise.png`) the noise fills the flat stretches and gives the continuous
+  irregular texture of the real trace. What it does not change is the shape of the slow event: in the model it is
+  a positive pulse of 0.3-0.5 s, in the real N3 traces it is a symmetric slow wave in both polarities. That needs a
+  source that can go negative (membrane potential or synaptic-current proxy), not noise.
+- Neither the noise exponent (1) nor a common noise across channels was tuned or measured; there is one channel.
+
+![Noise levels](../figures/b120_litnoise_noise.png)
+
+Same 30 s of run 0 at noise 0, 1 and 2 (left), spectra (right).
+
+![Epoch, noise 2](../figures/b120_litnoise_epoch.png)
+
+![Half-wave-triggered averages, noise 2](../figures/b120_litnoise_halfwave_avg.png)
+
+![Cross-correlation, noise 2](../figures/b120_litnoise_xcorr.png)
+
+Other files: `figures/b120_litnoise_{spectrum,spindle_avg}.png`; tables `res/2026-11-16/b120_litsup_noise{0.5,1,2}.txt`
+(local).
+
 ## 4. Comparison with the literature
 
 The eight papers in `~/Downloads` were read for the numbers below (page-level values from the full

@@ -18,6 +18,15 @@ Moelle et al. procedure used here:
   - cross-correlation of the SO signal and the spindle rms, +-2 s (Fig 6).
 The head filter here uses a 0.05 Hz high-pass (the scalp study used DC recording).
 
+NOISE (--noise R, --alpha A): an optional background with a 1/f^A power spectrum (A = 1 by
+default) is added to the proxy to stand in for sources the model does not have (other
+cortical areas, other generators, instrument noise). R is its rms relative to the proxy
+rms in 0.05-35 Hz. R is a FREE PARAMETER: it is not measured and not fitted; the report
+scans 0, 0.5, 1 and 2. With R = 2 the unit-free ratios come close to the human values,
+but that is a consequence of the scan, not a validation. Noise cannot create the negative
+half-wave of a scalp slow wave; only a different source (membrane or synaptic current)
+could. One channel only, so no channel-common noise or topography is modelled.
+
     python3 neuron/eeg_literature.py --run run0.npz ... --out-prefix figures/b120_lit \
         --out-txt res/b120_lit_table.txt
 """
@@ -40,9 +49,26 @@ def rms(s, win_ms=100):
     return np.sqrt(np.convolve(s ** 2, np.ones(k) / k, mode="same"))
 
 
-def prepare(path, use=None):
+def add_noise(x, ratio, alpha=1.0, seed=0):
+    """Background of non-modelled sources: noise with a 1/f^alpha power spectrum, rms =
+    ratio x rms of the signal (both in the 0.05-35 Hz band). ratio is a free parameter."""
+    if ratio <= 0:
+        return x
+    rng = np.random.default_rng(seed)
+    n = len(x)
+    f = np.fft.rfftfreq(n, 1 / FS)
+    spec = np.fft.rfft(rng.standard_normal(n))
+    g = np.zeros_like(f)
+    g[1:] = f[1:] ** (-alpha / 2.0)
+    nz = np.fft.irfft(spec * g, n)
+    nz = P.head_filter(nz, band=(0.05, 35.0))
+    return x + nz * ratio * x[SKIP:].std() / nz[SKIP:].std()
+
+
+def prepare(path, use=None, noise=0.0, alpha=1.0, seed=0):
     z = np.load(path, allow_pickle=True)
     x = P.head_filter(P.source(z, use=use), band=(0.05, 35.0))
+    x = add_noise(x, noise, alpha, seed)
     so = P.bandpass(x, 0.16, 4.0, 2)
     r = {name: rms(P.bandpass(x, a, b)) for name, (a, b) in BANDS.items()}
     return dict(x=x, so=so, rms=r, T=float(z["tstop"]))
@@ -333,20 +359,61 @@ def figures(R, pre):
     plt.close(fig)
 
 
+def noise_figure(path, use, pre, levels=(0.0, 1.0, 2.0), t0=30, alpha=1.0):
+    """Same 30 s of run 0 at several noise levels, and the spectra, to compare with a
+    real N3 recording."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    fig = plt.figure(figsize=(15, 8))
+    gs = fig.add_gridspec(len(levels), 2, width_ratios=[2.6, 1])
+    spec = []
+    for i, lv in enumerate(levels):
+        d = prepare(path, use, lv, alpha, seed=0)
+        a = fig.add_subplot(gs[i, 0])
+        s = slice(t0 * 1000, (t0 + 30) * 1000)
+        a.plot(np.arange(len(d["x"]))[s] / FS, d["x"][s], "k", lw=0.6)
+        for g in range(t0, t0 + 31):
+            a.axvline(g, color="0.85", lw=0.5, zorder=0)
+        a.set_ylabel("noise rms = %g x signal" % lv)
+        if i == 0:
+            a.set_title("EEG proxy (superficial E cells) plus 1/f background, same 30 s of run 0")
+        f, pw = welch(d["x"][SKIP:], fs=FS, nperseg=int(8 * FS), noverlap=int(4 * FS))
+        spec.append((lv, f, pw))
+    a.set_xlabel("time (s), grid = 1 s")
+    b = fig.add_subplot(gs[:, 1])
+    for lv, f, pw in spec:
+        m = (f >= 0.3) & (f <= 40)
+        b.loglog(f[m], pw[m], label="noise %g" % lv)
+    b.set_xlabel("frequency (Hz)")
+    b.set_ylabel("power (z^2/Hz)")
+    b.legend(frameon=False)
+    b.set_title("spectra")
+    fig.tight_layout()
+    fig.savefig(pre + "_noise.png", dpi=120)
+    plt.close(fig)
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--run", action="append", required=True)
     ap.add_argument("--out-prefix", required=True)
     ap.add_argument("--out-txt")
+    ap.add_argument("--noise", type=float, default=0.0,
+                    help="rms of the 1/f background relative to the proxy (default 0)")
+    ap.add_argument("--noise-figure", action="store_true", help="also write the noise comparison")
+    ap.add_argument("--alpha", type=float, default=1.0, help="spectral exponent of the noise")
     ap.add_argument("--layers", help="comma list of E groups, e.g. l23e,l4e (default all four)")
     a = ap.parse_args(argv)
     use = a.layers.split(",") if a.layers else None
-    R = analyse([prepare(p, use) for p in a.run])
+    R = analyse([prepare(p, use, a.noise, a.alpha, seed=i) for i, p in enumerate(a.run)])
     txt = table(R)
     print("\n".join(txt))
     if a.out_txt:
         open(a.out_txt, "w").write("\n".join(txt) + "\n")
     figures(R, a.out_prefix)
+    if a.noise_figure:
+        noise_figure(a.run[0], use, a.out_prefix, alpha=a.alpha)
 
 
 if __name__ == "__main__":
