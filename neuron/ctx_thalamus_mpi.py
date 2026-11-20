@@ -637,6 +637,59 @@ class ParallelCorticoThalamicNet:
         wall = self.pc.allreduce(wall, 2)
         return wall
 
+    # ------------------------------------------------------ membrane potential
+    def record_vm(self, n_sample=10, dt_ms=1.0, tstop=None):
+        """Opt-in: record the soma potential of EVERY local cell every dt_ms (for the
+        per-population mean) and keep the traces of the first n_sample cells of each
+        population. Call before run(). Does not change the dynamics (a Vector.record
+        only reads v), so spikes are identical to a run without it."""
+        self._vm = {"dt": dt_ms, "n_sample": n_sample, "pops": {}}
+        for pop in self.POPS:
+            lo, hi = self.ranges[pop]
+            vecs = []
+            for gid in range(lo, hi):
+                if int(self.pc.gid_exists(gid)) == 0:
+                    continue
+                v = h.Vector()
+                v.record(self.cells[gid].soma(0.5)._ref_v, dt_ms)
+                vecs.append((gid, v))
+            self._vm["pops"][pop] = vecs
+
+    def vm_gather(self, tstop):
+        """Collective (all ranks). Returns on rank 0 a dict of arrays to store in the
+        npz: vm_t (ms), vm_mean_<pop> (mean soma potential over ALL cells of the
+        population), vm_cells_<pop> / vm_gids_<pop> (traces of the sampled cells)."""
+        if not hasattr(self, "_vm"):
+            return {}
+        dt = self._vm["dt"]
+        n = int(round(tstop / dt)) + 1
+        out = {}
+        for pop in self.POPS:
+            lo, hi = self.ranges[pop]
+            vecs = self._vm["pops"][pop]
+            acc = h.Vector(n)
+            acc.fill(0.0)
+            mine = []
+            for gid, v in vecs:
+                a = np.asarray(v)
+                m = min(len(a), n)
+                part = np.zeros(n)
+                part[:m] = a[:m]
+                acc.add(h.Vector(part))
+                if gid - lo < self._vm["n_sample"]:
+                    mine.append((gid, part.astype(np.float32)))
+            self.pc.allreduce(acc, 1)                      # elementwise sum over ranks
+            gathered = self.pc.py_gather(mine, 0)
+            if self.rank == 0:
+                allc = sorted([c for part in gathered for c in part], key=lambda c: c[0])
+                out["vm_mean_" + pop] = (np.asarray(acc) / float(hi - lo)).astype(np.float32)
+                out["vm_gids_" + pop] = np.array([c[0] for c in allc], int)
+                out["vm_cells_" + pop] = (np.array([c[1] for c in allc], np.float32)
+                                          if allc else np.zeros((0, n), np.float32))
+        if self.rank == 0:
+            out["vm_t"] = np.arange(n) * dt
+        return out
+
     def _add_cortical_noise(self):
         rate, T = self.cx_noise_rate, self.cx_noise_tstop
         self._noise = []
@@ -855,6 +908,10 @@ def main():
                     help="multiply every population size (default sizes sum "
                          "to the reference model's declared 3050)")
     ap.add_argument("--out", default="")
+    ap.add_argument("--vm-record", type=int, default=0,
+                    help="record soma Vm: mean of every population plus the traces of the "
+                         "first N cells of each (0 = off, the default; does not change spikes)")
+    ap.add_argument("--vm-dt", type=float, default=1.0, help="Vm sampling interval, ms")
     ap.add_argument("--bench", action="store_true",
                     help="scaling benchmark: several sizes, 1 s each")
     ap.add_argument("--bench-scales", default="0.1,0.5,1.0,1.65",
@@ -1347,6 +1404,8 @@ def main():
                                       taur_l5e_rs=a.taur_l5e_rs, state=a.state,
                                       g_gap=a.g_gap, thal_footprint=a.thal_footprint,
                                       het_seed=a.het_seed, g_l5_gap=a.g_l5_gap, **extra)
+    if a.vm_record:
+        net.record_vm(a.vm_record, a.vm_dt, a.tstop)
     aud = AI.AuditoryInput(net, a.stim, a.tstop) if a.stim else None
     cl_extra = {}
     if a.closed_loop:
@@ -1376,6 +1435,7 @@ def main():
                   % (a.open_loop, len(sched), sum(x["n"] for x in sched)))
     else:
         wall = net.run(tstop=a.tstop)
+    vm_extra = net.vm_gather(a.tstop) if a.vm_record else {}
     t, g = net.gather()
     if net.rank == 0:
         _report(net, t, g, wall, a.tstop)
@@ -1400,6 +1460,7 @@ def main():
             os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
             extra = aud.log() if aud else {}
             extra.update(cl_extra)
+            extra.update(vm_extra)
             np.savez_compressed(a.out.replace(".h5", ".npz"),
                                  times=t, gids=g, sizes=net.sizes,
                                  ranges=net.ranges, tstop=a.tstop, wall=wall,

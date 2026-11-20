@@ -709,3 +709,30 @@ for s in range(8):
 PY
 ```
 Counts may differ by 1-2 spikes at the run-end boundary; everything before must be equal.
+
+## V120: 120 s with membrane-potential recording (prepared 2026-11-20)
+
+New flags `--vm-record N` (N sampled cells per population, 0 = off) and `--vm-dt` (ms) in
+`neuron/ctx_thalamus_mpi.py`. **This file changed: upload it first** (the md5 of the previous version was
+5715327ff9be5b625d0a1bb348f3f0c7; the new one is 751d742dc919da132842c621235dd30d):
+
+```bash
+rsync -av neuron/ctx_thalamus_mpi.py <user>@<mn5-login>:/gpfs/projects/uab100/audCC/neuron/
+```
+
+Same network and settings as B120, one flag added. Every cell records its soma potential at 1 kHz
+(about 5 GB over all ranks for 120 s, 50 MB per rank); the output holds the mean over each population and the
+traces of the first 10 cells of each.
+
+```bash
+cd /gpfs/projects/uab100/audCC
+C=SCALE=1.65,TSTOP=120000,G_I_E_L5=0.02,G_L5_REC=0.013,TAU2_L5_REC=200,TAUR_L5E_RS=120,L5_REC_MECH=nmda,SPINDLE=stage2
+for s in 0 1 2 3; do
+  sbatch -A uab100 -q acc_resc --time=01:00:00 --export=ALL,$C,HET_SEED=$s,EXTRA_ARGS="--cx-noise-rate 200 --vm-record 10",TAG=v120_s$s run_ctx_nrn.sh
+done
+```
+
+Check: `tstop 120000 ms`, `total cells 5031`; the npz must contain `vm_mean_l23e` etc. Spikes should equal B120 for the
+same seed (the recording does not change the dynamics): compare as in the B120 section. Analyse locally with
+`python3 neuron/vm_report.py --run v120_s0.npz --out-prefix figures/v120_s0 --out-txt res/<folder>/v120_s0_table.txt`.
+Local run on 8 cores (40 s, 5031 cells) took 79 minutes, so the MN5 time limit is no problem.
